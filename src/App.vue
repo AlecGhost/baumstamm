@@ -6,14 +6,17 @@ import { ref } from 'vue'
 import Person from './types/Person';
 
 const person = ref<Person>({ firstName: "John", lastName: "Dow", dateOfBirth: "01.02.1234", dateOfDeath: null })
+const rows = ref(4)
 const columns = ref(5)
 
 function zoomIn() {
   columns.value--
+  rows.value--
 }
 
 function zoomOut() {
   columns.value++
+  rows.value--
 }
 
 </script>
@@ -22,7 +25,7 @@ function zoomOut() {
   <button @click="zoomOut">+</button>
   <button @click="zoomIn">-</button>
   <section class="grid-container">
-    <div class="grid-item" v-for="n in columns * columns">{{ n }}</div>
+    <div class="grid-item" v-for="n in rows * columns">{{ n }}</div>
   </section>
   <!-- <PersonCard :person="person"/> -->
 </template>
