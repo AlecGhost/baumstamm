@@ -30,12 +30,13 @@ function zoomOut() {
 <style scoped>
 .grid-container {
   display: grid;
-  gap: 1rem;
   grid-template-columns: repeat(v-bind(columns), 1fr);
+  height: 90vh;
 }
 
 .grid-item {
   background-color: green;
-  border-color: black;
+  border-style: solid;
+  border-color: blue;
 }
 </style>
