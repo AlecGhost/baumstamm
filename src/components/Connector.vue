@@ -3,13 +3,13 @@ import { ref } from 'vue';
 import ConnectorType from '../types/ConnectorType'
 
 const props = defineProps<{
-  connectorType: ConnectorType 
+  connectorType: ConnectorType
 }>();
+
 const leftDivTop = ref(!(props.connectorType == ConnectorType.RightCorner))
 const rightDivTop = ref(!(props.connectorType == ConnectorType.LeftCorner))
 const leftDivSide = ref((props.connectorType == ConnectorType.RightCorner) || (props.connectorType == ConnectorType.T))
 const rightDivSide = ref(props.connectorType == ConnectorType.LeftCorner)
-
 </script>
 
 <template>

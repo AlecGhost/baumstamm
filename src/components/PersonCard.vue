@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { defineProps } from 'vue';
 import Person from '../types/Person'
 
-const props = defineProps<{
+defineProps<{
   person: Person
 }>()
 </script>

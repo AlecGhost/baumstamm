@@ -20,6 +20,6 @@ function zoomOut() {
 <template>
   <button @click="zoomOut">+</button>
   <button @click="zoomIn">-</button>
-  <BaumstammGrid :columns="columns" :rows="rows"></BaumstammGrid>
+  <BaumstammGrid :columns="columns" :rows="rows" />
 </template>
 

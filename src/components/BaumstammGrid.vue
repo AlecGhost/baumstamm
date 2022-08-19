@@ -1,26 +1,21 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import Person from '../types/Person'
-import PersonCard from 'PersonCard.vue'
-import ConnectorType from '../types/ConnectorType'
-import Connector from './Connector.vue'
+import { GridItemType, GridItemWrapper } from '../types/GridItemWrapper'
+import GridItem from './GridItem.vue'
 
-const props = defineProps<{
+defineProps<{
   rows: number,
   columns: number
 }>();
-const person = ref<Person>({ firstName: "John", lastName: "Dow", dateOfBirth: "01.02.1234", dateOfDeath: null })
-const connectorType = ref<ConnectorType>(ConnectorType.Straight)
 
+const gridItem = new GridItemWrapper(GridItemType.Empty, null)
 </script>
 
 <template>
   <section class="grid-container">
     <div class="grid-item" v-for="n in rows * columns">
-      <Connector :connectorType="connectorType"></Connector>
+      <GridItem :gridItem="gridItem" />
     </div>
   </section>
-  <!-- <PersonCard :person="person"/> -->
 </template>
 
 <style scoped>
