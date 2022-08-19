@@ -1,20 +1,19 @@
 <script setup lang="ts">
-import ConnectorType from '../types/ConnectorType'
-import { GridItemType, GridItemWrapper } from '../types/GridItemWrapper'
+import { GridItemWrapper } from '../types/GridItemWrapper'
 import GridItem from './GridItem.vue'
 
 defineProps<{
   rows: number,
-  columns: number
+  columns: number,
+  gridItems: GridItemWrapper[]
 }>()
 
-const gridItem = new GridItemWrapper(GridItemType.Connector, ConnectorType.T)
 </script>
 
 <template>
   <section class="grid-container">
-    <div class="grid-item" v-for="n in rows * columns">
-      <GridItem :gridItem="gridItem" />
+    <div class="grid-item" v-if="rows * columns === gridItems.length" v-for="gridItem in gridItems">
+      <GridItem :gridItem="gridItem"/>
     </div>
   </section>
 </template>
