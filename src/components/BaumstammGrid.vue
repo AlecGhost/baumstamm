@@ -1,13 +1,14 @@
 <script setup lang="ts">
+import ConnectorType from '../types/ConnectorType'
 import { GridItemType, GridItemWrapper } from '../types/GridItemWrapper'
 import GridItem from './GridItem.vue'
 
 defineProps<{
   rows: number,
   columns: number
-}>();
+}>()
 
-const gridItem = new GridItemWrapper(GridItemType.Empty, null)
+const gridItem = new GridItemWrapper(GridItemType.Connector, ConnectorType.T)
 </script>
 
 <template>

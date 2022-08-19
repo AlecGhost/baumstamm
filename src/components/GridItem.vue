@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { GridItemType, GridItemWrapper } from '../types/GridItemWrapper'
-import PersonCard from './PersonCard.vue';
-import Person from '../types/Person';
-import Connector from './Connector.vue';
-import ConnectorType from '../types/ConnectorType';
+import PersonCard from './PersonCard.vue'
+import Person from '../types/Person'
+import Connector from './Connector.vue'
+import ConnectorType from '../types/ConnectorType'
 
 const props = defineProps<{
   gridItem: GridItemWrapper
-}>();
+}>()
 
 const isPerson = props.gridItem.itemType === GridItemType.Person
 const isConnector = props.gridItem.itemType === GridItemType.Connector

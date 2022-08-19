@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue';
 import ConnectorType from '../types/ConnectorType'
 
 const props = defineProps<{
   connectorType: ConnectorType
-}>();
+}>()
 
-const leftDivTop = ref(!(props.connectorType == ConnectorType.RightCorner))
-const rightDivTop = ref(!(props.connectorType == ConnectorType.LeftCorner))
-const leftDivSide = ref((props.connectorType == ConnectorType.RightCorner) || (props.connectorType == ConnectorType.T))
-const rightDivSide = ref(props.connectorType == ConnectorType.LeftCorner)
+const leftDivTop = props.connectorType !== ConnectorType.RightCorner
+const rightDivTop = props.connectorType !== ConnectorType.LeftCorner
+const leftDivSide = (props.connectorType === ConnectorType.RightCorner) || (props.connectorType === ConnectorType.T)
+const rightDivSide = props.connectorType === ConnectorType.LeftCorner
 </script>
 
 <template>
