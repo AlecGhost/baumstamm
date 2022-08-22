@@ -7,7 +7,7 @@ import ConnectorType from '../types/ConnectorType'
 
 const props = defineProps<{
   gridItem: GridItemWrapper
-}>()
+}>();
 
 const isPerson = props.gridItem.itemType === GridItemType.Person
 const isConnector = props.gridItem.itemType === GridItemType.Connector

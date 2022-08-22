@@ -6,14 +6,13 @@ defineProps<{
   rows: number,
   columns: number,
   gridItems: GridItemWrapper[]
-}>()
-
+}>();
 </script>
 
 <template>
   <section class="grid-container">
     <div class="grid-item" v-if="rows * columns === gridItems.length" v-for="gridItem in gridItems">
-      <GridItem :gridItem="gridItem"/>
+      <GridItem :gridItem="gridItem" />
     </div>
   </section>
 </template>
