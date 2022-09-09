@@ -1,11 +1,11 @@
 [package]
-name = "app"
+name = "baumstamm"
 version = "0.1.0"
 description = "Baumstamm - Stammbäume erstellen"
 authors = ["Alec Ghost"]
 license = ""
 repository = ""
-default-run = "app"
+default-run = "baumstamm"
 edition = "2021"
 rust-version = "1.57"
 

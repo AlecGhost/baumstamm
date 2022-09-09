@@ -1,4 +1,4 @@
-use crate::grid::{Connector, GridSize, Item, PersonInfo, SourcePoint};
+use baumstamm::grid::{Connector, GridSize, Item, PersonInfo, SourcePoint};
 
 #[tauri::command]
 pub fn generate_grid(size: GridSize, source: SourcePoint) -> Result<Vec<Item>, String> {
