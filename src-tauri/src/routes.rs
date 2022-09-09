@@ -1,4 +1,4 @@
-use crate::grid::{Connector, GridSize, Item, Person, SourcePoint};
+use crate::grid::{Connector, GridSize, Item, PersonInfo, SourcePoint};
 
 #[tauri::command]
 pub fn generate_grid(size: GridSize, source: SourcePoint) -> Result<Vec<Item>, String> {
@@ -8,8 +8,7 @@ pub fn generate_grid(size: GridSize, source: SourcePoint) -> Result<Vec<Item>, S
         return Err(String::from("Source point is out of bounds"));
     }
     let connector = Item::Connector(Connector::T);
-    let person = Item::Person(Person::new(
-        0,
+    let person = Item::Person(PersonInfo::new(
         String::from("John"),
         Some(String::from("Doe")),
         Some(String::from("01.11.1111")),

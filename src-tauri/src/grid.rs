@@ -6,25 +6,22 @@ pub enum Connector {
     RightCorner,
 }
 
-#[derive(Debug, serde::Serialize)]
-pub struct Person {
-    id: u32,
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct PersonInfo {
     first_name: String,
     last_name: Option<String>,
     date_of_birth: Option<String>,
     date_of_death: Option<String>,
 }
 
-impl Person {
+impl PersonInfo {
     pub fn new(
-        id: u32,
         first_name: String,
         last_name: Option<String>,
         date_of_birth: Option<String>,
         date_of_death: Option<String>,
-    ) -> Person {
-        Person {
-            id,
+    ) -> PersonInfo {
+        PersonInfo {
             first_name,
             last_name,
             date_of_birth,
@@ -36,7 +33,7 @@ impl Person {
 #[derive(Debug, serde::Serialize)]
 pub enum Item {
     None,
-    Person(Person),
+    Person(PersonInfo),
     Connector(Connector),
 }
 

@@ -4,6 +4,7 @@
 )]
 
 use tauri::generate_handler;
+mod graph;
 mod grid;
 mod routes;
 
