@@ -39,6 +39,27 @@ impl Relationship {
             .chain(self.children.clone())
             .collect()
     }
+
+    fn descendants(&self, relationships: &[Relationship]) -> Vec<PersonId> {
+        let mut descendants = self.children.clone();
+        let mut index = 0;
+        while index < descendants.len() {
+            let descendant = &descendants[index].clone();
+            relationships
+                .iter()
+                .filter(|rel| rel.parents().contains(descendant))
+                .flat_map(|rel| rel.children.clone())
+                .unique()
+                .for_each(|child| {
+                    if !descendants.contains(&child) {
+                        descendants.push(child)
+                    }
+                });
+
+            index += 1;
+        }
+        descendants
+    }
 }
 
 fn read_relationships(file_name: &str) -> Result<Vec<Relationship>, Box<dyn Error>> {
@@ -53,7 +74,7 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
         return Ok(());
     }
 
-    if relationships.len() != relationships.iter().unique().count() {
+    if relationships.len() != relationships.iter().map(|rel| rel.id).unique().count() {
         return Err("More than one relationship with the same id".to_string());
     }
 
@@ -62,7 +83,7 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
         .filter(|rel| rel.p1 != None && rel.p2 != None)
         .any(|rel| rel.p1 == rel.p2)
     {
-        return Err("Self referencing Relationship".to_string());
+        return Err("Self referencing relationship".to_string());
     }
 
     if relationships.iter().any(|rel| {
@@ -70,12 +91,21 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
             .iter()
             .any(|child| rel.parents().iter().any(|parent| parent == child))
     }) {
-        return Err("Child cannot be its parent".to_string());
+        return Err("A Child cannot be its parent".to_string());
     }
 
-    let children_iter = relationships.iter().flat_map(|rel| rel.children.clone());
-    if children_iter.clone().count() != children_iter.unique().count() {
-        return Err("Person is child of more than one relationship".to_string());
+    // Relationship.descendants() is safe to call after this check
+    let children = relationships
+        .iter()
+        .flat_map(|rel| rel.children.clone())
+        .collect::<Vec<PersonId>>();
+
+    if children.len() != extract_persons(relationships).len() {
+        return Err("Every person must be child of a relationship".to_string());
+    }
+
+    if children.len() != children.iter().unique().count() {
+        return Err("A Person is child of more than one relationship".to_string());
     }
 
     fn nr_connected_persons(relationships: &[Relationship]) -> usize {
@@ -100,17 +130,18 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
         total_related_persons.len()
     }
 
-    let nr_persons = extract_persons(relationships).len();
+    let nr_persons = children.len();
     if nr_connected_persons(relationships) != nr_persons {
-        return Err("Not all Nodes are connected".to_string());
+        return Err("Not all nodes are connected".to_string());
     }
 
-    // if relationships.iter().any(|rel| {
-    //     rel.parents().iter();
-
-    // }) {
-    //     return Err("Cicle in Family Tree".to_string());
-    // }
+    if relationships.iter().any(|rel| {
+        rel.parents()
+            .iter()
+            .any(|parent| rel.descendants(relationships).contains(parent))
+    }) {
+        return Err("Cycle in family tree".to_string());
+    }
 
     Ok(())
 }
@@ -257,7 +288,7 @@ Expected: {:?}",
     #[test]
     fn self_reference() {
         test_err_message(
-            "Self referencing Relationship",
+            "Self referencing relationship",
             read_relationships("test/self_reference.json").expect_err("Self reference failed"),
         );
     }
@@ -265,15 +296,24 @@ Expected: {:?}",
     #[test]
     fn child_is_parent() {
         test_err_message(
-            "Child cannot be its parent",
+            "A Child cannot be its parent",
             read_relationships("test/child_is_parent.json").expect_err("Child is parent failed"),
+        );
+    }
+
+    #[test]
+    fn child_of_relationship() {
+        test_err_message(
+            "Every person must be child of a relationship",
+            read_relationships("test/child_of_relationship.json")
+                .expect_err("Child of relationship failed"),
         );
     }
 
     #[test]
     fn more_than_one_parent_rel() {
         test_err_message(
-            "Person is child of more than one relationship",
+            "A Person is child of more than one relationship",
             read_relationships("test/more_than_one_parent_rel.json")
                 .expect_err("More than one parent failed"),
         );
@@ -282,9 +322,17 @@ Expected: {:?}",
     #[test]
     fn everything_connected() {
         test_err_message(
-            "Not all Nodes are connected",
+            "Not all nodes are connected",
             read_relationships("test/everything_connected.json")
                 .expect_err("Everything connected failed"),
+        );
+    }
+
+    #[test]
+    fn no_cycles() {
+        test_err_message(
+            "Cycle in family tree",
+            read_relationships("test/no_cycles.json").expect_err("No cycle failed"),
         );
     }
 }
