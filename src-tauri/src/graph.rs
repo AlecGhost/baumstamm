@@ -27,6 +27,10 @@ impl Relationship {
             children,
         }
     }
+
+    fn parents(&self) -> Vec<PersonId> {
+        vec![self.p1, self.p2].iter().flatten().cloned().collect()
+    }
 }
 
 fn read_relationships(file_name: &str) -> Result<Vec<Relationship>, Box<dyn Error>> {
@@ -40,6 +44,7 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
     if relationships.len() != relationships.iter().unique().count() {
         return Err("More than one relationship with the same id".to_string());
     }
+
     if relationships
         .iter()
         .filter(|rel| rel.p1 != None && rel.p2 != None)
@@ -48,17 +53,32 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
         return Err("Self referencing Relationship".to_string());
     }
 
+    if relationships.iter().any(|rel| {
+        rel.children
+            .iter()
+            .any(|child| rel.parents().iter().any(|parent| parent == child))
+    }) {
+        return Err("Child cannot be its parent".to_string());
+    }
+
+    let children_iter = relationships.iter().flat_map(|rel| rel.children.clone());
+
+    if children_iter.clone().count() != children_iter.unique().count() {
+        return Err("Person is child of more than one relationship".to_string());
+    }
+
+    // if relationships.iter().any(|rel| {
+    //     rel.parents().iter();
+
+    // }) {
+    //     return Err("Cicle in Family Tree".to_string());
+    // }
+
     Ok(())
 }
 
 fn extract_persons(relationships: &[Relationship]) -> Vec<PersonId> {
-    let parents = relationships.iter().flat_map(|rel| {
-        vec![rel.p1, rel.p2]
-            .iter()
-            .flatten()
-            .cloned()
-            .collect::<Vec<PersonId>>()
-    });
+    let parents = relationships.iter().flat_map(|rel| rel.parents());
     let children = relationships.iter().flat_map(|rel| rel.children.to_vec());
     parents.chain(children).unique().collect()
 }
@@ -182,5 +202,30 @@ Expected: {:?}",
             );
             Err(message.into())
         }
+    }
+
+    #[test]
+    fn multiple_ids() {
+        assert!(read_relationships("test/multiple_ids.json").is_err());
+    }
+
+    #[test]
+    fn self_reference() {
+        assert!(read_relationships("test/self_reference.json").is_err());
+    }
+
+    #[test]
+    fn child_is_parent() {
+        assert!(read_relationships("test/child_is_parent.json").is_err());
+    }
+
+    #[test]
+    fn more_than_one_parent_rel() {
+        assert!(read_relationships("test/more_than_one_parent_rel.json").is_err());
+    }
+
+    #[test]
+    fn everything_connected() {
+        assert!(read_relationships("test/everything_connected.json").is_err());
     }
 }
