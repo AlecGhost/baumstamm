@@ -31,6 +31,14 @@ impl Relationship {
     fn parents(&self) -> Vec<PersonId> {
         vec![self.p1, self.p2].iter().flatten().cloned().collect()
     }
+
+    fn persons(&self) -> Vec<PersonId> {
+        self.parents()
+            .iter()
+            .cloned()
+            .chain(self.children.clone())
+            .collect()
+    }
 }
 
 fn read_relationships(file_name: &str) -> Result<Vec<Relationship>, Box<dyn Error>> {
@@ -41,6 +49,10 @@ fn read_relationships(file_name: &str) -> Result<Vec<Relationship>, Box<dyn Erro
 }
 
 fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<(), String> {
+    if relationships.is_empty() {
+        return Ok(());
+    }
+
     if relationships.len() != relationships.iter().unique().count() {
         return Err("More than one relationship with the same id".to_string());
     }
@@ -62,9 +74,35 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
     }
 
     let children_iter = relationships.iter().flat_map(|rel| rel.children.clone());
-
     if children_iter.clone().count() != children_iter.unique().count() {
         return Err("Person is child of more than one relationship".to_string());
+    }
+
+    fn nr_connected_persons(relationships: &[Relationship]) -> usize {
+        let mut total_related_persons = relationships[0].persons();
+        let mut index = 0;
+
+        while index < total_related_persons.len() {
+            let current_person = &total_related_persons[index].clone();
+            relationships
+                .iter()
+                .filter(|rel| rel.persons().contains(current_person))
+                .flat_map(|rel| rel.persons())
+                .unique()
+                .for_each(|person| {
+                    if !total_related_persons.contains(&person) {
+                        total_related_persons.push(person);
+                    }
+                });
+            index += 1;
+        }
+
+        total_related_persons.len()
+    }
+
+    let nr_persons = extract_persons(relationships).len();
+    if nr_connected_persons(relationships) != nr_persons {
+        return Err("Not all Nodes are connected".to_string());
     }
 
     // if relationships.iter().any(|rel| {
@@ -204,28 +242,49 @@ Expected: {:?}",
         }
     }
 
+    fn test_err_message(expected_err_message: &str, err: Box<dyn Error>) {
+        assert_eq!(expected_err_message, format!("{err}"))
+    }
+
     #[test]
     fn multiple_ids() {
-        assert!(read_relationships("test/multiple_ids.json").is_err());
+        test_err_message(
+            "More than one relationship with the same id",
+            read_relationships("test/multiple_ids.json").expect_err("Multiple ids failed"),
+        );
     }
 
     #[test]
     fn self_reference() {
-        assert!(read_relationships("test/self_reference.json").is_err());
+        test_err_message(
+            "Self referencing Relationship",
+            read_relationships("test/self_reference.json").expect_err("Self reference failed"),
+        );
     }
 
     #[test]
     fn child_is_parent() {
-        assert!(read_relationships("test/child_is_parent.json").is_err());
+        test_err_message(
+            "Child cannot be its parent",
+            read_relationships("test/child_is_parent.json").expect_err("Child is parent failed"),
+        );
     }
 
     #[test]
     fn more_than_one_parent_rel() {
-        assert!(read_relationships("test/more_than_one_parent_rel.json").is_err());
+        test_err_message(
+            "Person is child of more than one relationship",
+            read_relationships("test/more_than_one_parent_rel.json")
+                .expect_err("More than one parent failed"),
+        );
     }
 
     #[test]
     fn everything_connected() {
-        assert!(read_relationships("test/everything_connected.json").is_err());
+        test_err_message(
+            "Not all Nodes are connected",
+            read_relationships("test/everything_connected.json")
+                .expect_err("Everything connected failed"),
+        );
     }
 }
