@@ -6,16 +6,16 @@ use super::{extract_persons, Person, PersonId, Relationship};
 
 pub(super) fn check(
     relationships: &Vec<Relationship>,
-    persons: &Vec<Person>,
+    persons: &[Person],
 ) -> Result<(), &'static str> {
     check_relationships(relationships)?;
-    check_persons(&persons)?;
+    check_persons(persons)?;
 
     // turn into hash map for O(n) access
     let persons_hashmap: HashMap<PersonId, ()> = HashMap::from_iter(
         extract_persons(relationships)
             .iter()
-            .map(|person_id| (person_id.clone(), ())),
+            .map(|person_id| (*person_id, ())),
     );
     if persons
         .iter()
