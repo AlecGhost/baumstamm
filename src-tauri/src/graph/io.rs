@@ -9,11 +9,26 @@ pub fn read_relationships(file_name: &str) -> Result<Vec<Relationship>, Box<dyn 
     Ok(relationships)
 }
 
+pub fn write_relationships(
+    file_name: &str,
+    relationships: &[Relationship],
+) -> Result<(), Box<dyn Error>> {
+    let json_str = serde_json::to_string_pretty(relationships)?;
+    fs::write(file_name, json_str)?;
+    Ok(())
+}
+
 pub fn read_persons(file_name: &str) -> Result<Vec<Person>, Box<dyn Error>> {
     let json_str = fs::read_to_string(file_name)?;
     let persons: Vec<Person> = serde_json::from_str(&json_str)?;
     super::consistency::check_persons(&persons)?;
     Ok(persons)
+}
+
+pub fn write_persons(file_name: &str, persons: &[Person]) -> Result<(), Box<dyn Error>> {
+    let json_str = serde_json::to_string_pretty(persons)?;
+    fs::write(file_name, json_str)?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -107,5 +122,51 @@ Expected: {:?}",
             );
             Err(message.into())
         }
+    }
+
+    #[test]
+    fn test_write_persons() {
+        let mut persons = read_persons("test/write_persons.json").unwrap();
+        assert_eq!(
+            "67e55044-10b1-426f-9247-bb680e5fe0c8",
+            persons[0].id.to_string()
+        );
+        persons[0].id = uuid::uuid!("57e55044-10b1-426f-9247-bb680e5fe0c8");
+        write_persons("test/write_persons.json", &persons).unwrap();
+        let mut persons = read_persons("test/write_persons.json").unwrap();
+        assert_eq!(
+            "57e55044-10b1-426f-9247-bb680e5fe0c8",
+            persons[0].id.to_string()
+        );
+        persons[0].id = uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
+        write_persons("test/write_persons.json", &persons).unwrap();
+        let persons = read_persons("test/write_persons.json").unwrap();
+        assert_eq!(
+            "67e55044-10b1-426f-9247-bb680e5fe0c8",
+            persons[0].id.to_string()
+        );
+    }
+
+    #[test]
+    fn test_write_relationships() {
+        let mut relationships = read_relationships("test/write_relationships.json").unwrap();
+        assert_eq!(
+            "67e55044-10b1-426f-9247-bb680e5fe0c8",
+            relationships[0].id.to_string()
+        );
+        relationships[0].id = uuid::uuid!("57e55044-10b1-426f-9247-bb680e5fe0c8");
+        write_relationships("test/write_relationships.json", &relationships).unwrap();
+        let mut relationships = read_relationships("test/write_relationships.json").unwrap();
+        assert_eq!(
+            "57e55044-10b1-426f-9247-bb680e5fe0c8",
+            relationships[0].id.to_string()
+        );
+        relationships[0].id = uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
+        write_relationships("test/write_relationships.json", &relationships).unwrap();
+        let relationships = read_relationships("test/write_relationships.json").unwrap();
+        assert_eq!(
+            "67e55044-10b1-426f-9247-bb680e5fe0c8",
+            relationships[0].id.to_string()
+        );
     }
 }

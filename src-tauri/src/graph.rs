@@ -1,7 +1,5 @@
 use crate::grid::PersonInfo;
 use crate::util::UniqueIterator;
-#[allow(unused_imports)]
-use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 mod consistency;
