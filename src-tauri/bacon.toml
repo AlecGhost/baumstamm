@@ -33,6 +33,11 @@ command = ["cargo", "nextest", "run", "--color", "always"]
 need_stdout = true
 watch = ["tests"]
 
+[jobs.module-tree]
+command = ["cargo", "modules", "generate", "tree", "--lib", "--with-types"]
+need_stdout = true
+
+
 [jobs.doc]
 command = ["cargo", "doc", "--color", "always", "--no-deps"]
 need_stdout = false
@@ -64,3 +69,4 @@ d = "job:doc-open"
 t = "job:test"
 n = "job:nextest"
 r = "job:run"
+m = "job:module-tree"
