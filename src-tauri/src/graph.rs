@@ -97,7 +97,16 @@ pub struct FamilyTree {
 }
 
 impl FamilyTree {
-    pub fn new(
+    pub fn new(relationships_file_name: String, persons_file_name: String) -> Self {
+        FamilyTree {
+            relationships_file_name,
+            persons_file_name,
+            relationships: Vec::new(),
+            persons: Vec::new(),
+        }
+    }
+
+    pub fn from_disk(
         relationships_file_name: String,
         persons_file_name: String,
     ) -> Result<Self, Box<dyn Error>> {
@@ -113,21 +122,28 @@ impl FamilyTree {
         })
     }
 
+    pub fn save(&self) -> Result<(), Box<dyn Error>> {
+        io::write_relationships(&self.relationships_file_name, &self.relationships)?;
+        io::write_persons(&self.persons_file_name, &self.persons)?;
+        Ok(())
+    }
+
     pub fn add_parent(
         &mut self,
         relationship_id: RelationshipId,
     ) -> Result<PersonId, &'static str> {
-        let mut rel_opt: Option<&Relationship> = self
+        let rel_opt = self
             .relationships
-            .iter()
+            .iter_mut()
             .find(|rel| rel.id == relationship_id);
-        let mut rel: &mut &Relationship = match &mut rel_opt {
+        let mut rel = match rel_opt {
             Some(rel) => rel,
             None => return Err("Invalid relationship id"),
         };
         if rel.parents().len() == 2 {
             return Err("Cannot add another parent");
         }
+
         let new_person = Person::new();
         let new_id = new_person.id;
         self.persons.push(new_person);
@@ -136,6 +152,23 @@ impl FamilyTree {
         } else {
             rel.p2 = Some(new_id);
         }
+        Ok(new_id)
+    }
+
+    pub fn add_child(&mut self, relationship_id: RelationshipId) -> Result<PersonId, &'static str> {
+        let rel_opt = self
+            .relationships
+            .iter_mut()
+            .find(|rel| rel.id == relationship_id);
+
+        let rel = match rel_opt {
+            Some(rel) => rel,
+            None => return Err("Invalid relationship id"),
+        };
+        let new_person = Person::new();
+        let new_id = new_person.id;
+        self.persons.push(new_person);
+        rel.children.push(new_id);
         Ok(new_id)
     }
 }
