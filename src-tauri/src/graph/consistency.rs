@@ -1,8 +1,33 @@
+use std::{collections::HashMap, iter::FromIterator};
+
 use crate::util::UniqueIterator;
 
-use super::{Person, PersonId, Relationship};
+use super::{extract_persons, Person, PersonId, Relationship};
 
-pub fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'static str> {
+pub(super) fn check(
+    relationships: &Vec<Relationship>,
+    persons: &Vec<Person>,
+) -> Result<(), &'static str> {
+    check_relationships(relationships)?;
+    check_persons(&persons)?;
+
+    // turn into hash map for O(n) access
+    let persons_hashmap: HashMap<PersonId, ()> = HashMap::from_iter(
+        extract_persons(relationships)
+            .iter()
+            .map(|person_id| (person_id.clone(), ())),
+    );
+    if persons
+        .iter()
+        .map(|person| person.id)
+        .any(|person_id| !persons_hashmap.contains_key(&person_id))
+    {
+        return Err("Relationships and persons do not match");
+    }
+    Ok(())
+}
+
+fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'static str> {
     if relationships.is_empty() {
         return Ok(());
     }
@@ -79,7 +104,7 @@ pub fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'st
     Ok(())
 }
 
-pub fn check_persons(persons: &[Person]) -> Result<(), &'static str> {
+fn check_persons(persons: &[Person]) -> Result<(), &'static str> {
     let person_ids: Vec<PersonId> = persons.iter().map(|person| person.id).collect();
 
     if person_ids.len() != person_ids.iter().unique().count() {
@@ -91,77 +116,113 @@ pub fn check_persons(persons: &[Person]) -> Result<(), &'static str> {
 
 #[cfg(test)]
 mod test {
-    use crate::graph::io::{read_persons, read_relationships};
-    use std::error::Error;
+    use super::*;
+    use crate::graph::io;
 
-    fn test_err_message(expected_err_message: &str, err: Box<dyn Error>) {
+    enum FileType {
+        Relationships,
+        Persons,
+    }
+
+    fn assert_err_for_file(expected_err_message: &str, file_name: &str, file_type: FileType) {
+        let err = match file_type {
+            FileType::Relationships => {
+                let relationships =
+                    io::read_relationships(file_name).expect("Cannot read test file");
+                check_relationships(&relationships).expect_err("Consistency check failed")
+            }
+            FileType::Persons => {
+                let persons = io::read_persons(file_name).expect("Cannot read test file");
+                check_persons(&persons).expect_err("Consistency check failed")
+            }
+        };
         assert_eq!(expected_err_message, format!("{err}"))
     }
 
     #[test]
     fn multiple_ids() {
-        test_err_message(
+        assert_err_for_file(
             "More than one relationship with the same id",
-            read_relationships("test/multiple_ids.json").expect_err("Multiple ids failed"),
+            "test/multiple_ids.json",
+            FileType::Relationships,
         );
     }
 
     #[test]
     fn self_reference() {
-        test_err_message(
+        assert_err_for_file(
             "Self referencing relationship",
-            read_relationships("test/self_reference.json").expect_err("Self reference failed"),
+            "test/self_reference.json",
+            FileType::Relationships,
         );
     }
 
     #[test]
     fn child_is_parent() {
-        test_err_message(
+        assert_err_for_file(
             "A Child cannot be its parent",
-            read_relationships("test/child_is_parent.json").expect_err("Child is parent failed"),
+            "test/child_is_parent.json",
+            FileType::Relationships,
         );
     }
 
     #[test]
     fn child_of_relationship() {
-        test_err_message(
+        assert_err_for_file(
             "Every person must be child of a relationship",
-            read_relationships("test/child_of_relationship.json")
-                .expect_err("Child of relationship failed"),
+            "test/child_of_relationship.json",
+            FileType::Relationships,
         );
     }
 
     #[test]
     fn more_than_one_parent_rel() {
-        test_err_message(
+        assert_err_for_file(
             "A Person is child of more than one relationship",
-            read_relationships("test/more_than_one_parent_rel.json")
-                .expect_err("More than one parent failed"),
+            "test/more_than_one_parent_rel.json",
+            FileType::Relationships,
         );
     }
 
     #[test]
     fn everything_connected() {
-        test_err_message(
+        assert_err_for_file(
             "Not all nodes are connected",
-            read_relationships("test/everything_connected.json")
-                .expect_err("Everything connected failed"),
+            "test/everything_connected.json",
+            FileType::Relationships,
         );
     }
 
     #[test]
     fn no_cycles() {
-        test_err_message(
+        assert_err_for_file(
             "Cycle in family tree",
-            read_relationships("test/no_cycles.json").expect_err("No cycle failed"),
+            "test/no_cycles.json",
+            FileType::Relationships,
         );
     }
 
     #[test]
     fn person_multiple_ids() {
-        test_err_message(
+        assert_err_for_file(
             "Multiple persons with the same id",
-            read_persons("test/person_multiple_ids.json").expect_err("Person multiple ids failed"),
+            "test/person_multiple_ids.json",
+            FileType::Persons,
         );
+    }
+
+    #[test]
+    fn check_both() -> Result<(), &'static str> {
+        let relationships =
+            io::read_relationships("test/check_both_rels.json").expect("Cannot read test file");
+        let persons =
+            io::read_persons("test/check_both_persons.json").expect("Cannot read test file");
+        match check(&relationships, &persons) {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                println!("{err}");
+                Err(err)
+            }
+        }
     }
 }

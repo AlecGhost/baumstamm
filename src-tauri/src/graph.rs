@@ -1,5 +1,6 @@
 use crate::grid::PersonInfo;
 use crate::util::UniqueIterator;
+use std::error::Error;
 use uuid::Uuid;
 
 mod consistency;
@@ -9,7 +10,7 @@ type PersonId = Uuid;
 type RelationshipId = Uuid;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-pub struct Relationship {
+struct Relationship {
     id: RelationshipId,
     p1: Option<PersonId>,
     p2: Option<PersonId>,
@@ -67,7 +68,7 @@ fn extract_persons(relationships: &[Relationship]) -> Vec<PersonId> {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-pub struct Person {
+struct Person {
     id: PersonId,
     info: Option<PersonInfo>,
 }
@@ -85,5 +86,30 @@ impl Person {
             info: Some(info),
             ..self
         }
+    }
+}
+
+pub struct FamilyTree {
+    relationships_file_name: String,
+    persons_file_name: String,
+    relationships: Vec<Relationship>,
+    persons: Vec<Person>,
+}
+
+impl FamilyTree {
+    pub fn new(
+        relationships_file_name: String,
+        persons_file_name: String,
+    ) -> Result<Self, Box<dyn Error>> {
+        let relationships = io::read_relationships(&relationships_file_name)?;
+        let persons = io::read_persons(&persons_file_name)?;
+        consistency::check(&relationships, &persons)?;
+
+        Ok(FamilyTree {
+            relationships_file_name,
+            persons_file_name,
+            relationships,
+            persons,
+        })
     }
 }

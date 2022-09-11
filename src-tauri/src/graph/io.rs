@@ -2,14 +2,13 @@ use std::{error::Error, fs};
 
 use super::{Person, Relationship};
 
-pub fn read_relationships(file_name: &str) -> Result<Vec<Relationship>, Box<dyn Error>> {
+pub(super) fn read_relationships(file_name: &str) -> Result<Vec<Relationship>, Box<dyn Error>> {
     let json_str = fs::read_to_string(file_name)?;
     let relationships: Vec<Relationship> = serde_json::from_str(&json_str)?;
-    super::consistency::check_relationships(&relationships)?;
     Ok(relationships)
 }
 
-pub fn write_relationships(
+pub(super) fn write_relationships(
     file_name: &str,
     relationships: &[Relationship],
 ) -> Result<(), Box<dyn Error>> {
@@ -18,14 +17,13 @@ pub fn write_relationships(
     Ok(())
 }
 
-pub fn read_persons(file_name: &str) -> Result<Vec<Person>, Box<dyn Error>> {
+pub(super) fn read_persons(file_name: &str) -> Result<Vec<Person>, Box<dyn Error>> {
     let json_str = fs::read_to_string(file_name)?;
     let persons: Vec<Person> = serde_json::from_str(&json_str)?;
-    super::consistency::check_persons(&persons)?;
     Ok(persons)
 }
 
-pub fn write_persons(file_name: &str, persons: &[Person]) -> Result<(), Box<dyn Error>> {
+pub(super) fn write_persons(file_name: &str, persons: &[Person]) -> Result<(), Box<dyn Error>> {
     let json_str = serde_json::to_string_pretty(persons)?;
     fs::write(file_name, json_str)?;
     Ok(())
