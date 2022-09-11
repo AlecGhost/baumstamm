@@ -71,10 +71,10 @@ fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'static
         let mut index = 0;
 
         while index < total_related_persons.len() {
-            let current_person = &total_related_persons[index].clone();
+            let current_person = total_related_persons[index];
             relationships
                 .iter()
-                .filter(|rel| rel.persons().contains(current_person))
+                .filter(|rel| rel.persons().contains(&current_person))
                 .flat_map(|rel| rel.persons())
                 .unique()
                 .for_each(|person| {

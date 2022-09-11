@@ -60,7 +60,7 @@ mod test {
     #[test]
     fn single_rel() -> Result<(), Box<dyn Error>> {
         let test_rels = vec![Relationship {
-            id: uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8"),
+            id: 0,
             p1: None,
             p2: None,
             children: Vec::new(),
@@ -94,10 +94,7 @@ mod test {
 
     #[test]
     fn single_person() -> Result<(), Box<dyn Error>> {
-        let test_persons = vec![Person {
-            id: uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8"),
-            info: None,
-        }];
+        let test_persons = vec![Person { id: 0, info: None }];
         compare_persons_to_file(test_persons, "test/single_person.json")
     }
 
@@ -105,10 +102,7 @@ mod test {
     fn unique_persons() -> Result<(), Box<dyn Error>> {
         let relationships = read_relationships("test/unique_persons.json")?;
         let unique_persons = crate::graph::extract_persons(&relationships);
-        let test_persons = vec![
-            uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8"),
-            uuid::uuid!("57e55044-10b1-426f-9247-bb680e5fe0c8"),
-        ];
+        let test_persons = vec![0, 1];
         if unique_persons == test_persons {
             Ok(())
         } else {
@@ -125,46 +119,28 @@ Expected: {:?}",
     #[test]
     fn test_write_persons() {
         let mut persons = read_persons("test/write_persons.json").unwrap();
-        assert_eq!(
-            "67e55044-10b1-426f-9247-bb680e5fe0c8",
-            persons[0].id.to_string()
-        );
-        persons[0].id = uuid::uuid!("57e55044-10b1-426f-9247-bb680e5fe0c8");
+        assert_eq!(0, persons[0].id);
+        persons[0].id = 1;
         write_persons("test/write_persons.json", &persons).unwrap();
         let mut persons = read_persons("test/write_persons.json").unwrap();
-        assert_eq!(
-            "57e55044-10b1-426f-9247-bb680e5fe0c8",
-            persons[0].id.to_string()
-        );
-        persons[0].id = uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
+        assert_eq!(1, persons[0].id);
+        persons[0].id = 0;
         write_persons("test/write_persons.json", &persons).unwrap();
         let persons = read_persons("test/write_persons.json").unwrap();
-        assert_eq!(
-            "67e55044-10b1-426f-9247-bb680e5fe0c8",
-            persons[0].id.to_string()
-        );
+        assert_eq!(0, persons[0].id);
     }
 
     #[test]
     fn test_write_relationships() {
         let mut relationships = read_relationships("test/write_relationships.json").unwrap();
-        assert_eq!(
-            "67e55044-10b1-426f-9247-bb680e5fe0c8",
-            relationships[0].id.to_string()
-        );
-        relationships[0].id = uuid::uuid!("57e55044-10b1-426f-9247-bb680e5fe0c8");
+        assert_eq!(0, relationships[0].id);
+        relationships[0].id = 1;
         write_relationships("test/write_relationships.json", &relationships).unwrap();
         let mut relationships = read_relationships("test/write_relationships.json").unwrap();
-        assert_eq!(
-            "57e55044-10b1-426f-9247-bb680e5fe0c8",
-            relationships[0].id.to_string()
-        );
-        relationships[0].id = uuid::uuid!("67e55044-10b1-426f-9247-bb680e5fe0c8");
+        assert_eq!(1, relationships[0].id);
+        relationships[0].id = 0;
         write_relationships("test/write_relationships.json", &relationships).unwrap();
         let relationships = read_relationships("test/write_relationships.json").unwrap();
-        assert_eq!(
-            "67e55044-10b1-426f-9247-bb680e5fe0c8",
-            relationships[0].id.to_string()
-        );
+        assert_eq!(0, relationships[0].id);
     }
 }

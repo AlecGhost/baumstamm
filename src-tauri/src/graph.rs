@@ -6,8 +6,8 @@ use uuid::Uuid;
 mod consistency;
 mod io;
 
-type PersonId = Uuid;
-type RelationshipId = Uuid;
+type PersonId = u128;
+type RelationshipId = u128;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 struct Relationship {
@@ -20,7 +20,7 @@ struct Relationship {
 impl Relationship {
     fn new(p1: Option<PersonId>, p2: Option<PersonId>, children: Vec<PersonId>) -> Self {
         Self {
-            id: PersonId::new_v4(),
+            id: Uuid::new_v4().to_u128_le(),
             p1,
             p2,
             children,
@@ -43,10 +43,10 @@ impl Relationship {
         let mut descendants = self.children.clone();
         let mut index = 0;
         while index < descendants.len() {
-            let descendant = &descendants[index].clone();
+            let descendant = descendants[index];
             relationships
                 .iter()
-                .filter(|rel| rel.parents().contains(descendant))
+                .filter(|rel| rel.parents().contains(&descendant))
                 .flat_map(|rel| rel.children.clone())
                 .unique()
                 .for_each(|child| {
@@ -76,7 +76,7 @@ struct Person {
 impl Person {
     fn new() -> Self {
         Person {
-            id: PersonId::new_v4(),
+            id: Uuid::new_v4().to_u128_le(),
             info: None,
         }
     }
@@ -111,5 +111,31 @@ impl FamilyTree {
             relationships,
             persons,
         })
+    }
+
+    pub fn add_parent(
+        &mut self,
+        relationship_id: RelationshipId,
+    ) -> Result<PersonId, &'static str> {
+        let mut rel_opt: Option<&Relationship> = self
+            .relationships
+            .iter()
+            .find(|rel| rel.id == relationship_id);
+        let mut rel: &mut &Relationship = match &mut rel_opt {
+            Some(rel) => rel,
+            None => return Err("Invalid relationship id"),
+        };
+        if rel.parents().len() == 2 {
+            return Err("Cannot add another parent");
+        }
+        let new_person = Person::new();
+        let new_id = new_person.id;
+        self.persons.push(new_person);
+        if rel.p1.is_none() {
+            rel.p1 = Some(new_id);
+        } else {
+            rel.p2 = Some(new_id);
+        }
+        Ok(new_id)
     }
 }
