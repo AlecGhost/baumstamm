@@ -64,18 +64,18 @@ impl Relationship {
 
 fn read_relationships(file_name: &str) -> Result<Vec<Relationship>, Box<dyn Error>> {
     let json_str = fs::read_to_string(file_name)?;
-    let json: Vec<Relationship> = serde_json::from_str(&json_str)?;
-    relationships_consistancy_check(&json)?;
-    Ok(json)
+    let relationships: Vec<Relationship> = serde_json::from_str(&json_str)?;
+    relationships_consistancy_check(&relationships)?;
+    Ok(relationships)
 }
 
-fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<(), String> {
+fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<(), &'static str> {
     if relationships.is_empty() {
         return Ok(());
     }
 
     if relationships.len() != relationships.iter().map(|rel| rel.id).unique().count() {
-        return Err("More than one relationship with the same id".to_string());
+        return Err("More than one relationship with the same id");
     }
 
     if relationships
@@ -83,7 +83,7 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
         .filter(|rel| rel.p1 != None && rel.p2 != None)
         .any(|rel| rel.p1 == rel.p2)
     {
-        return Err("Self referencing relationship".to_string());
+        return Err("Self referencing relationship");
     }
 
     if relationships.iter().any(|rel| {
@@ -91,7 +91,7 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
             .iter()
             .any(|child| rel.parents().iter().any(|parent| parent == child))
     }) {
-        return Err("A Child cannot be its parent".to_string());
+        return Err("A Child cannot be its parent");
     }
 
     // Relationship.descendants() is safe to call after this check
@@ -101,11 +101,11 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
         .collect::<Vec<PersonId>>();
 
     if children.len() != extract_persons(relationships).len() {
-        return Err("Every person must be child of a relationship".to_string());
+        return Err("Every person must be child of a relationship");
     }
 
     if children.len() != children.iter().unique().count() {
-        return Err("A Person is child of more than one relationship".to_string());
+        return Err("A Person is child of more than one relationship");
     }
 
     fn nr_connected_persons(relationships: &[Relationship]) -> usize {
@@ -132,7 +132,7 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
 
     let nr_persons = children.len();
     if nr_connected_persons(relationships) != nr_persons {
-        return Err("Not all nodes are connected".to_string());
+        return Err("Not all nodes are connected");
     }
 
     if relationships.iter().any(|rel| {
@@ -140,7 +140,7 @@ fn relationships_consistancy_check(relationships: &Vec<Relationship>) -> Result<
             .iter()
             .any(|parent| rel.descendants(relationships).contains(parent))
     }) {
-        return Err("Cycle in family tree".to_string());
+        return Err("Cycle in family tree");
     }
 
     Ok(())
@@ -176,8 +176,19 @@ impl Person {
 
 fn read_persons(file_name: &str) -> Result<Vec<Person>, Box<dyn Error>> {
     let json_str = fs::read_to_string(file_name)?;
-    let json: Vec<Person> = serde_json::from_str(&json_str)?;
-    Ok(json)
+    let persons: Vec<Person> = serde_json::from_str(&json_str)?;
+    person_consistancy_check(&persons)?;
+    Ok(persons)
+}
+
+fn person_consistancy_check(persons: &[Person]) -> Result<(), &'static str> {
+    let person_ids: Vec<PersonId> = persons.iter().map(|person| person.id).collect();
+
+    if person_ids.len() != person_ids.iter().unique().count() {
+        return Err("Multiple persons with the same id");
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -333,6 +344,14 @@ Expected: {:?}",
         test_err_message(
             "Cycle in family tree",
             read_relationships("test/no_cycles.json").expect_err("No cycle failed"),
+        );
+    }
+
+    #[test]
+    fn person_multiple_ids() {
+        test_err_message(
+            "Multiple persons with the same id",
+            read_persons("test/person_multiple_ids.json").expect_err("Person multiple ids failed"),
         );
     }
 }
