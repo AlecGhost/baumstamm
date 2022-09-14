@@ -1,8 +1,7 @@
-use std::{collections::HashMap, iter::FromIterator};
-
+use super::graph;
+use super::{Person, PersonId, Relationship};
 use crate::util::UniqueIterator;
-
-use super::{extract_persons, Person, PersonId, Relationship};
+use std::{collections::HashMap, iter::FromIterator};
 
 pub(super) fn check(
     relationships: &Vec<Relationship>,
@@ -13,7 +12,7 @@ pub(super) fn check(
 
     // turn into hash map for O(n) access
     let persons_hashmap: HashMap<PersonId, ()> = HashMap::from_iter(
-        extract_persons(relationships)
+        graph::extract_persons(relationships)
             .iter()
             .map(|person_id| (*person_id, ())),
     );
@@ -58,7 +57,7 @@ fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'static
         .flat_map(|rel| rel.children.clone())
         .collect::<Vec<PersonId>>();
 
-    if children.len() != super::extract_persons(relationships).len() {
+    if children.len() != graph::extract_persons(relationships).len() {
         return Err("Every person must be child of a relationship");
     }
 
@@ -117,7 +116,7 @@ fn check_persons(persons: &[Person]) -> Result<(), &'static str> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::graph::io;
+    use crate::tree::io;
 
     enum FileType {
         Relationships,

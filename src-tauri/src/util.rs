@@ -35,3 +35,16 @@ pub trait UniqueIterator<T>: Iterator<Item = T> + Sized {
 }
 
 impl<T, I: Iterator<Item = T>> UniqueIterator<T> for I {}
+
+pub trait ChangeScope {
+    fn also<F>(self, function: F) -> Self
+    where
+        F: Fn(&Self),
+        Self: Sized,
+    {
+        function(&self);
+        self
+    }
+}
+
+impl<T> ChangeScope for T {}

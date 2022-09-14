@@ -1,9 +1,9 @@
-use crate::grid::PersonInfo;
 use crate::util::UniqueIterator;
 use std::error::Error;
 use uuid::Uuid;
 
 mod consistency;
+mod graph;
 mod io;
 
 type PersonId = u128;
@@ -61,14 +61,8 @@ impl Relationship {
     }
 }
 
-fn extract_persons(relationships: &[Relationship]) -> Vec<PersonId> {
-    let parents = relationships.iter().flat_map(|rel| rel.parents());
-    let children = relationships.iter().flat_map(|rel| rel.children.to_vec());
-    parents.chain(children).unique().collect()
-}
-
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-struct Person {
+pub struct Person {
     id: PersonId,
     info: Option<PersonInfo>,
 }
@@ -85,6 +79,30 @@ impl Person {
         Self {
             info: Some(info),
             ..self
+        }
+    }
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct PersonInfo {
+    first_name: String,
+    last_name: Option<String>,
+    date_of_birth: Option<String>,
+    date_of_death: Option<String>,
+}
+
+impl PersonInfo {
+    pub fn new(
+        first_name: String,
+        last_name: Option<String>,
+        date_of_birth: Option<String>,
+        date_of_death: Option<String>,
+    ) -> PersonInfo {
+        PersonInfo {
+            first_name,
+            last_name,
+            date_of_birth,
+            date_of_death,
         }
     }
 }

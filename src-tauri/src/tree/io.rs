@@ -32,6 +32,7 @@ pub(super) fn write_persons(file_name: &str, persons: &[Person]) -> Result<(), B
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::tree::graph;
 
     fn compare_rels_to_file(
         test_rels: Vec<Relationship>,
@@ -101,7 +102,7 @@ mod test {
     #[test]
     fn unique_persons() -> Result<(), Box<dyn Error>> {
         let relationships = read_relationships("test/unique_persons.json")?;
-        let unique_persons = crate::graph::extract_persons(&relationships);
+        let unique_persons = graph::extract_persons(&relationships);
         let test_persons = vec![0, 1];
         if unique_persons == test_persons {
             Ok(())
