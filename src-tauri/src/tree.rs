@@ -59,6 +59,23 @@ impl Relationship {
         }
         descendants
     }
+
+    fn generations_below(&self, relationships: &[Relationship]) -> u32 {
+        fn generations_below_recursive(
+            relationship: &Relationship,
+            relationships: &[Relationship],
+            generations_above: u32,
+        ) -> u32 {
+            relationship
+                .children
+                .iter()
+                .flat_map(|child| graph::parent_relationships(child.clone(), relationships))
+                .map(|rel| generations_below_recursive(rel, relationships, generations_above + 1))
+                .max()
+                .expect("Inconsistent data")
+        }
+        generations_below_recursive(self, relationships, 0)
+    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
@@ -115,13 +132,21 @@ pub struct FamilyTree {
 }
 
 impl FamilyTree {
-    pub fn new(relationships_file_name: String, persons_file_name: String) -> Self {
-        FamilyTree {
+    pub fn new(
+        relationships_file_name: String,
+        persons_file_name: String,
+    ) -> Result<Self, Box<dyn Error>> {
+        let initial_person = Person::new();
+        let initial_rels = vec![Relationship::new(None, None, vec![initial_person.id])];
+        let tree = FamilyTree {
             relationships_file_name,
             persons_file_name,
-            relationships: Vec::new(),
-            persons: Vec::new(),
-        }
+            relationships: initial_rels,
+            persons: vec![initial_person],
+        };
+        tree.save()?;
+
+        Ok(tree)
     }
 
     pub fn from_disk(
@@ -141,9 +166,14 @@ impl FamilyTree {
     }
 
     pub fn save(&self) -> Result<(), Box<dyn Error>> {
+        consistency::check(&self.relationships, &self.persons)?;
         io::write_relationships(&self.relationships_file_name, &self.relationships)?;
         io::write_persons(&self.persons_file_name, &self.persons)?;
         Ok(())
+    }
+
+    pub fn get_persons(&self) -> &[Person] {
+        self.persons.as_slice()
     }
 
     pub fn add_parent(
@@ -170,6 +200,8 @@ impl FamilyTree {
         } else {
             rel.p2 = Some(new_id);
         }
+        consistency::check(&self.relationships, &self.persons)?;
+
         Ok(new_id)
     }
 
@@ -187,6 +219,8 @@ impl FamilyTree {
         let new_id = new_person.id;
         self.persons.push(new_person);
         rel.children.push(new_id);
+        consistency::check(&self.relationships, &self.persons)?;
+
         Ok(new_id)
     }
 }
