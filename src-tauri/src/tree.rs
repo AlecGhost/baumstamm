@@ -172,6 +172,12 @@ impl FamilyTree {
         Ok(())
     }
 
+    pub fn export_puml(&self, file_name: &str) -> Result<(), Box<dyn Error>> {
+        consistency::check(&self.relationships, &self.persons)?;
+        io::export_puml(file_name, &self.relationships, &self.persons)?;
+        Ok(())
+    }
+
     pub fn get_persons(&self) -> &[Person] {
         self.persons.as_slice()
     }
