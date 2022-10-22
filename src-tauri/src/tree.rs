@@ -69,7 +69,7 @@ impl Relationship {
             relationship
                 .children
                 .iter()
-                .flat_map(|child| graph::parent_relationships(child.clone(), relationships))
+                .flat_map(|child| graph::parent_relationships(*child, relationships))
                 .map(|rel| generations_below_recursive(rel, relationships, generations_above + 1))
                 .max()
                 .expect("Inconsistent data")
@@ -242,12 +242,41 @@ impl FamilyTree {
             .persons
             .iter()
             .map(|person| person.id)
-            .collect::<Vec<PersonId>>()
-            .contains(&person_id)
+            .any(|id| id == person_id)
         {
             return Err("Person does not exist.".into());
         }
-        let rel = Relationship::new(Some(person_id), None, vec![]);
-        Ok(rel.id)
+        let new_rel = Relationship::new(Some(person_id), None, vec![]);
+        let new_rid = new_rel.id;
+        self.relationships.push(new_rel);
+        self.save()?;
+
+        Ok(new_rid)
+    }
+
+    pub fn add_rel_with_partner(
+        &mut self,
+        person_id: PersonId,
+        partner_id: PersonId,
+    ) -> Result<RelationshipId, Box<dyn Error>> {
+        if !self
+            .persons
+            .iter()
+            .map(|person| person.id)
+            .any(|id| id == person_id)
+            || !self
+                .persons
+                .iter()
+                .map(|person| person.id)
+                .any(|id| id == partner_id)
+        {
+            return Err("Person does not exist.".into());
+        }
+        let new_rel = Relationship::new(Some(person_id), Some(partner_id), vec![]);
+        let new_rid = new_rel.id;
+        self.relationships.push(new_rel);
+        self.save()?;
+
+        Ok(new_rid)
     }
 }

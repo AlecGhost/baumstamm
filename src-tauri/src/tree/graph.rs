@@ -14,7 +14,6 @@ pub(super) fn child_relationship(id: PersonId, relationships: &[Relationship]) -
         .collect::<Vec<&Relationship>>()
         .first()
         .expect("Inconsistent data")
-        .clone()
 }
 
 pub(super) fn parent_relationships(
