@@ -185,33 +185,40 @@ impl FamilyTree {
     pub fn add_parent(
         &mut self,
         relationship_id: RelationshipId,
-    ) -> Result<PersonId, &'static str> {
+    ) -> Result<(PersonId, RelationshipId), Box<dyn Error>> {
         let rel_opt = self
             .relationships
             .iter_mut()
             .find(|rel| rel.id == relationship_id);
         let mut rel = match rel_opt {
             Some(rel) => rel,
-            None => return Err("Invalid relationship id"),
+            None => return Err("Invalid relationship id".into()),
         };
         if rel.parents().len() == 2 {
-            return Err("Cannot add another parent");
+            return Err("Cannot add another parent".into());
         }
 
         let new_person = Person::new();
-        let new_id = new_person.id;
-        self.persons.push(new_person);
-        if rel.p1.is_none() {
-            rel.p1 = Some(new_id);
-        } else {
-            rel.p2 = Some(new_id);
-        }
-        consistency::check(&self.relationships, &self.persons)?;
+        let new_pid = new_person.id;
+        let new_rel = Relationship::new(None, None, vec![new_pid]);
+        let new_rid = new_rel.id;
 
-        Ok(new_id)
+        if rel.p1.is_none() {
+            rel.p1 = Some(new_pid);
+        } else {
+            rel.p2 = Some(new_pid);
+        }
+        self.persons.push(new_person);
+        self.relationships.push(new_rel);
+        self.save()?;
+
+        Ok((new_pid, new_rid))
     }
 
-    pub fn add_child(&mut self, relationship_id: RelationshipId) -> Result<PersonId, &'static str> {
+    pub fn add_child(
+        &mut self,
+        relationship_id: RelationshipId,
+    ) -> Result<PersonId, Box<dyn Error>> {
         let rel_opt = self
             .relationships
             .iter_mut()
@@ -219,14 +226,28 @@ impl FamilyTree {
 
         let rel = match rel_opt {
             Some(rel) => rel,
-            None => return Err("Invalid relationship id"),
+            None => return Err("Invalid relationship id".into()),
         };
         let new_person = Person::new();
         let new_id = new_person.id;
         self.persons.push(new_person);
         rel.children.push(new_id);
-        consistency::check(&self.relationships, &self.persons)?;
+        self.save()?;
 
         Ok(new_id)
+    }
+
+    pub fn add_rel(&mut self, person_id: PersonId) -> Result<RelationshipId, Box<dyn Error>> {
+        if !self
+            .persons
+            .iter()
+            .map(|person| person.id)
+            .collect::<Vec<PersonId>>()
+            .contains(&person_id)
+        {
+            return Err("Person does not exist.".into());
+        }
+        let rel = Relationship::new(Some(person_id), None, vec![]);
+        Ok(rel.id)
     }
 }
