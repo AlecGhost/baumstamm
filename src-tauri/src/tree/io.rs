@@ -35,6 +35,7 @@ pub(super) fn export_puml(
     persons: &[Person],
 ) -> Result<(), Box<dyn Error>> {
     let mut text = "@startuml\n".to_string();
+    text += "top to bottom direction\n";
     persons.iter().for_each(|person| {
         let mut name = String::new();
         if let Some(info) = &person.info {
@@ -50,17 +51,17 @@ pub(super) fn export_puml(
     });
     relationships
         .iter()
-        .filter(|rel| rel.parents().len() > 0)
+        .filter(|rel| rel.parents().len() > 0 || rel.children.len() > 1)
         .for_each(|rel| text += format!("diamond r{}\n", rel.id).as_str());
     relationships
         .iter()
-        .filter(|rel| rel.parents().len() > 0)
+        .filter(|rel| rel.parents().len() > 0 || rel.children.len() > 1)
         .for_each(|rel| {
             rel.parents()
                 .iter()
                 .for_each(|parent| text += format!("p{} -- r{}\n", parent, rel.id).as_str());
             rel.children.iter().for_each(|child| {
-                text += format!("p{} <-- r{}\n", child, rel.id).as_str();
+                text += format!("p{} <-u- r{}\n", child, rel.id).as_str();
             });
         });
     text += "@enduml\n";
