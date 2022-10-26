@@ -1,7 +1,0 @@
-/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/scopeguard-444943033a6ba364.rmeta: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/scopeguard-1.1.0/src/lib.rs
-
-/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/libscopeguard-444943033a6ba364.rlib: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/scopeguard-1.1.0/src/lib.rs
-
-/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/scopeguard-444943033a6ba364.d: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/scopeguard-1.1.0/src/lib.rs
-
-/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/scopeguard-1.1.0/src/lib.rs:
