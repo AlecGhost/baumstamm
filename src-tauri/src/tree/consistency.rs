@@ -16,6 +16,9 @@ pub(super) fn check(
             .iter()
             .map(|person_id| (*person_id, ())),
     );
+    if persons.len() != persons_hashmap.len() {
+        return Err("The number of persons differs");
+    }
     if persons
         .iter()
         .map(|person| person.id)
@@ -23,6 +26,7 @@ pub(super) fn check(
     {
         return Err("Relationships and persons do not match");
     }
+
     Ok(())
 }
 
@@ -223,5 +227,35 @@ mod test {
                 Err(err)
             }
         }
+    }
+
+    #[test]
+    fn too_few_persons() {
+        let relationships = io::read_relationships("test/too_few_persons_rels.json")
+            .expect("Cannot read test file");
+        let persons =
+            io::read_persons("test/too_few_persons_persons.json").expect("Cannot read test file");
+        let err = check(&relationships, &persons).expect_err("Consistency check failed");
+        assert_eq!("The number of persons differs", format!("{err}"));
+    }
+
+    #[test]
+    fn too_few_rels() {
+        let relationships =
+            io::read_relationships("test/too_few_rels_rels.json").expect("Cannot read test file");
+        let persons =
+            io::read_persons("test/too_few_rels_persons.json").expect("Cannot read test file");
+        let err = check(&relationships, &persons).expect_err("Consistency check failed");
+        assert_eq!("The number of persons differs", format!("{err}"));
+    }
+
+    #[test]
+    fn different_ids() {
+        let relationships =
+            io::read_relationships("test/different_ids_rels.json").expect("Cannot read test file");
+        let persons =
+            io::read_persons("test/different_ids_persons.json").expect("Cannot read test file");
+        let err = check(&relationships, &persons).expect_err("Consistency check failed");
+        assert_eq!("Relationships and persons do not match", format!("{err}"));
     }
 }
