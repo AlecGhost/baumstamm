@@ -1,0 +1,11 @@
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/tauri_codegen-18caef1129a2dd61.rmeta: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/context.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/embedded_assets.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/vendor/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/vendor/blake3_reference.rs
+
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/libtauri_codegen-18caef1129a2dd61.rlib: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/context.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/embedded_assets.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/vendor/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/vendor/blake3_reference.rs
+
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/tauri_codegen-18caef1129a2dd61.d: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/context.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/embedded_assets.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/vendor/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/vendor/blake3_reference.rs
+
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/lib.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/context.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/embedded_assets.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/vendor/mod.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/tauri-codegen-1.0.4/src/vendor/blake3_reference.rs:

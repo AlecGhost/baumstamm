@@ -1,0 +1,2 @@
+cargo:rustc-env=TYPENUM_BUILD_CONSTS=/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/build/typenum-188be6493eff2b88/out/consts.rs
+cargo:rustc-env=TYPENUM_BUILD_OP=/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/build/typenum-188be6493eff2b88/out/op.rs

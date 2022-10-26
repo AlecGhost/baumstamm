@@ -1,0 +1,9 @@
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/phf-45af0eff5e6bcae0.rmeta: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/map.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/set.rs
+
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/libphf-45af0eff5e6bcae0.rlib: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/map.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/set.rs
+
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/phf-45af0eff5e6bcae0.d: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/map.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/set.rs
+
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/lib.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/map.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/phf-0.8.0/src/set.rs:

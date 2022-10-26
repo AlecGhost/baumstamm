@@ -1,0 +1,15 @@
+/Users/alex/dev/baumstamm/src-tauri/target/debug/deps/bstr-70f7644f26f5d6cc.rmeta: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/ascii.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/bstr.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/bstring.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/byteset/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/byteset/scalar.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/ext_slice.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/ext_vec.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/impls.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/io.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/utf8.rs
+
+/Users/alex/dev/baumstamm/src-tauri/target/debug/deps/bstr-70f7644f26f5d6cc.d: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/ascii.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/bstr.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/bstring.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/byteset/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/byteset/scalar.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/ext_slice.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/ext_vec.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/impls.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/io.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/utf8.rs
+
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/lib.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/ascii.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/bstr.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/bstring.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/byteset/mod.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/byteset/scalar.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/ext_slice.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/ext_vec.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/impls.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/io.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/bstr-0.2.17/src/utf8.rs:

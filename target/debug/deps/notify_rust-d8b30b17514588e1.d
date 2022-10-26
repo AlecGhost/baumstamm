@@ -1,0 +1,13 @@
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/notify_rust-d8b30b17514588e1.rmeta: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/error.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/miniver.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/timeout.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/hints.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/hints/constants.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/notification.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/macos.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/urgency.rs
+
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/notify_rust-d8b30b17514588e1.d: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/error.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/miniver.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/timeout.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/hints.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/hints/constants.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/notification.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/macos.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/urgency.rs
+
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/lib.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/error.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/miniver.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/timeout.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/hints.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/hints/constants.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/notification.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/macos.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/notify-rust-4.5.8/src/urgency.rs:

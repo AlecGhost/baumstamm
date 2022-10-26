@@ -1,0 +1,15 @@
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/markup5ever-21c43e88cfabc3bb.rmeta: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/data/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/interface/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/interface/tree_builder.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/serialize.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/util/buffer_queue.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/util/smallcharset.rs /Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/build/markup5ever-7e0511990dc21c19/out/generated.rs /Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/build/markup5ever-7e0511990dc21c19/out/named_entities.rs
+
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/markup5ever-21c43e88cfabc3bb.d: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/data/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/interface/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/interface/tree_builder.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/serialize.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/util/buffer_queue.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/util/smallcharset.rs /Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/build/markup5ever-7e0511990dc21c19/out/generated.rs /Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/build/markup5ever-7e0511990dc21c19/out/named_entities.rs
+
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/lib.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/data/mod.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/interface/mod.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/interface/tree_builder.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/serialize.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/util/buffer_queue.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/markup5ever-0.10.1/util/smallcharset.rs:
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/build/markup5ever-7e0511990dc21c19/out/generated.rs:
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/build/markup5ever-7e0511990dc21c19/out/named_entities.rs:
+
+# env-dep:OUT_DIR=/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/build/markup5ever-7e0511990dc21c19/out

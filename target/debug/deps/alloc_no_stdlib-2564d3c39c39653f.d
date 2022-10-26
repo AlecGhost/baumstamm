@@ -1,0 +1,10 @@
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/alloc_no_stdlib-2564d3c39c39653f.rmeta: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/allocated_memory/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/allocated_memory/index_macro.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/stack_allocator.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/allocated_stack_memory.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/init.rs
+
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/alloc_no_stdlib-2564d3c39c39653f.d: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/allocated_memory/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/allocated_memory/index_macro.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/stack_allocator.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/allocated_stack_memory.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/init.rs
+
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/lib.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/allocated_memory/mod.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/allocated_memory/index_macro.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/stack_allocator.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/allocated_stack_memory.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/alloc-no-stdlib-2.0.3/src/init.rs:

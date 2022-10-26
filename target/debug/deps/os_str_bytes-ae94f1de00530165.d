@@ -1,0 +1,10 @@
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/os_str_bytes-ae94f1de00530165.rmeta: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/common/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/common/raw.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/iter.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/pattern.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/raw_str.rs
+
+/Users/alex/Documents/Entwicklung/baumstamm/src-tauri/target/debug/deps/os_str_bytes-ae94f1de00530165.d: /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/lib.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/common/mod.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/common/raw.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/iter.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/pattern.rs /Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/raw_str.rs
+
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/lib.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/common/mod.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/common/raw.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/iter.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/pattern.rs:
+/Users/alex/.cargo/registry/src/github.com-1ecc6299db9ec823/os_str_bytes-6.3.0/src/raw_str.rs:
