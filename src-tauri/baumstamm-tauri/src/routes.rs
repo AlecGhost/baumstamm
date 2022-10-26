@@ -1,4 +1,4 @@
-use baumstamm::{
+use baumstamm_lib::{
     grid::{Grid, GridSize, Item, SourcePoint},
     tree::FamilyTree,
 };

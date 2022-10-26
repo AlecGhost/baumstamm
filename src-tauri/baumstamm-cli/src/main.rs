@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use baumstamm::tree::{FamilyTree, PersonInfo};
+use baumstamm_lib::tree::{FamilyTree, PersonInfo};
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
