@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
-    "tauri": "CARGO_BUILD_TARGET_DIR=$(pwd)/src-tauri/target tauri"
+    "tauri": "tauri"
   },
   "dependencies": {
     "@tauri-apps/api": "^1.0.2",
