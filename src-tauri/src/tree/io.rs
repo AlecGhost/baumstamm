@@ -50,15 +50,19 @@ pub(super) fn export_puml(
     });
     relationships
         .iter()
+        .filter(|rel| rel.parents().len() > 0)
         .for_each(|rel| text += format!("diamond r{}\n", rel.id).as_str());
-    relationships.iter().for_each(|rel| {
-        rel.parents()
-            .iter()
-            .for_each(|parent| text += format!("p{} -- r{}\n", parent, rel.id).as_str());
-        rel.children.iter().for_each(|child| {
-            text += format!("p{} <-- r{}\n", child, rel.id).as_str();
+    relationships
+        .iter()
+        .filter(|rel| rel.parents().len() > 0)
+        .for_each(|rel| {
+            rel.parents()
+                .iter()
+                .for_each(|parent| text += format!("p{} -- r{}\n", parent, rel.id).as_str());
+            rel.children.iter().for_each(|child| {
+                text += format!("p{} <-- r{}\n", child, rel.id).as_str();
+            });
         });
-    });
     text += "@enduml\n";
     fs::write(file_name, text)?;
     Ok(())

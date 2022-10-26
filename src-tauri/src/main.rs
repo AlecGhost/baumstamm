@@ -1,6 +1,6 @@
 use std::error::Error;
 
-use baumstamm::tree::FamilyTree;
+use baumstamm::tree::{FamilyTree, PersonInfo};
 use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
@@ -85,7 +85,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                         result.0, result.1
                     );
                 }
-                Add::Info(info) => {}
+                Add::Info(info) => tree.add_info(
+                    info.person_id,
+                    Some(PersonInfo::new(
+                        info.first_name,
+                        info.last_name,
+                        info.date_of_birth,
+                        info.date_of_death,
+                    )),
+                )?,
                 Add::RelationshipWithPartner(rel) => {
                     let rel_id = tree.add_rel_with_partner(rel.person_id, rel.partner_id)?;
                     println!("Added relationship {}", rel_id);

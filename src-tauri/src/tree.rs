@@ -279,4 +279,23 @@ impl FamilyTree {
 
         Ok(new_rid)
     }
+
+    pub fn add_info(
+        &mut self,
+        person_id: PersonId,
+        person_info: Option<PersonInfo>,
+    ) -> Result<(), Box<dyn Error>> {
+        let person = match self
+            .persons
+            .iter_mut()
+            .find(|person| person.id == person_id)
+        {
+            Some(person) => person,
+            None => return Err("Invalid person id".into()),
+        };
+        person.info = person_info;
+        self.save()?;
+
+        Ok(())
+    }
 }
