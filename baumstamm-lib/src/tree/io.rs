@@ -102,8 +102,7 @@ mod test {
     fn single_rel() -> Result<(), Box<dyn Error>> {
         let test_rels = vec![Relationship {
             id: 0,
-            p1: None,
-            p2: None,
+            parents: [None, None],
             children: Vec::new(),
         }];
         compare_rels_to_file(test_rels, "test/single_rel.json")

@@ -12,8 +12,7 @@ type RelationshipId = u128;
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 struct Relationship {
     id: RelationshipId,
-    p1: Option<PersonId>,
-    p2: Option<PersonId>,
+    parents: [Option<PersonId>; 2],
     children: Vec<PersonId>,
 }
 
@@ -21,14 +20,29 @@ impl Relationship {
     fn new(p1: Option<PersonId>, p2: Option<PersonId>, children: Vec<PersonId>) -> Self {
         Self {
             id: Uuid::new_v4().to_u128_le(),
-            p1,
-            p2,
+            parents: [p1, p2],
             children,
         }
     }
 
     fn parents(&self) -> Vec<PersonId> {
-        vec![self.p1, self.p2].iter().flatten().cloned().collect()
+        self.parents
+            .iter()
+            .filter_map(|parent| parent.clone())
+            .collect()
+    }
+
+    fn add_parent(&mut self) -> Result<Person, &'static str> {
+        if self.parents().len() == 2 {
+            return Err("Cannot add another parent");
+        }
+        let parent = Person::new();
+        if self.parents[0].is_none() {
+            self.parents[0] = Some(parent.id);
+        } else {
+            self.parents[1] = Some(parent.id);
+        }
+        Ok(parent)
     }
 
     fn persons(&self) -> Vec<PersonId> {
@@ -190,25 +204,18 @@ impl FamilyTree {
             .relationships
             .iter_mut()
             .find(|rel| rel.id == relationship_id);
-        let mut rel = match rel_opt {
+        let rel = match rel_opt {
             Some(rel) => rel,
             None => return Err("Invalid relationship id".into()),
         };
-        if rel.parents().len() == 2 {
-            return Err("Cannot add another parent".into());
-        }
 
-        let new_person = Person::new();
-        let new_pid = new_person.id;
-        let new_rel = Relationship::new(None, None, vec![new_pid]);
+        let parent = rel.add_parent()?;
+        let new_pid = parent.id;
+
+        let new_rel = Relationship::new(None, None, vec![parent.id]);
         let new_rid = new_rel.id;
 
-        if rel.p1.is_none() {
-            rel.p1 = Some(new_pid);
-        } else {
-            rel.p2 = Some(new_pid);
-        }
-        self.persons.push(new_person);
+        self.persons.push(parent);
         self.relationships.push(new_rel);
         self.save()?;
 

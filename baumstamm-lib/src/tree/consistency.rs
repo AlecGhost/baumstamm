@@ -41,8 +41,8 @@ fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'static
 
     if relationships
         .iter()
-        .filter(|rel| rel.p1 != None && rel.p2 != None)
-        .any(|rel| rel.p1 == rel.p2)
+        .filter(|rel| !rel.parents().is_empty())
+        .any(|rel| rel.parents[0] == rel.parents[1])
     {
         return Err("Self referencing relationship");
     }

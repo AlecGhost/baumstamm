@@ -1,0 +1,26 @@
+[
+  {
+    "id": 0,
+    "parents": [0, null],
+    "children": []
+  },
+  {
+    "id": 1,
+    "parents": [0, null],
+    "children": [
+      1
+    ]
+  },
+  {
+    "id": 2,
+    "parents": [1, null],
+    "children": []
+  },
+  {
+    "id": 3,
+    "parents": [null, null],
+    "children": [
+      0
+    ]
+  }
+]
