@@ -83,10 +83,11 @@ impl Relationship {
             relationship
                 .children
                 .iter()
-                .flat_map(|child| graph::parent_relationships(*child, relationships))
+                .flat_map(|child| graph::parent_relationships(child, relationships))
                 .map(|rel| generations_below_recursive(rel, relationships, generations_above + 1))
                 .max()
-                .expect("Inconsistent data")
+                .unwrap_or_else(|| 0)
+            // .expect("Inconsistent data")
         }
         generations_below_recursive(self, relationships, 0)
     }
