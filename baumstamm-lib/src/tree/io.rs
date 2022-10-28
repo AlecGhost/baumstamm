@@ -51,11 +51,11 @@ pub(super) fn export_puml(
     });
     relationships
         .iter()
-        .filter(|rel| rel.parents().len() > 0 || rel.children.len() > 1)
+        .filter(|rel| !rel.parents().is_empty() || rel.children.len() > 1)
         .for_each(|rel| text += format!("diamond r{}\n", rel.id).as_str());
     relationships
         .iter()
-        .filter(|rel| rel.parents().len() > 0 || rel.children.len() > 1)
+        .filter(|rel| !rel.parents().is_empty() || rel.children.len() > 1)
         .for_each(|rel| {
             rel.parents()
                 .iter()

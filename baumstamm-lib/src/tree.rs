@@ -1,5 +1,9 @@
 use crate::util::UniqueIterator;
-use std::error::Error;
+use std::{
+    cell::RefCell,
+    error::Error,
+    rc::{Rc, Weak},
+};
 use uuid::Uuid;
 
 mod consistency;
@@ -26,10 +30,7 @@ impl Relationship {
     }
 
     fn parents(&self) -> Vec<PersonId> {
-        self.parents
-            .iter()
-            .filter_map(|parent| parent.clone())
-            .collect()
+        self.parents.iter().filter_map(|parent| *parent).collect()
     }
 
     fn add_parent(&mut self) -> Result<Person, &'static str> {
@@ -86,7 +87,7 @@ impl Relationship {
                 .flat_map(|child| graph::parent_relationships(child, relationships))
                 .map(|rel| generations_below_recursive(rel, relationships, generations_above + 1))
                 .max()
-                .unwrap_or_else(|| 0)
+                .unwrap_or(0)
             // .expect("Inconsistent data")
         }
         generations_below_recursive(self, relationships, 0)
@@ -135,6 +136,23 @@ impl PersonInfo {
             last_name,
             date_of_birth,
             date_of_death,
+        }
+    }
+}
+
+#[derive(Debug)]
+struct Node {
+    value: RelationshipId,
+    parents: RefCell<[Weak<Node>; 2]>,
+    children: RefCell<Vec<Rc<Node>>>,
+}
+
+impl Node {
+    fn new(value: RelationshipId) -> Self {
+        Self {
+            value,
+            parents: RefCell::new([Weak::new(), Weak::new()]),
+            children: RefCell::new(Vec::new()),
         }
     }
 }

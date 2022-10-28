@@ -1,4 +1,6 @@
-use super::{PersonId, Relationship};
+use std::rc::Rc;
+
+use super::{Node, PersonId, Relationship, RelationshipId};
 use crate::util::UniqueIterator;
 
 pub(super) fn extract_persons(relationships: &[Relationship]) -> Vec<PersonId> {
@@ -30,71 +32,89 @@ pub(super) fn parent_relationships<'a>(
         .collect()
 }
 
-// pub(super) fn generation_matrix(relationships: &[Relationship]) -> Vec<Vec<PersonId>> {
-//     fn fill_matrix(
-//         matrix: &mut Vec<Vec<PersonId>>,
-//         rel: &Relationship,
-//         relationships: &[Relationship],
-//         level: usize,
-//     ) {
-//         // println!("rel: {}, level: {}", rel.id, level);
-//         // println!("{:?}", matrix);
-//         if matrix.len() == level {
-//             let new_row: Vec<PersonId> = Vec::new();
-//             matrix.push(new_row);
-//         }
-//         let row = matrix.get_mut(level).expect("Invalid matrix level");
-//         if rel.children.iter().any(|child| row.contains(child)) {
-//             return;
-//         }
-//         rel.children
-//             .iter()
-//             .for_each(|child| row.push(child.clone()));
-//         // if level != 0 {
-//         //     rel.parents().iter().for_each(|parent| {
-//         //         let child_rel = child_relationship(parent, relationships);
-//         //         fill_matrix(matrix, child_rel, relationships, level - 1)
-//         //     });
-//         // }
-//         rel.children.iter().for_each(|child| {
-//             let parent_rel = parent_relationships(child, relationships);
-//             parent_rel.iter().for_each(|rel| {
-//                 fill_matrix(matrix, rel, relationships, level + 1);
-//             });
-//         });
-//     }
+pub(super) fn rel_children(
+    id: &RelationshipId,
+    relationships: &[Relationship],
+) -> Vec<RelationshipId> {
+    let current = relationships
+        .iter()
+        .find(|rel| rel.id == *id)
+        .expect("Inconsistent data");
+    relationships
+        .iter()
+        .filter(|rel| {
+            current
+                .children
+                .iter()
+                .any(|child| rel.parents().contains(child))
+        })
+        .map(|rel| rel.id)
+        .collect()
+}
 
-//     let mut matrix = Vec::new();
-//     let oldest = relationships
-//         .iter()
-//         .filter(|rel| rel.parents().is_empty())
-//         // .reduce(|accum, rel| {
-//         //     if accum.generations_below(relationships) > rel.generations_below(relationships) {
-//         //         accum
-//         //     } else {
-//         //         rel
-//         //     }
-//         // })
-//         // .expect("There must be an oldest generation");
-//         .for_each(|start| {
-//             fill_matrix(&mut matrix, start, relationships, 0);
-//         });
-//     matrix
-// }
+pub(super) fn generate_node_tree(relationships: &[Relationship]) -> Rc<Node> {
+    fn add_children(relationships: &[Relationship], nodes: &[Rc<Node>], parent: &mut Rc<Node>) {
+        if !parent.children.borrow().is_empty() {
+            return;
+        }
+        rel_children(&parent.value, relationships)
+            .iter()
+            .for_each(|id| {
+                let node = nodes
+                    .iter()
+                    .find(|node| node.value == *id)
+                    .expect("Node creation failed");
+                parent.children.borrow_mut().push(Rc::clone(node));
+                node.parents
+                    .borrow_mut()
+                    .iter_mut()
+                    .for_each(|node_parent| *node_parent = Rc::downgrade(parent));
+                parent
+                    .children
+                    .borrow_mut()
+                    .iter_mut()
+                    .for_each(|child| add_children(relationships, nodes, child));
+            });
+    }
 
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-//     use crate::tree::io;
+    let root = Rc::new(Node::new(0));
+    let nodes: Vec<Rc<Node>> = relationships
+        .iter()
+        .map(|rel| Rc::new(Node::new(rel.id)))
+        .collect();
+    relationships
+        .iter()
+        // get relationships with not parents
+        .filter(|rel| rel.parents().is_empty())
+        .map(|rel| rel.id)
+        .for_each(|id| {
+            // add relationships with no parents to root node
+            let node = nodes
+                .iter()
+                .find(|node| node.value == id)
+                .expect("Node creation failed");
+            root.children.borrow_mut().push(Rc::clone(node));
+            node.parents
+                .borrow_mut()
+                .iter_mut()
+                .for_each(|parent| *parent = Rc::downgrade(&root));
+        });
+    root.children
+        .borrow_mut()
+        .iter_mut()
+        .for_each(|child| add_children(relationships, &nodes, child));
+    root
+}
 
-//     #[test]
-//     fn test_generation_matrix() {
-//         let relationships =
-//             io::read_relationships("test/generation_matrix.json").expect("Cannot read test file");
-//         println!(
-//             "Generation matrix:\n{:?}",
-//             generation_matrix(&relationships)
-//         );
-//         panic!("Test successful");
-//     }
-// }
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::tree::io;
+
+    #[test]
+    fn node_tree() {
+        let relationships =
+            io::read_relationships("test/generation_matrix.json").expect("Cannot read test file");
+        println!("{:#?}", generate_node_tree(&relationships));
+    }
+}
