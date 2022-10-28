@@ -9,19 +9,6 @@ pub(super) fn extract_persons(relationships: &[Relationship]) -> Vec<PersonId> {
     parents.chain(children).unique().collect()
 }
 
-pub(super) fn child_relationship<'a>(
-    id: &PersonId,
-    relationships: &'a [Relationship],
-) -> &'a Relationship {
-    relationships
-        .iter()
-        .filter(|rel| rel.children.contains(id))
-        .collect::<Vec<&Relationship>>()
-        .first()
-        // TODO: change signature to result
-        .expect("Inconsistent data")
-}
-
 pub(super) fn parent_relationships<'a>(
     id: &PersonId,
     relationships: &'a [Relationship],
@@ -52,7 +39,37 @@ pub(super) fn rel_children(
         .collect()
 }
 
-pub(super) fn generate_node_tree(relationships: &[Relationship]) -> Rc<Node> {
+pub enum NodeTreeType {
+    Full,
+    TopCut,
+}
+
+impl Node {
+    fn is_anchestor_of(&self, other: &Rc<Self>) -> Option<(RelationshipId, u32)> {
+        // println!("Comparing {}, {}", self.value, other.value);
+        if self.value == other.value {
+            return Some((self.value, 0));
+        }
+        if self
+            .children
+            .borrow()
+            .iter()
+            .any(|child| child.value == other.value)
+        {
+            return Some((self.value, 1));
+        }
+        self.children
+            .borrow()
+            .iter()
+            .filter_map(|child| child.is_anchestor_of(other))
+            .reduce(|acc, child| (self.value, acc.1.max(child.1) + 1))
+    }
+}
+
+pub(super) fn generate_node_tree(
+    relationships: &[Relationship],
+    tree_type: NodeTreeType,
+) -> Rc<Node> {
     fn add_children(relationships: &[Relationship], nodes: &[Rc<Node>], parent: &mut Rc<Node>) {
         if !parent.children.borrow().is_empty() {
             return;
@@ -77,6 +94,33 @@ pub(super) fn generate_node_tree(relationships: &[Relationship]) -> Rc<Node> {
             });
     }
 
+    fn cut_cycles(parent: &mut Rc<Node>, nodes: &[Rc<Node>]) {
+        let mut children = parent.children.borrow_mut();
+        if children.is_empty() {
+            return;
+        }
+        nodes.iter().for_each(|node| {
+            let cycle_children: Vec<(RelationshipId, u32)> = children
+                .iter()
+                .filter_map(|child| child.is_anchestor_of(node))
+                .collect();
+            if cycle_children.len() > 1 {
+                let longest_edge = cycle_children
+                    .iter()
+                    .reduce(|acc, child| if acc.1 > child.1 { acc } else { child })
+                    .expect("Math broken")
+                    .0;
+                children.retain(|child| {
+                    child.value == longest_edge
+                        || !cycle_children.iter().any(|tuple| child.value == tuple.0)
+                });
+            }
+        });
+        children
+            .iter_mut()
+            .for_each(|child| cut_cycles(child, nodes));
+    }
+
     let root = Rc::new(Node::new(0));
     let nodes: Vec<Rc<Node>> = relationships
         .iter()
@@ -84,7 +128,7 @@ pub(super) fn generate_node_tree(relationships: &[Relationship]) -> Rc<Node> {
         .collect();
     relationships
         .iter()
-        // get relationships with not parents
+        // get relationships with no parents
         .filter(|rel| rel.parents().is_empty())
         .map(|rel| rel.id)
         .for_each(|id| {
@@ -103,6 +147,12 @@ pub(super) fn generate_node_tree(relationships: &[Relationship]) -> Rc<Node> {
         .borrow_mut()
         .iter_mut()
         .for_each(|child| add_children(relationships, &nodes, child));
+    if let NodeTreeType::TopCut = tree_type {
+        root.children
+            .borrow_mut()
+            .iter_mut()
+            .for_each(|child| cut_cycles(child, &nodes))
+    }
     root
 }
 
@@ -115,6 +165,9 @@ mod test {
     fn node_tree() {
         let relationships =
             io::read_relationships("test/generation_matrix.json").expect("Cannot read test file");
-        println!("{:#?}", generate_node_tree(&relationships));
+        println!(
+            "{:#?}",
+            generate_node_tree(&relationships, NodeTreeType::TopCut)
+        );
     }
 }

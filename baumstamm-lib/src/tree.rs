@@ -140,7 +140,6 @@ impl PersonInfo {
     }
 }
 
-#[derive(Debug)]
 struct Node {
     value: RelationshipId,
     parents: RefCell<[Weak<Node>; 2]>,
@@ -154,6 +153,15 @@ impl Node {
             parents: RefCell::new([Weak::new(), Weak::new()]),
             children: RefCell::new(Vec::new()),
         }
+    }
+}
+
+impl std::fmt::Debug for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Node")
+            .field("value", &self.value)
+            .field("children", &self.children.borrow())
+            .finish()
     }
 }
 
