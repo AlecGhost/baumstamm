@@ -192,15 +192,15 @@ pub(super) fn generate_node_tree(
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tree::io;
+    use crate::tree::{consistency, io};
 
     #[test]
     fn node_tree() {
-        let relationships =
-            io::read_relationships("test/generation_matrix.json").expect("Cannot read test file");
+        let tree_data = io::read("test/generation_matrix.json").expect("Cannot read test file");
+        consistency::check(&tree_data).expect("Cannot read test file");
         println!(
             "{:#?}",
-            generate_node_tree(&relationships, NodeTreeType::TopCut)
+            generate_node_tree(&tree_data.relationships, NodeTreeType::TopCut)
         );
     }
 }

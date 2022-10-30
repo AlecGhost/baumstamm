@@ -165,62 +165,63 @@ impl std::fmt::Debug for Node {
     }
 }
 
-pub struct FamilyTree {
-    relationships_file_name: String,
-    persons_file_name: String,
+#[derive(serde::Serialize, serde::Deserialize)]
+struct TreeData {
     relationships: Vec<Relationship>,
     persons: Vec<Person>,
 }
 
+impl TreeData {
+    fn new(relationships: Vec<Relationship>, persons: Vec<Person>) -> Self {
+        Self {
+            relationships,
+            persons,
+        }
+    }
+}
+
+pub struct FamilyTree {
+    file_name: String,
+    tree_data: TreeData,
+}
+
 impl FamilyTree {
-    pub fn new(
-        relationships_file_name: String,
-        persons_file_name: String,
-    ) -> Result<Self, Box<dyn Error>> {
+    pub fn new(file_name: String) -> Result<Self, Box<dyn Error>> {
         let initial_person = Person::new();
         let initial_rels = vec![Relationship::new(None, None, vec![initial_person.id])];
         let tree = FamilyTree {
-            relationships_file_name,
-            persons_file_name,
-            relationships: initial_rels,
-            persons: vec![initial_person],
+            file_name,
+            tree_data: TreeData::new(initial_rels, vec![initial_person]),
         };
         tree.save()?;
 
         Ok(tree)
     }
 
-    pub fn from_disk(
-        relationships_file_name: String,
-        persons_file_name: String,
-    ) -> Result<Self, Box<dyn Error>> {
-        let relationships = io::read_relationships(&relationships_file_name)?;
-        let persons = io::read_persons(&persons_file_name)?;
-        consistency::check(&relationships, &persons)?;
+    pub fn from_disk(file_name: String) -> Result<Self, Box<dyn Error>> {
+        let tree_data = io::read(&file_name)?;
+        consistency::check(&tree_data)?;
 
         Ok(FamilyTree {
-            relationships_file_name,
-            persons_file_name,
-            relationships,
-            persons,
+            file_name,
+            tree_data,
         })
     }
 
     pub fn save(&self) -> Result<(), Box<dyn Error>> {
-        consistency::check(&self.relationships, &self.persons)?;
-        io::write_relationships(&self.relationships_file_name, &self.relationships)?;
-        io::write_persons(&self.persons_file_name, &self.persons)?;
+        consistency::check(&self.tree_data)?;
+        io::write(&self.file_name, &self.tree_data)?;
         Ok(())
     }
 
     pub fn export_puml(&self, file_name: &str) -> Result<(), Box<dyn Error>> {
-        consistency::check(&self.relationships, &self.persons)?;
-        io::export_puml(file_name, &self.relationships, &self.persons)?;
+        consistency::check(&self.tree_data)?;
+        io::export_puml(file_name, &self.tree_data)?;
         Ok(())
     }
 
     pub fn get_persons(&self) -> &[Person] {
-        self.persons.as_slice()
+        self.tree_data.persons.as_slice()
     }
 
     pub fn add_parent(
@@ -228,6 +229,7 @@ impl FamilyTree {
         relationship_id: RelationshipId,
     ) -> Result<(PersonId, RelationshipId), Box<dyn Error>> {
         let rel_opt = self
+            .tree_data
             .relationships
             .iter_mut()
             .find(|rel| rel.id == relationship_id);
@@ -242,8 +244,8 @@ impl FamilyTree {
         let new_rel = Relationship::new(None, None, vec![parent.id]);
         let new_rid = new_rel.id;
 
-        self.persons.push(parent);
-        self.relationships.push(new_rel);
+        self.tree_data.persons.push(parent);
+        self.tree_data.relationships.push(new_rel);
         self.save()?;
 
         Ok((new_pid, new_rid))
@@ -254,6 +256,7 @@ impl FamilyTree {
         relationship_id: RelationshipId,
     ) -> Result<PersonId, Box<dyn Error>> {
         let rel_opt = self
+            .tree_data
             .relationships
             .iter_mut()
             .find(|rel| rel.id == relationship_id);
@@ -264,7 +267,7 @@ impl FamilyTree {
         };
         let new_person = Person::new();
         let new_id = new_person.id;
-        self.persons.push(new_person);
+        self.tree_data.persons.push(new_person);
         rel.children.push(new_id);
         self.save()?;
 
@@ -273,6 +276,7 @@ impl FamilyTree {
 
     pub fn add_rel(&mut self, person_id: PersonId) -> Result<RelationshipId, Box<dyn Error>> {
         if !self
+            .tree_data
             .persons
             .iter()
             .map(|person| person.id)
@@ -282,7 +286,7 @@ impl FamilyTree {
         }
         let new_rel = Relationship::new(Some(person_id), None, vec![]);
         let new_rid = new_rel.id;
-        self.relationships.push(new_rel);
+        self.tree_data.relationships.push(new_rel);
         self.save()?;
 
         Ok(new_rid)
@@ -294,11 +298,13 @@ impl FamilyTree {
         partner_id: PersonId,
     ) -> Result<RelationshipId, Box<dyn Error>> {
         if !self
+            .tree_data
             .persons
             .iter()
             .map(|person| person.id)
             .any(|id| id == person_id)
             || !self
+                .tree_data
                 .persons
                 .iter()
                 .map(|person| person.id)
@@ -308,7 +314,7 @@ impl FamilyTree {
         }
         let new_rel = Relationship::new(Some(person_id), Some(partner_id), vec![]);
         let new_rid = new_rel.id;
-        self.relationships.push(new_rel);
+        self.tree_data.relationships.push(new_rel);
         self.save()?;
 
         Ok(new_rid)
@@ -320,6 +326,7 @@ impl FamilyTree {
         person_info: Option<PersonInfo>,
     ) -> Result<(), Box<dyn Error>> {
         let person = match self
+            .tree_data
             .persons
             .iter_mut()
             .find(|person| person.id == person_id)

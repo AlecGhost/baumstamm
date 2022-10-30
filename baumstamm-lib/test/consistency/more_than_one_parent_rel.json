@@ -1,0 +1,35 @@
+{
+  "relationships": [
+    {
+      "id": 0,
+      "parents": [
+        0,
+        null
+      ],
+      "children": [
+        1
+      ]
+    },
+    {
+      "id": 1,
+      "parents": [
+        2,
+        null
+      ],
+      "children": [
+        1
+      ]
+    },
+    {
+      "id": 2,
+      "parents": [
+        null,
+        null
+      ],
+      "children": [
+        2
+      ]
+    }
+  ],
+  "persons": []
+}

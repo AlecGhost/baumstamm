@@ -1,0 +1,178 @@
+{
+  "relationships": [
+    {
+      "id": 0,
+      "parents": [
+        null,
+        null
+      ],
+      "children": [
+        0,
+        1
+      ]
+    },
+    {
+      "id": 1,
+      "parents": [
+        0,
+        null
+      ],
+      "children": [
+        2
+      ]
+    },
+    {
+      "id": 2,
+      "parents": [
+        2,
+        null
+      ],
+      "children": [
+        3
+      ]
+    },
+    {
+      "id": 3,
+      "parents": [
+        3,
+        null
+      ],
+      "children": [
+        4
+      ]
+    },
+    {
+      "id": 4,
+      "parents": [
+        1,
+        null
+      ],
+      "children": [
+        5
+      ]
+    },
+    {
+      "id": 5,
+      "parents": [
+        5,
+        null
+      ],
+      "children": [
+        6
+      ]
+    },
+    {
+      "id": 6,
+      "parents": [
+        6,
+        null
+      ],
+      "children": [
+        7
+      ]
+    },
+    {
+      "id": 7,
+      "parents": [
+        7,
+        null
+      ],
+      "children": [
+        8,
+        12
+      ]
+    },
+    {
+      "id": 8,
+      "parents": [
+        4,
+        8
+      ],
+      "children": [
+        9
+      ]
+    },
+    {
+      "id": 9,
+      "parents": [
+        12,
+        null
+      ],
+      "children": [
+        10
+      ]
+    },
+    {
+      "id": 10,
+      "parents": [
+        10,
+        null
+      ],
+      "children": [
+        11
+      ]
+    },
+    {
+      "id": 11,
+      "parents": [
+        11,
+        9
+      ],
+      "children": []
+    }
+  ],
+  "persons": [
+    {
+      "id": 0,
+      "info": null
+    },
+    {
+      "id": 1,
+      "info": null
+    },
+    {
+      "id": 2,
+      "info": null
+    },
+    {
+      "id": 3,
+      "info": null
+    },
+    {
+      "id": 4,
+      "info": null
+    },
+    {
+      "id": 5,
+      "info": null
+    },
+    {
+      "id": 6,
+      "info": null
+    },
+    {
+      "id": 7,
+      "info": null
+    },
+    {
+      "id": 8,
+      "info": null
+    },
+    {
+      "id": 9,
+      "info": null
+    },
+    {
+      "id": 10,
+      "info": null
+    },
+    {
+      "id": 11,
+      "info": null
+    },
+    {
+      "id": 12,
+      "info": null
+    }
+  ]
+}

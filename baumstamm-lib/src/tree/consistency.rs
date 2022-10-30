@@ -1,25 +1,23 @@
-use super::graph;
+use super::{graph, TreeData};
 use super::{Person, PersonId, Relationship};
 use crate::util::UniqueIterator;
 use std::{collections::HashMap, iter::FromIterator};
 
-pub(super) fn check(
-    relationships: &Vec<Relationship>,
-    persons: &[Person],
-) -> Result<(), &'static str> {
-    check_relationships(relationships)?;
-    check_persons(persons)?;
+pub(super) fn check(tree_data: &TreeData) -> Result<(), &'static str> {
+    check_relationships(&tree_data.relationships)?;
+    check_persons(&tree_data.persons)?;
 
     // turn into hash map for O(n) access
     let persons_hashmap: HashMap<PersonId, ()> = HashMap::from_iter(
-        graph::extract_persons(relationships)
+        graph::extract_persons(&tree_data.relationships)
             .iter()
             .map(|person_id| (*person_id, ())),
     );
-    if persons.len() != persons_hashmap.len() {
+    if tree_data.persons.len() != persons_hashmap.len() {
         return Err("The number of persons differs");
     }
-    if persons
+    if tree_data
+        .persons
         .iter()
         .map(|person| person.id)
         .any(|person_id| !persons_hashmap.contains_key(&person_id))
@@ -128,15 +126,13 @@ mod test {
     }
 
     fn assert_err_for_file(expected_err_message: &str, file_name: &str, file_type: FileType) {
+        let tree_data = io::read(file_name).expect("Cannot read test file");
         let err = match file_type {
             FileType::Relationships => {
-                let relationships =
-                    io::read_relationships(file_name).expect("Cannot read test file");
-                check_relationships(&relationships).expect_err("Consistency check failed")
+                check_relationships(&tree_data.relationships).expect_err("Consistency check failed")
             }
             FileType::Persons => {
-                let persons = io::read_persons(file_name).expect("Cannot read test file");
-                check_persons(&persons).expect_err("Consistency check failed")
+                check_persons(&tree_data.persons).expect_err("Consistency check failed")
             }
         };
         assert_eq!(expected_err_message, format!("{err}"))
@@ -146,7 +142,7 @@ mod test {
     fn multiple_ids() {
         assert_err_for_file(
             "More than one relationship with the same id",
-            "test/multiple_ids.json",
+            "test/consistency/multiple_ids.json",
             FileType::Relationships,
         );
     }
@@ -155,7 +151,7 @@ mod test {
     fn self_reference() {
         assert_err_for_file(
             "Self referencing relationship",
-            "test/self_reference.json",
+            "test/consistency/self_reference.json",
             FileType::Relationships,
         );
     }
@@ -164,7 +160,7 @@ mod test {
     fn child_is_parent() {
         assert_err_for_file(
             "A Child cannot be its parent",
-            "test/child_is_parent.json",
+            "test/consistency/child_is_parent.json",
             FileType::Relationships,
         );
     }
@@ -173,7 +169,7 @@ mod test {
     fn child_of_relationship() {
         assert_err_for_file(
             "Every person must be child of a relationship",
-            "test/child_of_relationship.json",
+            "test/consistency/child_of_relationship.json",
             FileType::Relationships,
         );
     }
@@ -182,7 +178,7 @@ mod test {
     fn more_than_one_parent_rel() {
         assert_err_for_file(
             "A Person is child of more than one relationship",
-            "test/more_than_one_parent_rel.json",
+            "test/consistency/more_than_one_parent_rel.json",
             FileType::Relationships,
         );
     }
@@ -191,7 +187,7 @@ mod test {
     fn everything_connected() {
         assert_err_for_file(
             "Not all nodes are connected",
-            "test/everything_connected.json",
+            "test/consistency/everything_connected.json",
             FileType::Relationships,
         );
     }
@@ -200,7 +196,7 @@ mod test {
     fn no_cycles() {
         assert_err_for_file(
             "Cycle in family tree",
-            "test/no_cycles.json",
+            "test/consistency/no_cycles.json",
             FileType::Relationships,
         );
     }
@@ -209,18 +205,16 @@ mod test {
     fn person_multiple_ids() {
         assert_err_for_file(
             "Multiple persons with the same id",
-            "test/person_multiple_ids.json",
+            "test/consistency/person_multiple_ids.json",
             FileType::Persons,
         );
     }
 
     #[test]
     fn check_both() -> Result<(), &'static str> {
-        let relationships =
-            io::read_relationships("test/check_both_rels.json").expect("Cannot read test file");
-        let persons =
-            io::read_persons("test/check_both_persons.json").expect("Cannot read test file");
-        match check(&relationships, &persons) {
+        let tree_data =
+            io::read("test/consistency/check_both.json").expect("Cannot read test file");
+        match check(&tree_data) {
             Ok(_) => Ok(()),
             Err(err) => {
                 println!("{err}");
@@ -231,31 +225,25 @@ mod test {
 
     #[test]
     fn too_few_persons() {
-        let relationships = io::read_relationships("test/too_few_persons_rels.json")
-            .expect("Cannot read test file");
-        let persons =
-            io::read_persons("test/too_few_persons_persons.json").expect("Cannot read test file");
-        let err = check(&relationships, &persons).expect_err("Consistency check failed");
+        let tree_data =
+            io::read("test/consistency/too_few_persons.json").expect("Cannot read test file");
+        let err = check(&tree_data).expect_err("Consistency check failed");
         assert_eq!("The number of persons differs", format!("{err}"));
     }
 
     #[test]
     fn too_few_rels() {
-        let relationships =
-            io::read_relationships("test/too_few_rels_rels.json").expect("Cannot read test file");
-        let persons =
-            io::read_persons("test/too_few_rels_persons.json").expect("Cannot read test file");
-        let err = check(&relationships, &persons).expect_err("Consistency check failed");
+        let tree_data =
+            io::read("test/consistency/too_few_rels.json").expect("Cannot read test file");
+        let err = check(&tree_data).expect_err("Consistency check failed");
         assert_eq!("The number of persons differs", format!("{err}"));
     }
 
     #[test]
     fn different_ids() {
-        let relationships =
-            io::read_relationships("test/different_ids_rels.json").expect("Cannot read test file");
-        let persons =
-            io::read_persons("test/different_ids_persons.json").expect("Cannot read test file");
-        let err = check(&relationships, &persons).expect_err("Consistency check failed");
+        let tree_data =
+            io::read("test/consistency/different_ids.json").expect("Cannot read test file");
+        let err = check(&tree_data).expect_err("Consistency check failed");
         assert_eq!("Relationships and persons do not match", format!("{err}"));
     }
 }

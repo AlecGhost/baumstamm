@@ -5,8 +5,7 @@ use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
 struct Cli {
-    relationships: String,
-    persons: String,
+    data: String,
 
     #[command(subcommand)]
     action: Option<Action>,
@@ -66,9 +65,9 @@ struct RelationshipWithPartner {
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
     let mut tree = if args.new {
-        FamilyTree::new(args.relationships, args.persons)?
+        FamilyTree::new(args.data)?
     } else {
-        FamilyTree::from_disk(args.relationships, args.persons)?
+        FamilyTree::from_disk(args.data)?
     };
 
     if let Some(action) = args.action {

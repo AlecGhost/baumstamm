@@ -9,11 +9,7 @@ pub fn generate_grid(size: GridSize, source: SourcePoint) -> Result<Vec<Item>, &
     println!("Source: {:?}", source);
     let grid = Grid::new(size, source).expect("Grid failed");
     println!("Grid");
-    let tree = FamilyTree::new(
-        "/tmp/rels.json".to_string(),
-        "/tmp/persons.json".to_string(),
-    )
-    .expect("Tree failed");
+    let tree = FamilyTree::new("/tmp/baumstamm.json".to_string()).expect("Tree failed");
     println!("Tree");
     Ok(grid.generate(&tree))
 }
