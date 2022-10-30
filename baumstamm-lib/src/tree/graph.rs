@@ -20,12 +20,12 @@ pub(super) fn parent_relationships<'a>(
 }
 
 pub(super) fn rel_children(
-    id: &RelationshipId,
+    rid: &RelationshipId,
     relationships: &[Relationship],
 ) -> Vec<RelationshipId> {
     let current = relationships
         .iter()
-        .find(|rel| rel.id == *id)
+        .find(|rel| rel.id == *rid)
         .expect("Inconsistent data");
     relationships
         .iter()
@@ -44,11 +44,21 @@ pub enum NodeTreeType {
     TopCut,
 }
 
+struct AncestorLevel {
+    rid: RelationshipId,
+    level: u32,
+}
+
+impl AncestorLevel {
+    fn new(rid: RelationshipId, level: u32) -> Self {
+        Self { rid, level }
+    }
+}
+
 impl Node {
-    fn is_anchestor_of(&self, other: &Rc<Self>) -> Option<(RelationshipId, u32)> {
-        // println!("Comparing {}, {}", self.value, other.value);
+    fn is_ancestor_of(&self, other: &Rc<Self>) -> Option<AncestorLevel> {
         if self.value == other.value {
-            return Some((self.value, 0));
+            return Some(AncestorLevel::new(self.value, 0));
         }
         if self
             .children
@@ -56,13 +66,13 @@ impl Node {
             .iter()
             .any(|child| child.value == other.value)
         {
-            return Some((self.value, 1));
+            return Some(AncestorLevel::new(self.value, 1));
         }
         self.children
             .borrow()
             .iter()
-            .filter_map(|child| child.is_anchestor_of(other))
-            .reduce(|acc, child| (self.value, acc.1.max(child.1) + 1))
+            .filter_map(|child| child.is_ancestor_of(other))
+            .reduce(|acc, child| AncestorLevel::new(self.value, acc.level.max(child.level) + 1))
     }
 }
 
@@ -71,21 +81,27 @@ pub(super) fn generate_node_tree(
     tree_type: NodeTreeType,
 ) -> Rc<Node> {
     fn add_children(relationships: &[Relationship], nodes: &[Rc<Node>], parent: &mut Rc<Node>) {
+        // return if children are already added
         if !parent.children.borrow().is_empty() {
             return;
         }
+        // find child relationships and add them to the tree recursively
         rel_children(&parent.value, relationships)
             .iter()
             .for_each(|id| {
+                // extract right node from already existing node list
                 let node = nodes
                     .iter()
                     .find(|node| node.value == *id)
                     .expect("Node creation failed");
+                // add pointer to child node to parent
                 parent.children.borrow_mut().push(Rc::clone(node));
+                // add pointer to parent node to child
                 node.parents
                     .borrow_mut()
                     .iter_mut()
                     .for_each(|node_parent| *node_parent = Rc::downgrade(parent));
+                // call function recursively for all children
                 parent
                     .children
                     .borrow_mut()
@@ -94,28 +110,41 @@ pub(super) fn generate_node_tree(
             });
     }
 
+    /**
+    If there is a cycle, remove all but one (the longest) edges, to cut the cycle.
+
+    The relationship tree is a directed acyclic graph, therefore there are no cycles it its original sense.
+    But if one relationship descends from another in more than one ways, I call it a cycle in this context.
+    */
     fn cut_cycles(parent: &mut Rc<Node>, nodes: &[Rc<Node>]) {
         let mut children = parent.children.borrow_mut();
+        // no children, no cycle
         if children.is_empty() {
             return;
         }
+        // go through each node and cut the cycles
         nodes.iter().for_each(|node| {
-            let cycle_children: Vec<(RelationshipId, u32)> = children
+            // collect child nodes, who are ancestors of the current node
+            let cycle_children: Vec<AncestorLevel> = children
                 .iter()
-                .filter_map(|child| child.is_anchestor_of(node))
+                .filter_map(|child| child.is_ancestor_of(node))
                 .collect();
+            // if the node descends from more than one child, there is a cycle
             if cycle_children.len() > 1 {
+                // find out, which of the child relationships has the longer edge to the node, and should therefore remain in the tree
                 let longest_edge = cycle_children
                     .iter()
-                    .reduce(|acc, child| if acc.1 > child.1 { acc } else { child })
+                    .reduce(|acc, child| if acc.level > child.level { acc } else { child })
                     .expect("Math broken")
-                    .0;
+                    .rid;
+                // remove the pointers to the child relationships, where there is a cycle, except for the longest edge to the node
                 children.retain(|child| {
                     child.value == longest_edge
-                        || !cycle_children.iter().any(|tuple| child.value == tuple.0)
+                        || !cycle_children.iter().any(|tuple| child.value == tuple.rid)
                 });
             }
         });
+        // continue recursively through the tree
         children
             .iter_mut()
             .for_each(|child| cut_cycles(child, nodes));
@@ -126,13 +155,14 @@ pub(super) fn generate_node_tree(
         .iter()
         .map(|rel| Rc::new(Node::new(rel.id)))
         .collect();
+    // add relationships with no parents to root node
     relationships
         .iter()
         // get relationships with no parents
         .filter(|rel| rel.parents().is_empty())
         .map(|rel| rel.id)
         .for_each(|id| {
-            // add relationships with no parents to root node
+            // add it to root node
             let node = nodes
                 .iter()
                 .find(|node| node.value == id)
@@ -143,16 +173,19 @@ pub(super) fn generate_node_tree(
                 .iter_mut()
                 .for_each(|parent| *parent = Rc::downgrade(&root));
         });
+    // build tree/add rest of the nodes
     root.children
         .borrow_mut()
         .iter_mut()
         .for_each(|child| add_children(relationships, &nodes, child));
+
     if let NodeTreeType::TopCut = tree_type {
         root.children
             .borrow_mut()
             .iter_mut()
             .for_each(|child| cut_cycles(child, &nodes))
     }
+
     root
 }
 
