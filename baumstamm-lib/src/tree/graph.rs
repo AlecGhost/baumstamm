@@ -39,7 +39,7 @@ pub(super) fn rel_children(
         .collect()
 }
 
-pub enum NodeTreeType {
+pub enum NodeGraphType {
     Full,
     TopCut,
 }
@@ -76,9 +76,9 @@ impl Node {
     }
 }
 
-pub(super) fn generate_node_tree(
+pub(super) fn generate_node_graph(
     relationships: &[Relationship],
-    tree_type: NodeTreeType,
+    tree_type: NodeGraphType,
 ) -> Rc<Node> {
     fn add_children(relationships: &[Relationship], nodes: &[Rc<Node>], parent: &mut Rc<Node>) {
         // return if children are already added
@@ -113,7 +113,7 @@ pub(super) fn generate_node_tree(
     /**
     If there is a cycle, remove all but one (the longest) edges, to cut the cycle.
 
-    The relationship tree is a directed acyclic graph, therefore there are no cycles it its original sense.
+    The relationship graph is a directed acyclic graph, therefore there are no cycles it its original sense.
     But if one relationship descends from another in more than one ways, I call it a cycle in this context.
     */
     fn cut_cycles(parent: &mut Rc<Node>, nodes: &[Rc<Node>]) {
@@ -179,7 +179,7 @@ pub(super) fn generate_node_tree(
         .iter_mut()
         .for_each(|child| add_children(relationships, &nodes, child));
 
-    if let NodeTreeType::TopCut = tree_type {
+    if let NodeGraphType::TopCut = tree_type {
         root.children
             .borrow_mut()
             .iter_mut()
@@ -196,11 +196,11 @@ mod test {
 
     #[test]
     fn node_tree() {
-        let tree_data = io::read("test/generation_matrix.json").expect("Cannot read test file");
+        let tree_data = io::read("test/graph/node_tree.json").expect("Cannot read test file");
         consistency::check(&tree_data).expect("Cannot read test file");
         println!(
             "{:#?}",
-            generate_node_tree(&tree_data.relationships, NodeTreeType::TopCut)
+            generate_node_graph(&tree_data.relationships, NodeGraphType::TopCut)
         );
     }
 }
