@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{borrow::Borrow, rc::Rc};
 
 use super::{Node, PersonId, Relationship, RelationshipId};
 use crate::util::UniqueIterator;
@@ -39,11 +39,6 @@ pub(super) fn rel_children(
         .collect()
 }
 
-pub enum NodeGraphType {
-    Full,
-    TopCut,
-}
-
 struct AncestorLevel {
     rid: RelationshipId,
     level: u32,
@@ -57,14 +52,14 @@ impl AncestorLevel {
 
 impl Node {
     fn is_ancestor_of(&self, other: &Rc<Self>) -> Option<AncestorLevel> {
-        if self.value == other.value {
+        if self == other.borrow() {
             return Some(AncestorLevel::new(self.value, 0));
         }
         if self
             .children
             .borrow()
             .iter()
-            .any(|child| child.value == other.value)
+            .any(|child| child == other.borrow())
         {
             return Some(AncestorLevel::new(self.value, 1));
         }
@@ -74,12 +69,30 @@ impl Node {
             .filter_map(|child| child.is_ancestor_of(other))
             .reduce(|acc, child| AncestorLevel::new(self.value, acc.level.max(child.level) + 1))
     }
+
+    fn get_nodes(&self) -> Vec<Rc<Self>> {
+        let mut nodes: Vec<Rc<Node>> = self.children.borrow().iter().map(Rc::clone).collect();
+        let mut index = 0;
+        while index < nodes.len() {
+            #[allow(clippy::needless_collect)]
+            let children: Vec<Rc<Node>> = nodes[index]
+                .children
+                .borrow()
+                .iter()
+                .map(Rc::clone)
+                .collect();
+            children.into_iter().for_each(|child| {
+                if !nodes.contains(&child) {
+                    nodes.push(child);
+                }
+            });
+            index += 1;
+        }
+        nodes
+    }
 }
 
-pub(super) fn generate_node_graph(
-    relationships: &[Relationship],
-    tree_type: NodeGraphType,
-) -> Rc<Node> {
+pub(super) fn generate_node_graph(relationships: &[Relationship]) -> Rc<Node> {
     fn add_children(relationships: &[Relationship], nodes: &[Rc<Node>], parent: &mut Rc<Node>) {
         // return if children are already added
         if !parent.children.borrow().is_empty() {
@@ -110,6 +123,39 @@ pub(super) fn generate_node_graph(
             });
     }
 
+    let root = Rc::new(Node::new(0));
+    let nodes: Vec<Rc<Node>> = relationships
+        .iter()
+        .map(|rel| Rc::new(Node::new(rel.id)))
+        .collect();
+    // add relationships with no parents to root node
+    relationships
+        .iter()
+        // get relationships with no parents
+        .filter(|rel| rel.parents().is_empty())
+        .map(|rel| rel.id)
+        .for_each(|id| {
+            // add it to root node
+            let node = nodes
+                .iter()
+                .find(|node| node.value == id)
+                .expect("Node creation failed");
+            root.children.borrow_mut().push(Rc::clone(node));
+            node.parents
+                .borrow_mut()
+                .iter_mut()
+                .for_each(|parent| *parent = Rc::downgrade(&root));
+        });
+    // build tree/add rest of the nodes
+    root.children
+        .borrow_mut()
+        .iter_mut()
+        .for_each(|child| add_children(relationships, &nodes, child));
+
+    root
+}
+
+fn cut_node_graph(root: Rc<Node>) -> Rc<Node> {
     /**
     If there is a cycle, remove all but one (the longest) edges, to cut the cycle.
 
@@ -150,42 +196,11 @@ pub(super) fn generate_node_graph(
             .for_each(|child| cut_cycles(child, nodes));
     }
 
-    let root = Rc::new(Node::new(0));
-    let nodes: Vec<Rc<Node>> = relationships
-        .iter()
-        .map(|rel| Rc::new(Node::new(rel.id)))
-        .collect();
-    // add relationships with no parents to root node
-    relationships
-        .iter()
-        // get relationships with no parents
-        .filter(|rel| rel.parents().is_empty())
-        .map(|rel| rel.id)
-        .for_each(|id| {
-            // add it to root node
-            let node = nodes
-                .iter()
-                .find(|node| node.value == id)
-                .expect("Node creation failed");
-            root.children.borrow_mut().push(Rc::clone(node));
-            node.parents
-                .borrow_mut()
-                .iter_mut()
-                .for_each(|parent| *parent = Rc::downgrade(&root));
-        });
-    // build tree/add rest of the nodes
+    let nodes = root.get_nodes();
     root.children
         .borrow_mut()
         .iter_mut()
-        .for_each(|child| add_children(relationships, &nodes, child));
-
-    if let NodeGraphType::TopCut = tree_type {
-        root.children
-            .borrow_mut()
-            .iter_mut()
-            .for_each(|child| cut_cycles(child, &nodes))
-    }
-
+        .for_each(|child| cut_cycles(child, &nodes));
     root
 }
 
@@ -197,10 +212,11 @@ mod test {
     #[test]
     fn node_tree() {
         let tree_data = io::read("test/graph/node_tree.json").expect("Cannot read test file");
-        consistency::check(&tree_data).expect("Cannot read test file");
-        println!(
-            "{:#?}",
-            generate_node_graph(&tree_data.relationships, NodeGraphType::TopCut)
-        );
+        consistency::check(&tree_data).expect("Test data inconsistent");
+        let expected_result = std::fs::read_to_string("test/graph/node_tree_result.txt")
+            .expect("Cannot read test file");
+        let root = generate_node_graph(&tree_data.relationships);
+        let root = cut_node_graph(root);
+        assert_eq!(expected_result, format!("{:#?}", root));
     }
 }
