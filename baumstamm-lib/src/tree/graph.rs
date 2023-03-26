@@ -321,30 +321,16 @@ fn generations(tree: &Tree) -> Vec<Vec<RelationshipId>> {
 mod test {
     use super::*;
     use crate::tree::{consistency, io};
-    use pretty_assertions::assert_eq;
+    use insta::assert_debug_snapshot;
 
     #[test]
-    fn node_tree() {
+    fn complete_tree_1() {
         let tree_data = io::read("test/graph/node_tree.json").expect("Cannot read test file");
         consistency::check(&tree_data).expect("Test data inconsistent");
-        let expected_result = std::fs::read_to_string("test/graph/node_tree_result.txt")
-            .expect("Cannot read test file");
         let mut tree = generate_tree(&tree_data.relationships);
         cut_tree(&mut tree);
-        assert_eq!(format!("{:#?}\n", tree), expected_result);
+        assert_debug_snapshot!(tree);
         let gens = generations(&tree);
-        assert_eq!(
-            gens,
-            vec![
-                vec![0],
-                vec![4],
-                vec![5],
-                vec![6, 1],
-                vec![7, 2],
-                vec![9, 3],
-                vec![10, 8],
-                vec![11]
-            ],
-        );
+        assert_debug_snapshot!(gens);
     }
 }
