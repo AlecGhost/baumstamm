@@ -1,9 +1,5 @@
 use crate::util::UniqueIterator;
-use std::{
-    cell::RefCell,
-    error::Error,
-    rc::{Rc, Weak},
-};
+use std::error::Error;
 use uuid::Uuid;
 
 mod consistency;
@@ -74,24 +70,6 @@ impl Relationship {
         }
         descendants
     }
-
-    fn generations_below(&self, relationships: &[Relationship]) -> u32 {
-        fn generations_below_recursive(
-            relationship: &Relationship,
-            relationships: &[Relationship],
-            generations_above: u32,
-        ) -> u32 {
-            relationship
-                .children
-                .iter()
-                .flat_map(|child| graph::parent_relationships(child, relationships))
-                .map(|rel| generations_below_recursive(rel, relationships, generations_above + 1))
-                .max()
-                .unwrap_or(0)
-            // .expect("Inconsistent data")
-        }
-        generations_below_recursive(self, relationships, 0)
-    }
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
@@ -137,37 +115,6 @@ impl PersonInfo {
             date_of_birth,
             date_of_death,
         }
-    }
-}
-
-struct Node {
-    value: RelationshipId,
-    parents: RefCell<[Weak<Node>; 2]>,
-    children: RefCell<Vec<Rc<Node>>>,
-}
-
-impl Node {
-    fn new(value: RelationshipId) -> Self {
-        Self {
-            value,
-            parents: RefCell::new([Weak::new(), Weak::new()]),
-            children: RefCell::new(Vec::new()),
-        }
-    }
-}
-
-impl PartialEq for Node {
-    fn eq(&self, other: &Self) -> bool {
-        self.value == other.value
-    }
-}
-
-impl std::fmt::Debug for Node {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Node")
-            .field("value", &self.value)
-            .field("children", &self.children.borrow())
-            .finish()
     }
 }
 

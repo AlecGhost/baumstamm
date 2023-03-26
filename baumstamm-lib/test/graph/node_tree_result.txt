@@ -1,33 +1,8 @@
-Node {
-    value: 0,
-    children: [
+Tree {
+    top_level_nodes: [
         Node {
             value: 0,
             children: [
-                Node {
-                    value: 1,
-                    children: [
-                        Node {
-                            value: 2,
-                            children: [
-                                Node {
-                                    value: 3,
-                                    children: [
-                                        Node {
-                                            value: 8,
-                                            children: [
-                                                Node {
-                                                    value: 11,
-                                                    children: [],
-                                                },
-                                            ],
-                                        },
-                                    ],
-                                },
-                            ],
-                        },
-                    ],
-                },
                 Node {
                     value: 4,
                     children: [
@@ -55,6 +30,30 @@ Node {
                                                     ],
                                                 },
                                             ],
+                                        },
+                                    ],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            ],
+        },
+        Node {
+            value: 1,
+            children: [
+                Node {
+                    value: 2,
+                    children: [
+                        Node {
+                            value: 3,
+                            children: [
+                                Node {
+                                    value: 8,
+                                    children: [
+                                        Node {
+                                            value: 11,
+                                            children: [],
                                         },
                                     ],
                                 },
