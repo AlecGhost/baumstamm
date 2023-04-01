@@ -1,5 +1,5 @@
 use super::{PersonId, Relationship, RelationshipId};
-use crate::util::UniqueIterator;
+use itertools::Itertools;
 use std::{
     borrow::Borrow,
     cell::RefCell,
@@ -59,13 +59,13 @@ fn rids_of_parents(
 }
 
 #[derive(Debug, Default)]
-pub(super) struct Tree {
-    top_level_nodes: Vec<Rc<Node>>,
+pub(super) struct Graph {
+    sources: Vec<Rc<Node>>,
 }
 
-impl Tree {
+impl Graph {
     fn get_nodes(&self) -> Vec<Rc<Node>> {
-        let mut nodes: Vec<Rc<Node>> = self.top_level_nodes.iter().map(Rc::clone).collect();
+        let mut nodes: Vec<Rc<Node>> = self.sources.iter().map(Rc::clone).collect();
         let mut index = 0;
         while index < nodes.len() {
             #[allow(clippy::needless_collect)]
@@ -122,29 +122,89 @@ impl Node {
         if self == other.borrow() {
             return Some(0);
         }
-        if self
-            .children
-            .borrow()
-            .iter()
-            .any(|child| child == other.borrow())
-        {
-            return Some(1);
-        }
+        // if self
+        //     .children
+        //     .borrow()
+        //     .iter()
+        //     .any(|child| child == other.borrow())
+        // {
+        //     return Some(1);
+        // }
         self.children
             .borrow()
             .iter()
             .filter_map(|child| child.is_ancestor_of(other))
             .reduce(|acc, level| acc.max(level) + 1)
     }
+
+    fn is_descendant_of(&self, other: &Rc<Self>) -> Option<usize> {
+        if self == other.borrow() {
+            return Some(0);
+        }
+        self.parents
+            .borrow()
+            .iter()
+            .filter_map(|parent| parent.upgrade())
+            .filter_map(|parent| parent.is_descendant_of(other))
+            .reduce(|acc, level| acc.max(level) + 1)
+    }
+
+    fn walk_descendants(self: &Rc<Self>) -> DescendantWalker {
+        DescendantWalker::new(Rc::clone(self))
+    }
 }
 
-pub(super) fn generate_tree(relationships: &[Relationship]) -> Tree {
+#[derive(Debug)]
+struct DescendantWalker {
+    node: Rc<Node>,
+    index: usize,
+    child_walker: Option<Box<DescendantWalker>>,
+}
+
+impl DescendantWalker {
+    fn new(node: Rc<Node>) -> Self {
+        Self {
+            node,
+            index: 0,
+            child_walker: None,
+        }
+    }
+}
+
+impl Iterator for DescendantWalker {
+    type Item = Rc<Node>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(child_walker) = &mut self.child_walker {
+            if let Some(next) = child_walker.next() {
+                Some(next)
+            } else {
+                self.child_walker = None;
+                self.index += 1;
+                self.next()
+            }
+        } else {
+            if let Some(child) = self.node.children.borrow().get(self.index) {
+                self.child_walker = Some(Box::new(DescendantWalker {
+                    node: Rc::clone(child),
+                    index: 0,
+                    child_walker: None,
+                }));
+                Some(Rc::clone(child))
+            } else {
+                None
+            }
+        }
+    }
+}
+
+pub(super) fn generate_graph(relationships: &[Relationship]) -> Graph {
     fn add_children(relationships: &[Relationship], nodes: &[Rc<Node>], parent: &mut Rc<Node>) {
         // return if children are already added
         if !parent.children.borrow().is_empty() {
             return;
         }
-        // find child relationships and add them to the tree recursively
+        // find child relationships and add them to the graph recursively
         rids_of_children(&parent.value, relationships)
             .iter()
             .for_each(|id| {
@@ -176,7 +236,7 @@ pub(super) fn generate_tree(relationships: &[Relationship]) -> Tree {
             });
     }
 
-    let mut tree = Tree::default();
+    let mut graph = Graph::default();
     let nodes: Vec<Rc<Node>> = relationships
         .iter()
         .map(|rel| Rc::new(Node::new(rel.id)))
@@ -193,16 +253,45 @@ pub(super) fn generate_tree(relationships: &[Relationship]) -> Tree {
                 .iter()
                 .find(|node| node.value == id)
                 .expect("Node creation failed");
-            tree.top_level_nodes.push(Rc::clone(node));
+            graph.sources.push(Rc::clone(node));
         });
-    // build tree/add rest of the nodes
-    tree.top_level_nodes
+    // build graph/add rest of the nodes
+    graph
+        .sources
         .iter_mut()
         .for_each(|child| add_children(relationships, &nodes, child));
-    tree
+    graph
 }
 
-fn cut_tree(tree: &mut Tree) {
+fn cut_graph(graph: &mut Graph) {
+    struct Descendant {
+        rid: RelationshipId,
+        level: usize,
+    }
+
+    fn update_sources(graph: &mut Graph, nodes: &[Rc<Node>]) {
+        let mut new_top_level_nodes: Vec<Rc<Node>> = nodes
+            .iter()
+            .filter(|node| !graph.sources.contains(node))
+            .filter(|node| {
+                let parents = node.parents.borrow();
+                parents[0].upgrade().is_none() && parents[1].upgrade().is_none()
+            })
+            .map(Rc::clone)
+            .collect();
+        graph.sources.append(&mut new_top_level_nodes);
+    }
+
+    fn cut_parent(node: &Rc<Node>, parent: &Rc<Node>) {
+        if let Some(cuttable_parent) =
+            node.parents.borrow_mut().iter_mut().find(
+                |cuttable_parent| matches!(cuttable_parent.upgrade(), Some(p) if &p == parent),
+            )
+        {
+            *cuttable_parent = Weak::new();
+        };
+    }
+
     /**
     If there is a cycle, remove all but one (the longest) edges, to cut the cycle.
 
@@ -218,103 +307,136 @@ fn cut_tree(tree: &mut Tree) {
         // go through each node and cut the cycles
         nodes.iter().for_each(|node| {
             // collect child nodes, who are ancestors of the current node
-            let cycle_children: Vec<(RelationshipId, usize)> = children
+            let cycle_children: Vec<Descendant> = children
                 .iter()
-                .filter_map(|child| child.is_ancestor_of(node).map(|level| (child.value, level)))
+                .filter_map(|child| {
+                    child.is_ancestor_of(node).map(|level| Descendant {
+                        rid: child.value,
+                        level,
+                    })
+                })
                 .collect();
             // if the node descends from more than one child, there is a cycle
             if cycle_children.len() > 1 {
-                // find out, which of the child relationships has the longer edge to the node, and should therefore remain in the tree
+                // find out, which of the child relationships has the longer edge to the node, and should therefore remain in the graph
                 let has_longest_edge = cycle_children
                     .iter()
-                    .reduce(|acc, child| if acc.1 > child.1 { acc } else { child })
-                    .expect("Math broken")
-                    .0;
+                    .reduce(|acc, child| if acc.level > child.level { acc } else { child })
+                    .expect("There must be at least two cycle children")
+                    .rid;
                 // remove the pointers to the child relationships, where there is a cycle, except for the longest edge to the node
-                let is_cycle_child =
-                    |child: RelationshipId| cycle_children.iter().any(|tuple| child == tuple.0);
+                let is_cycle_child = |child: RelationshipId| {
+                    cycle_children
+                        .iter()
+                        .any(|descendant| child == descendant.rid)
+                };
                 children.retain(|child| {
                     if child.value == has_longest_edge || !is_cycle_child(child.value) {
                         true
                     } else {
-                        child
-                            .parents
-                            .borrow_mut()
-                            .iter_mut()
-                            .for_each(|cuttable_parent| {
-                                if let Some(p) = cuttable_parent.upgrade() {
-                                    if &p == parent {
-                                        *cuttable_parent = Weak::new();
-                                    }
-                                }
-                            });
+                        cut_parent(child, parent);
                         false
                     }
                 });
             }
         });
-        // continue recursively through the tree
+        // continue recursively through the graph
         children
             .iter_mut()
             .for_each(|child| cut_cycles(child, nodes));
     }
 
-    let nodes = tree.get_nodes();
-    tree.top_level_nodes
+    fn cut_double_inheritance(graph: &mut Graph) {
+        for (this, next) in graph.sources.iter().tuple_combinations() {
+            let mut children = this.children.borrow_mut();
+            let cuttable_children = children
+                .borrow()
+                .iter()
+                .filter_map(|child| {
+                    child.walk_descendants().find_map(|descendant| {
+                        descendant.is_descendant_of(next).map(|level| Descendant {
+                            rid: child.value,
+                            level,
+                        })
+                    })
+                })
+                .collect_vec();
+            if cuttable_children.len() > 1 {
+                // find out, which of the child relationships has the longer edge to the node, and should therefore remain in the graph
+                let has_longest_edge = cuttable_children
+                    .iter()
+                    .reduce(|acc, child| if acc.level > child.level { acc } else { child })
+                    .expect("There must be at least two cuttable children")
+                    .rid;
+                // remove the pointers to the child relationships, where there is a cycle, except for the longest edge to the node
+                let should_cut = |child: RelationshipId| {
+                    cuttable_children
+                        .iter()
+                        .any(|descendant| child == descendant.rid)
+                };
+                children.retain(|child| {
+                    if child.value == has_longest_edge || !should_cut(child.value) {
+                        true
+                    } else {
+                        cut_parent(child, this);
+                        false
+                    }
+                });
+            }
+        }
+    }
+
+    let nodes = graph.get_nodes();
+
+    // cut cycles
+    graph
+        .sources
         .iter_mut()
         .for_each(|child| cut_cycles(child, &nodes));
-    let mut new_top_level_nodes: Vec<Rc<Node>> = nodes
-        .iter()
-        .filter(|node| !tree.top_level_nodes.contains(node))
-        .filter(|node| {
-            let parents = node.parents.borrow();
-            let no_parents = parents[0].upgrade().is_none() && parents[1].upgrade().is_none();
-            if no_parents {}
-            no_parents
-        })
-        .map(Rc::clone)
-        .collect();
-    tree.top_level_nodes.append(&mut new_top_level_nodes);
+    update_sources(graph, &nodes);
+    // cut double inheritance
+    cut_double_inheritance(graph);
+    update_sources(graph, &nodes);
+    // TODO: either cut x'es or optimize double inheritance, so that x'es do not occur
 }
 
-fn generations(tree: &Tree) -> Vec<Vec<RelationshipId>> {
-    fn add_gen_rec(
+fn layers(graph: &Graph) -> Vec<Vec<RelationshipId>> {
+    fn add_layer_rec(
         node: &Node,
-        generations: &mut Vec<Vec<RelationshipId>>,
+        layers: &mut Vec<Vec<RelationshipId>>,
         origin: Option<RelationshipId>,
         level: usize,
     ) {
-        if level == generations.len() {
-            generations.push(Vec::new());
+        if level == layers.len() {
+            layers.push(Vec::new());
         }
-        generations[level].push(node.value);
+        layers[level].push(node.value);
         node.parents.borrow().iter().for_each(|parent| {
             if let Some(parent_node) = parent.upgrade() {
                 if Some(parent_node.value) != origin && parent_node.value != 0 {
-                    let next_level;
-                    if level == 0 {
-                        generations.insert(0, Vec::new());
-                        next_level = 0;
+                    let next_level = if level == 0 {
+                        layers.insert(0, Vec::new());
+                        0
                     } else {
-                        next_level = level - 1;
-                    }
-                    add_gen_rec(&parent_node, generations, Some(node.value), next_level);
+                        level - 1
+                    };
+                    add_layer_rec(&parent_node, layers, Some(node.value), next_level);
                 }
             }
         });
         node.children.borrow().iter().for_each(|child| {
             if Some(child.value) != origin {
-                add_gen_rec(child, generations, Some(node.value), level + 1)
+                add_layer_rec(child, layers, Some(node.value), level + 1)
             }
         });
     }
-    let mut generations = vec![Vec::new()];
-    let start = tree
-        .top_level_nodes
+    let mut layers = vec![Vec::new()];
+    let start = graph
+        .sources
         .first()
         .expect("Root node must have at least one child");
-    add_gen_rec(start, &mut generations, None, 0);
-    generations
+    add_layer_rec(start, &mut layers, None, 0);
+    layers
 }
 
 #[cfg(test)]
@@ -324,13 +446,25 @@ mod test {
     use insta::assert_debug_snapshot;
 
     #[test]
-    fn complete_tree_1() {
-        let tree_data = io::read("test/graph/node_tree.json").expect("Cannot read test file");
-        consistency::check(&tree_data).expect("Test data inconsistent");
-        let mut tree = generate_tree(&tree_data.relationships);
-        cut_tree(&mut tree);
-        assert_debug_snapshot!(tree);
-        let gens = generations(&tree);
-        assert_debug_snapshot!(gens);
+    fn cycles() {
+        let graph_data = io::read("test/graph/cycles.json").expect("Cannot read test file");
+        consistency::check(&graph_data).expect("Test data inconsistent");
+        let mut graph = generate_graph(&graph_data.relationships);
+        cut_graph(&mut graph);
+        assert_debug_snapshot!(graph);
+        let layers = layers(&graph);
+        assert_debug_snapshot!(layers);
+    }
+
+    #[test]
+    fn double_inheritance() {
+        let graph_data =
+            io::read("test/graph/double_inheritance.json").expect("Cannot read test file");
+        consistency::check(&graph_data).expect("Test data inconsistent");
+        let mut graph = generate_graph(&graph_data.relationships);
+        cut_graph(&mut graph);
+        assert_debug_snapshot!(graph);
+        let layers = layers(&graph);
+        assert_debug_snapshot!(layers);
     }
 }

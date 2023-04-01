@@ -9,6 +9,13 @@ repository = ""
 edition = "2021"
 rust-version = "1.63"
 
+[profile.dev]
+opt-level = 0
+debug = true
+
+[profile.release]
+opt-level = 3
+debug = false
 [profile.dev.package.insta]
 opt-level = 3
 

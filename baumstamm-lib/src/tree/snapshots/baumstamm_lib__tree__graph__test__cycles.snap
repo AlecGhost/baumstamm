@@ -1,5 +1,9 @@
-Tree {
-    top_level_nodes: [
+---
+source: baumstamm-lib/src/tree/graph.rs
+expression: graph
+---
+Graph {
+    sources: [
         Node {
             value: 0,
             children: [

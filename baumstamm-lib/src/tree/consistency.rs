@@ -1,6 +1,6 @@
 use super::{graph, TreeData};
 use super::{Person, PersonId, Relationship};
-use crate::util::UniqueIterator;
+use itertools::Itertools;
 use std::{collections::HashMap, iter::FromIterator};
 
 pub(super) fn check(tree_data: &TreeData) -> Result<(), &'static str> {
