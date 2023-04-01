@@ -1,0 +1,21 @@
+---
+source: baumstamm-lib/src/tree/graph.rs
+expression: layers
+---
+[
+    [
+        0,
+        7,
+        1,
+    ],
+    [
+        2,
+        4,
+        6,
+        5,
+        3,
+    ],
+    [
+        8,
+    ],
+]

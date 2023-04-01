@@ -1,0 +1,30 @@
+---
+source: baumstamm-lib/src/tree/graph.rs
+expression: graph
+---
+Graph {
+    sources: [
+        Node {
+            value: 0,
+            children: [
+                Node {
+                    value: 3,
+                    children: [],
+                },
+            ],
+        },
+        Node {
+            value: 1,
+            children: [
+                Node {
+                    value: 2,
+                    children: [],
+                },
+                Node {
+                    value: 3,
+                    children: [],
+                },
+            ],
+        },
+    ],
+}

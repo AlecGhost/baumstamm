@@ -122,14 +122,6 @@ impl Node {
         if self == other.borrow() {
             return Some(0);
         }
-        // if self
-        //     .children
-        //     .borrow()
-        //     .iter()
-        //     .any(|child| child == other.borrow())
-        // {
-        //     return Some(1);
-        // }
         self.children
             .borrow()
             .iter()
@@ -386,6 +378,63 @@ fn cut_graph(graph: &mut Graph) {
         }
     }
 
+    fn cut_xs(nodes: &[Rc<Node>]) {
+        fn get_parents(node: &Rc<Node>) -> Vec<Rc<Node>> {
+            node.parents
+                .borrow()
+                .iter()
+                .filter_map(|parent| parent.upgrade())
+                .collect()
+        }
+
+        fn is_descendant_of_both(node: &Rc<Node>, anc_a: &Rc<Node>, anc_b: &Rc<Node>) -> bool {
+            node.is_descendant_of(anc_a).is_some() && node.is_descendant_of(anc_b).is_some()
+        }
+
+        fn is_x_child(
+            node_a: &Rc<Node>,
+            node_b: &Rc<Node>,
+            anc_a: &Rc<Node>,
+            anc_b: &Rc<Node>,
+        ) -> bool {
+            is_descendant_of_both(node_a, anc_a, anc_b)
+                && is_descendant_of_both(node_b, anc_a, anc_b)
+                && !get_parents(node_a)
+                    .iter()
+                    .any(|parent| is_descendant_of_both(parent, anc_a, anc_b))
+                && !get_parents(node_b)
+                    .iter()
+                    .any(|parent| is_descendant_of_both(parent, anc_a, anc_b))
+        }
+
+        let x_children: Vec<Rc<Node>> = nodes
+            .iter()
+            .tuple_combinations()
+            .filter(|(node_a, node_b)| {
+                // x is only possible, when there are two parents
+                get_parents(node_a).len() == 2 && get_parents(node_b).len() == 2
+            })
+            .filter(|(child_a, child_b)| {
+                nodes
+                    .iter()
+                    .tuple_combinations()
+                    .any(|(anc_a, anc_b)| is_x_child(child_a, child_b, anc_a, anc_b))
+            })
+            .map(|(node_a, _)| Rc::clone(node_a))
+            .collect();
+
+        for x_child in x_children {
+            let first_parent = x_child.parents.borrow()[0]
+                .upgrade()
+                .expect("X child's parent must exist");
+            first_parent
+                .children
+                .borrow_mut()
+                .retain(|child| child != &x_child);
+            x_child.parents.borrow_mut()[0] = Weak::new();
+        }
+    }
+
     let nodes = graph.get_nodes();
 
     // cut cycles
@@ -397,7 +446,8 @@ fn cut_graph(graph: &mut Graph) {
     // cut double inheritance
     cut_double_inheritance(graph);
     update_sources(graph, &nodes);
-    // TODO: either cut x'es or optimize double inheritance, so that x'es do not occur
+    // cut xs
+    cut_xs(&nodes);
 }
 
 fn layers(graph: &Graph) -> Vec<Vec<RelationshipId>> {
@@ -460,6 +510,29 @@ mod test {
     fn double_inheritance() {
         let graph_data =
             io::read("test/graph/double_inheritance.json").expect("Cannot read test file");
+        consistency::check(&graph_data).expect("Test data inconsistent");
+        let mut graph = generate_graph(&graph_data.relationships);
+        cut_graph(&mut graph);
+        assert_debug_snapshot!(graph);
+        let layers = layers(&graph);
+        assert_debug_snapshot!(layers);
+    }
+
+    #[test]
+    fn xs() {
+        let graph_data = io::read("test/graph/xs.json").expect("Cannot read test file");
+        consistency::check(&graph_data).expect("Test data inconsistent");
+        let mut graph = generate_graph(&graph_data.relationships);
+        cut_graph(&mut graph);
+        assert_debug_snapshot!(graph);
+        let layers = layers(&graph);
+        assert_debug_snapshot!(layers);
+    }
+
+    #[test]
+    fn double_inheritance_and_xs() {
+        let graph_data =
+            io::read("test/graph/double_inheritance_and_xs.json").expect("Cannot read test file");
         consistency::check(&graph_data).expect("Test data inconsistent");
         let mut graph = generate_graph(&graph_data.relationships);
         cut_graph(&mut graph);
