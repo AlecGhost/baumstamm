@@ -175,17 +175,15 @@ impl Iterator for DescendantWalker {
                 self.index += 1;
                 self.next()
             }
+        } else if let Some(child) = self.node.children.borrow().get(self.index) {
+            self.child_walker = Some(Box::new(DescendantWalker {
+                node: Rc::clone(child),
+                index: 0,
+                child_walker: None,
+            }));
+            Some(Rc::clone(child))
         } else {
-            if let Some(child) = self.node.children.borrow().get(self.index) {
-                self.child_walker = Some(Box::new(DescendantWalker {
-                    node: Rc::clone(child),
-                    index: 0,
-                    child_walker: None,
-                }));
-                Some(Rc::clone(child))
-            } else {
-                None
-            }
+            None
         }
     }
 }
