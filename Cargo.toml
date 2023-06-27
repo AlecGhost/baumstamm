@@ -1,5 +1,5 @@
 [workspace]
-members = ["baumstamm-lib", "baumstamm-tauri/src-tauri", "baumstamm-cli"]
+members = ["baumstamm-lib", "baumstamm-app/src-tauri", "baumstamm-cli"]
 
 [workspace.package]
 description = "Baumstamm - Stammbäume erstellen"
