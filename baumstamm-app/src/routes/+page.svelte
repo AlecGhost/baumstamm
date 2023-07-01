@@ -1,7 +1,12 @@
 <script>
-	import { AppShell, AppBar } from '@skeletonlabs/skeleton';
+	import { AppShell, AppBar, Avatar } from '@skeletonlabs/skeleton';
 	import Sidebar from '$lib/Sidebar.svelte';
+
 	let showSidebar = false;
+
+	function toggleSidebar() {
+		showSidebar = !showSidebar;
+	}
 </script>
 
 <AppShell>
@@ -11,22 +16,27 @@
 			<svelte:fragment slot="trail">
 				<button
 					type="button"
-					class="btn-icon variant-filled"
-					on:click={() => (showSidebar = !showSidebar)}
-				/>
+					class="btn btn-icon"
+					class:variant-filled={showSidebar}
+					on:click={toggleSidebar}
+				>
+					{#if !showSidebar}
+						<Avatar initials="XY" />
+					{:else}
+						<i class="fa-solid fa-arrow-right" />
+					{/if}
+				</button>
 			</svelte:fragment>
 		</AppBar>
 	</svelte:fragment>
-	<!-- (sidebarLeft) -->
+
 	<svelte:fragment slot="sidebarRight">
-		<div class:hidden={showSidebar} class="h-full">
-			<Sidebar />
-		</div>
+		{#if showSidebar}
+			<div class="bg-surface-500/10 w-80 h-full">
+				<Sidebar />
+			</div>
+		{/if}
 	</svelte:fragment>
-	<!-- (pageHeader) -->
-	<!-- Router Slot -->
+
 	<slot />
-	<!-- ---- / ---- -->
-	<!-- <svelte:fragment slot="pageFooter">Page Footer</svelte:fragment> -->
-	<!-- (footer) -->
 </AppShell>
