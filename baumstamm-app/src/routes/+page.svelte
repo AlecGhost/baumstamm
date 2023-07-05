@@ -1,7 +1,9 @@
-<script>
+<script lang="ts">
 	import { AppShell, AppBar, Avatar } from '@skeletonlabs/skeleton';
 	import Sidebar from '$lib/Sidebar.svelte';
+	import TreeView from '$lib/TreeView.svelte';
 
+	// sidebar
 	let showSidebar = false;
 
 	function toggleSidebar() {
@@ -37,6 +39,5 @@
 			</div>
 		{/if}
 	</svelte:fragment>
-
-	<slot />
+	<TreeView />
 </AppShell>
