@@ -12,8 +12,8 @@ mod io;
 mod tree;
 
 pub type PersonId = u128;
-pub type RelationshipId = u128;
 pub type PersonInfo = HashMap<String, String>;
+pub type RelationshipId = u128;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Relationship {
@@ -113,4 +113,3 @@ fn extract_persons(relationships: &[Relationship]) -> Vec<PersonId> {
     let children = relationships.iter().flat_map(|rel| rel.children.to_vec());
     parents.chain(children).unique().collect()
 }
-

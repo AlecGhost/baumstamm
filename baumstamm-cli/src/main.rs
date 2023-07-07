@@ -1,6 +1,5 @@
-use baumstamm_lib::FamilyTree;
+use baumstamm_lib::{error::Error, FamilyTree, PersonId, RelationshipId};
 use clap::{Args, Parser, Subcommand};
-use std::error::Error;
 
 #[derive(Parser)]
 struct Cli {
@@ -26,32 +25,32 @@ enum Action {
 enum Add {
     Child(Child),
     Parent(Parent),
-    Relationship(Relationship),
+    NewRelationship(NewRelationship),
     RelationshipWithPartner(RelationshipWithPartner),
 }
 
 #[derive(Args)]
+struct NewRelationship {
+    person_id: PersonId,
+}
+
+#[derive(Args)]
 struct Child {
-    rel_id: u128,
+    rel_id: RelationshipId,
 }
 
 #[derive(Args)]
 struct Parent {
-    rel_id: u128,
-}
-
-#[derive(Args)]
-struct Relationship {
-    person_id: u128,
+    rel_id: RelationshipId,
 }
 
 #[derive(Args)]
 struct RelationshipWithPartner {
-    person_id: u128,
-    partner_id: u128,
+    person_id: RelationshipId,
+    partner_id: RelationshipId,
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Error> {
     let args = Cli::parse();
     let mut tree = if args.new {
         FamilyTree::new(args.data)?
@@ -73,12 +72,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                         result.0, result.1
                     );
                 }
-                Add::RelationshipWithPartner(rel) => {
-                    let rel_id = tree.add_rel_with_partner(rel.person_id, rel.partner_id)?;
-                    println!("Added relationship {}", rel_id);
+                Add::NewRelationship(rel) => {
+                    let rel_id = tree.add_new_relationship(rel.person_id)?;
+                    println!("Added new relationship {}", rel_id);
                 }
-                Add::Relationship(rel) => {
-                    let rel_id = tree.add_rel(rel.person_id)?;
+                Add::RelationshipWithPartner(rel) => {
+                    let rel_id =
+                        tree.add_relationship_with_partner(rel.person_id, rel.partner_id)?;
                     println!("Added relationship {}", rel_id);
                 }
             },

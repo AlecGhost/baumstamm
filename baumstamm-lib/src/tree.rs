@@ -1,7 +1,7 @@
 use crate::{
     consistency,
     error::{Error, InputError},
-    io, Person, PersonId, PersonInfo, Relationship, RelationshipId, TreeData,
+    io, Person, PersonId, Relationship, RelationshipId, TreeData,
 };
 
 pub struct FamilyTree {
@@ -40,6 +40,10 @@ impl FamilyTree {
 
     pub fn get_persons(&self) -> &[Person] {
         self.tree_data.persons.as_slice()
+    }
+
+    pub fn get_relationships(&self) -> &[Relationship] {
+        self.tree_data.relationships.as_slice()
     }
 
     pub fn add_parent(
@@ -86,16 +90,22 @@ impl FamilyTree {
         Ok(new_id)
     }
 
-    pub fn add_rel(&mut self, person_id: PersonId) -> Result<RelationshipId, Error> {
-        if !self
+    fn validate_person(&self, person_id: PersonId) -> Result<(), Error> {
+        if self
             .tree_data
             .persons
             .iter()
             .map(|person| person.id)
             .any(|id| id == person_id)
         {
-            return Err(InputError::PersonDoesNotExist.into());
+            Ok(())
+        } else {
+            Err(InputError::InvalidPersonId.into())
         }
+    }
+
+    pub fn add_new_relationship(&mut self, person_id: PersonId) -> Result<RelationshipId, Error> {
+        self.validate_person(person_id)?;
         let new_rel = Relationship::new(Some(person_id), None, vec![]);
         let new_rid = new_rel.id;
         self.tree_data.relationships.push(new_rel);
@@ -104,48 +114,18 @@ impl FamilyTree {
         Ok(new_rid)
     }
 
-    pub fn add_rel_with_partner(
+    pub fn add_relationship_with_partner(
         &mut self,
         person_id: PersonId,
         partner_id: PersonId,
     ) -> Result<RelationshipId, Error> {
-        if !self
-            .tree_data
-            .persons
-            .iter()
-            .map(|person| person.id)
-            .any(|id| id == person_id)
-            || !self
-                .tree_data
-                .persons
-                .iter()
-                .map(|person| person.id)
-                .any(|id| id == partner_id)
-        {
-            return Err(InputError::PersonDoesNotExist.into());
-        }
+        self.validate_person(person_id)?;
+        self.validate_person(partner_id)?;
         let new_rel = Relationship::new(Some(person_id), Some(partner_id), Vec::new());
         let new_rid = new_rel.id;
         self.tree_data.relationships.push(new_rel);
         self.save()?;
 
         Ok(new_rid)
-    }
-
-    pub fn add_info(
-        &mut self,
-        person_id: PersonId,
-        person_info: Option<PersonInfo>,
-    ) -> Result<(), Error> {
-        let person = self
-            .tree_data
-            .persons
-            .iter_mut()
-            .find(|person| person.id == person_id)
-            .ok_or(InputError::InvalidPersonId)?;
-        person.info = person_info;
-        self.save()?;
-
-        Ok(())
     }
 }
