@@ -18,6 +18,8 @@ enum Action {
     Add(Add),
     #[command(subcommand)]
     Info(Info),
+    #[command(subcommand)]
+    Show(Show),
 }
 
 #[derive(Subcommand)]
@@ -68,6 +70,12 @@ struct RemoveInfo {
     key: String,
 }
 
+#[derive(Subcommand)]
+enum Show {
+    Persons,
+    Relationships,
+}
+
 fn main() -> Result<(), Error> {
     let args = Cli::parse();
     let mut tree = if args.new {
@@ -115,6 +123,10 @@ fn main() -> Result<(), Error> {
                         remove.key, value, remove.person_id
                     );
                 }
+            },
+            Action::Show(show) => match show {
+                Show::Persons => println!("Persons: {:#?}", tree.get_persons()),
+                Show::Relationships => println!("Relationships: {:#?}", tree.get_relationships()),
             },
         };
     };
