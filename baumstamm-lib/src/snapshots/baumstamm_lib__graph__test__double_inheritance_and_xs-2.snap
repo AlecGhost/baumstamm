@@ -1,5 +1,5 @@
 ---
-source: baumstamm-lib/src/tree/graph.rs
+source: baumstamm-lib/src/graph.rs
 expression: layers
 ---
 [
@@ -11,8 +11,8 @@ expression: layers
     [
         2,
         4,
-        5,
         6,
+        5,
         3,
     ],
     [

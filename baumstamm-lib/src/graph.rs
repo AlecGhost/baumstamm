@@ -1,4 +1,4 @@
-use super::{PersonId, Relationship, RelationshipId};
+use crate::{PersonId, Relationship, RelationshipId};
 use itertools::Itertools;
 use std::{
     borrow::Borrow,
@@ -423,8 +423,7 @@ impl Graph {
         let nodes = self.get_nodes();
 
         // cut cycles
-        self
-            .sources
+        self.sources
             .iter_mut()
             .for_each(|child| cut_cycles(child, &nodes));
         update_sources(self, &nodes);
@@ -478,7 +477,7 @@ impl Graph {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tree::{consistency, io};
+    use crate::{consistency, io};
     use insta::assert_debug_snapshot;
 
     #[test]

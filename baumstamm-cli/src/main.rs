@@ -1,4 +1,4 @@
-use baumstamm_lib::tree::FamilyTree;
+use baumstamm_lib::FamilyTree;
 use clap::{Args, Parser, Subcommand};
 use std::error::Error;
 

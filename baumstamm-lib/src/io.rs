@@ -1,6 +1,5 @@
+use crate::TreeData;
 use std::{error::Error, fs};
-
-use super::TreeData;
 
 pub(super) fn read(file_name: &str) -> Result<TreeData, Box<dyn Error>> {
     let json_str = fs::read_to_string(file_name)?;
@@ -17,7 +16,7 @@ pub(super) fn write(file_name: &str, tree_data: &TreeData) -> Result<(), Box<dyn
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tree::{graph, Person, Relationship};
+    use crate::{graph, Person, Relationship};
 
     fn compare_rels_to_file(
         test_rels: Vec<Relationship>,

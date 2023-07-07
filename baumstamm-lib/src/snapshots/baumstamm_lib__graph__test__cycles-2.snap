@@ -1,5 +1,5 @@
 ---
-source: baumstamm-lib/src/tree/graph.rs
+source: baumstamm-lib/src/graph.rs
 expression: gens
 ---
 [

@@ -1,5 +1,4 @@
-use super::{graph, TreeData};
-use super::{Person, PersonId, Relationship};
+use crate::{graph, Person, PersonId, Relationship, TreeData};
 use itertools::Itertools;
 use std::{collections::HashMap, iter::FromIterator};
 
@@ -118,7 +117,7 @@ fn check_persons(persons: &[Person]) -> Result<(), &'static str> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::tree::io;
+    use crate::io;
 
     enum FileType {
         Relationships,

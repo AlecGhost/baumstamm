@@ -1,5 +1,5 @@
 ---
-source: baumstamm-lib/src/tree/graph.rs
+source: baumstamm-lib/src/graph.rs
 expression: graph
 ---
 Graph {
@@ -38,15 +38,15 @@ Graph {
                     value: 4,
                     children: [],
                 },
-                Node {
-                    value: 6,
-                    children: [],
-                },
             ],
         },
         Node {
             value: 1,
             children: [
+                Node {
+                    value: 4,
+                    children: [],
+                },
                 Node {
                     value: 5,
                     children: [],
