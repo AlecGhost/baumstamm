@@ -12,16 +12,6 @@ pub fn extract_persons(relationships: &[Relationship]) -> Vec<PersonId> {
     parents.chain(children).unique().collect()
 }
 
-pub fn parent_relationships<'a>(
-    id: &PersonId,
-    relationships: &'a [Relationship],
-) -> Vec<&'a Relationship> {
-    relationships
-        .iter()
-        .filter(|rel| rel.parents().contains(id))
-        .collect()
-}
-
 fn rids_of_children(rid: &RelationshipId, relationships: &[Relationship]) -> Vec<RelationshipId> {
     let current = relationships
         .iter()
