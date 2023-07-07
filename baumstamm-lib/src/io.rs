@@ -16,7 +16,7 @@ pub(super) fn write(file_name: &str, tree_data: &TreeData) -> Result<(), Error> 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{graph, Person, Relationship};
+    use crate::{extract_persons, Person, Relationship};
     use std::error::Error;
 
     fn compare_rels_to_file(
@@ -80,7 +80,7 @@ mod test {
     #[test]
     fn unique_persons() -> Result<(), Box<dyn Error>> {
         let tree_data = read("test/io/unique_persons.json")?;
-        let unique_persons = graph::extract_persons(&tree_data.relationships);
+        let unique_persons = extract_persons(&tree_data.relationships);
         let test_persons = vec![0, 1];
         if unique_persons == test_persons {
             Ok(())

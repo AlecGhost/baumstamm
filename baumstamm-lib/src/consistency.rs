@@ -1,4 +1,4 @@
-use crate::{error::ConsistencyError, graph, Person, PersonId, Relationship, TreeData};
+use crate::{error::ConsistencyError, extract_persons, Person, PersonId, Relationship, TreeData};
 use itertools::Itertools;
 use std::{collections::HashMap, iter::FromIterator};
 
@@ -8,7 +8,7 @@ pub(super) fn check(tree_data: &TreeData) -> Result<(), ConsistencyError> {
 
     // turn into hash map for O(n) access
     let persons_hashmap: HashMap<PersonId, ()> = HashMap::from_iter(
-        graph::extract_persons(&tree_data.relationships)
+        extract_persons(&tree_data.relationships)
             .iter()
             .map(|person_id| (*person_id, ())),
     );
@@ -58,7 +58,7 @@ fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), Consiste
         .flat_map(|rel| rel.children.clone())
         .collect::<Vec<PersonId>>();
 
-    if children.len() != graph::extract_persons(relationships).len() {
+    if children.len() != extract_persons(relationships).len() {
         return Err(ConsistencyError::MustBeChild);
     }
 
