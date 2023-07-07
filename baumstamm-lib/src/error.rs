@@ -38,12 +38,14 @@ pub enum ConsistencyError {
 
 #[derive(Debug, Error)]
 pub enum InputError {
-    #[error("Person does not exist")]
-    PersonDoesNotExist,
     #[error("Invalid relationship id")]
     InvalidRelationshipId,
     #[error("Invalid person id")]
     InvalidPersonId,
+    #[error("Key is not present")]
+    InvalidKey,
+    #[error("No information to remove")]
+    NoInfo,
     #[error("Cannot add another parent")]
     AlreadyTwoParents,
 }

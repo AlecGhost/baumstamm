@@ -3,6 +3,7 @@ use crate::{
     error::{Error, InputError},
     io, Person, PersonId, Relationship, RelationshipId, TreeData,
 };
+use std::collections::HashMap;
 
 pub struct FamilyTree {
     file_name: String,
@@ -127,5 +128,41 @@ impl FamilyTree {
         self.save()?;
 
         Ok(new_rid)
+    }
+
+    pub fn insert_info(
+        &mut self,
+        person_id: PersonId,
+        key: String,
+        value: String,
+    ) -> Result<(), Error> {
+        let person = self
+            .tree_data
+            .persons
+            .iter_mut()
+            .find(|person| person.id == person_id)
+            .ok_or(InputError::InvalidPersonId)?;
+        if let Some(info) = &mut person.info {
+            info.insert(key, value);
+        } else {
+            person.info = Some(HashMap::from([(key, value)]));
+        }
+        self.save()?;
+
+        Ok(())
+    }
+
+    pub fn remove_info(&mut self, person_id: PersonId, key: &str) -> Result<String, Error> {
+        let person = self
+            .tree_data
+            .persons
+            .iter_mut()
+            .find(|person| person.id == person_id)
+            .ok_or(InputError::InvalidPersonId)?;
+        let info = person.info.as_mut().ok_or(InputError::NoInfo)?;
+        let value = info.remove(key).ok_or(InputError::InvalidKey)?;
+        self.save()?;
+
+        Ok(value)
     }
 }

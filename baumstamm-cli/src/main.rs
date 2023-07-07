@@ -3,22 +3,21 @@ use clap::{Args, Parser, Subcommand};
 
 #[derive(Parser)]
 struct Cli {
-    data: String,
+    file: String,
 
     #[command(subcommand)]
     action: Option<Action>,
 
     #[arg(short, long)]
     new: bool,
-
-    #[arg(short, long)]
-    output: Option<String>,
 }
 
 #[derive(Subcommand)]
 enum Action {
     #[command(subcommand)]
     Add(Add),
+    #[command(subcommand)]
+    Info(Info),
 }
 
 #[derive(Subcommand)]
@@ -46,16 +45,35 @@ struct Parent {
 
 #[derive(Args)]
 struct RelationshipWithPartner {
-    person_id: RelationshipId,
-    partner_id: RelationshipId,
+    person_id: PersonId,
+    partner_id: PersonId,
+}
+
+#[derive(Subcommand)]
+enum Info {
+    Insert(InsertInfo),
+    Remove(RemoveInfo),
+}
+
+#[derive(Args)]
+struct InsertInfo {
+    person_id: PersonId,
+    key: String,
+    value: String,
+}
+
+#[derive(Args)]
+struct RemoveInfo {
+    person_id: PersonId,
+    key: String,
 }
 
 fn main() -> Result<(), Error> {
     let args = Cli::parse();
     let mut tree = if args.new {
-        FamilyTree::new(args.data)?
+        FamilyTree::new(args.file)?
     } else {
-        FamilyTree::from_disk(args.data)?
+        FamilyTree::from_disk(args.file)?
     };
 
     if let Some(action) = args.action {
@@ -80,6 +98,22 @@ fn main() -> Result<(), Error> {
                     let rel_id =
                         tree.add_relationship_with_partner(rel.person_id, rel.partner_id)?;
                     println!("Added relationship {}", rel_id);
+                }
+            },
+            Action::Info(info) => match info {
+                Info::Insert(insert) => {
+                    tree.insert_info(insert.person_id, insert.key.clone(), insert.value.clone())?;
+                    println!(
+                        "Inserted \"{}\": \"{}\" to {}",
+                        insert.key, insert.value, insert.person_id
+                    );
+                }
+                Info::Remove(remove) => {
+                    let value = tree.remove_info(remove.person_id, &remove.key)?;
+                    println!(
+                        "Removed \"{}\": \"{}\" from {}",
+                        remove.key, value, remove.person_id
+                    );
                 }
             },
         };
