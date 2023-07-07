@@ -1,10 +1,12 @@
 #![allow(dead_code)]
+use error::InputError;
 use itertools::Itertools;
 use std::collections::HashMap;
 pub use tree::FamilyTree;
 use uuid::Uuid;
 
 mod consistency;
+pub mod error;
 mod graph;
 mod io;
 mod tree;
@@ -33,9 +35,9 @@ impl Relationship {
         self.parents.iter().filter_map(|parent| *parent).collect()
     }
 
-    fn add_parent(&mut self) -> Result<Person, &'static str> {
+    fn add_parent(&mut self) -> Result<Person, InputError> {
         if self.parents().len() == 2 {
-            return Err("Cannot add another parent");
+            return Err(InputError::AlreadyTwoParents);
         }
         let parent = Person::new();
         if self.parents[0].is_none() {

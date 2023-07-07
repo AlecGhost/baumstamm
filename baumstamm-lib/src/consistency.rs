@@ -1,8 +1,8 @@
-use crate::{graph, Person, PersonId, Relationship, TreeData};
+use crate::{error::ConsistencyError, graph, Person, PersonId, Relationship, TreeData};
 use itertools::Itertools;
 use std::{collections::HashMap, iter::FromIterator};
 
-pub(super) fn check(tree_data: &TreeData) -> Result<(), &'static str> {
+pub(super) fn check(tree_data: &TreeData) -> Result<(), ConsistencyError> {
     check_relationships(&tree_data.relationships)?;
     check_persons(&tree_data.persons)?;
 
@@ -13,7 +13,7 @@ pub(super) fn check(tree_data: &TreeData) -> Result<(), &'static str> {
             .map(|person_id| (*person_id, ())),
     );
     if tree_data.persons.len() != persons_hashmap.len() {
-        return Err("The number of persons differs");
+        return Err(ConsistencyError::DifferentNumberOfPersons);
     }
     if tree_data
         .persons
@@ -21,19 +21,19 @@ pub(super) fn check(tree_data: &TreeData) -> Result<(), &'static str> {
         .map(|person| person.id)
         .any(|person_id| !persons_hashmap.contains_key(&person_id))
     {
-        return Err("Relationships and persons do not match");
+        return Err(ConsistencyError::UnmatchedQuantity);
     }
 
     Ok(())
 }
 
-fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'static str> {
+fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), ConsistencyError> {
     if relationships.is_empty() {
         return Ok(());
     }
 
     if relationships.len() != relationships.iter().map(|rel| rel.id).unique().count() {
-        return Err("More than one relationship with the same id");
+        return Err(ConsistencyError::RelationshipIdExists);
     }
 
     if relationships
@@ -41,7 +41,7 @@ fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'static
         .filter(|rel| !rel.parents().is_empty())
         .any(|rel| rel.parents[0] == rel.parents[1])
     {
-        return Err("Self referencing relationship");
+        return Err(ConsistencyError::SelfReference);
     }
 
     if relationships.iter().any(|rel| {
@@ -49,7 +49,7 @@ fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'static
             .iter()
             .any(|child| rel.parents().iter().any(|parent| parent == child))
     }) {
-        return Err("A Child cannot be its parent");
+        return Err(ConsistencyError::DirectCycle);
     }
 
     // Relationship.descendants() is safe to call after this check
@@ -59,11 +59,11 @@ fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'static
         .collect::<Vec<PersonId>>();
 
     if children.len() != graph::extract_persons(relationships).len() {
-        return Err("Every person must be child of a relationship");
+        return Err(ConsistencyError::MustBeChild);
     }
 
     if children.len() != children.iter().unique().count() {
-        return Err("A Person is child of more than one relationship");
+        return Err(ConsistencyError::MoreThanOnceChild);
     }
 
     fn nr_connected_persons(relationships: &[Relationship]) -> usize {
@@ -90,7 +90,7 @@ fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'static
 
     let nr_persons = children.len();
     if nr_connected_persons(relationships) != nr_persons {
-        return Err("Not all nodes are connected");
+        return Err(ConsistencyError::Unconnected);
     }
 
     if relationships.iter().any(|rel| {
@@ -98,17 +98,17 @@ fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), &'static
             .iter()
             .any(|parent| rel.descendants(relationships).contains(parent))
     }) {
-        return Err("Cycle in family tree");
+        return Err(ConsistencyError::IndirectCycle);
     }
 
     Ok(())
 }
 
-fn check_persons(persons: &[Person]) -> Result<(), &'static str> {
+fn check_persons(persons: &[Person]) -> Result<(), ConsistencyError> {
     let person_ids: Vec<PersonId> = persons.iter().map(|person| person.id).collect();
 
     if person_ids.len() != person_ids.iter().unique().count() {
-        return Err("Multiple persons with the same id");
+        return Err(ConsistencyError::PersonIdExists);
     }
 
     Ok(())
@@ -210,7 +210,7 @@ mod test {
     }
 
     #[test]
-    fn check_both() -> Result<(), &'static str> {
+    fn check_both() -> Result<(), ConsistencyError> {
         let tree_data =
             io::read("test/consistency/check_both.json").expect("Cannot read test file");
         match check(&tree_data) {

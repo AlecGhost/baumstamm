@@ -1,7 +1,8 @@
 use crate::{
-    consistency, io, Person, PersonId, PersonInfo, Relationship, RelationshipId, TreeData,
+    consistency,
+    error::{Error, InputError},
+    io, Person, PersonId, PersonInfo, Relationship, RelationshipId, TreeData,
 };
-use std::error::Error;
 
 pub struct FamilyTree {
     file_name: String,
@@ -9,7 +10,7 @@ pub struct FamilyTree {
 }
 
 impl FamilyTree {
-    pub fn new(file_name: String) -> Result<Self, Box<dyn Error>> {
+    pub fn new(file_name: String) -> Result<Self, Error> {
         let initial_person = Person::new();
         let initial_rels = vec![Relationship::new(None, None, vec![initial_person.id])];
         let tree = FamilyTree {
@@ -21,7 +22,7 @@ impl FamilyTree {
         Ok(tree)
     }
 
-    pub fn from_disk(file_name: String) -> Result<Self, Box<dyn Error>> {
+    pub fn from_disk(file_name: String) -> Result<Self, Error> {
         let tree_data = io::read(&file_name)?;
         consistency::check(&tree_data)?;
 
@@ -31,7 +32,7 @@ impl FamilyTree {
         })
     }
 
-    pub fn save(&self) -> Result<(), Box<dyn Error>> {
+    pub fn save(&self) -> Result<(), Error> {
         consistency::check(&self.tree_data)?;
         io::write(&self.file_name, &self.tree_data)?;
         Ok(())
@@ -44,7 +45,7 @@ impl FamilyTree {
     pub fn add_parent(
         &mut self,
         relationship_id: RelationshipId,
-    ) -> Result<(PersonId, RelationshipId), Box<dyn Error>> {
+    ) -> Result<(PersonId, RelationshipId), Error> {
         let rel_opt = self
             .tree_data
             .relationships
@@ -52,7 +53,7 @@ impl FamilyTree {
             .find(|rel| rel.id == relationship_id);
         let rel = match rel_opt {
             Some(rel) => rel,
-            None => return Err("Invalid relationship id".into()),
+            None => return Err(InputError::InvalidRelationshipId.into()),
         };
 
         let parent = rel.add_parent()?;
@@ -68,20 +69,14 @@ impl FamilyTree {
         Ok((new_pid, new_rid))
     }
 
-    pub fn add_child(
-        &mut self,
-        relationship_id: RelationshipId,
-    ) -> Result<PersonId, Box<dyn Error>> {
+    pub fn add_child(&mut self, relationship_id: RelationshipId) -> Result<PersonId, Error> {
         let rel_opt = self
             .tree_data
             .relationships
             .iter_mut()
             .find(|rel| rel.id == relationship_id);
 
-        let rel = match rel_opt {
-            Some(rel) => rel,
-            None => return Err("Invalid relationship id".into()),
-        };
+        let rel = rel_opt.ok_or(InputError::InvalidRelationshipId)?;
         let new_person = Person::new();
         let new_id = new_person.id;
         self.tree_data.persons.push(new_person);
@@ -91,7 +86,7 @@ impl FamilyTree {
         Ok(new_id)
     }
 
-    pub fn add_rel(&mut self, person_id: PersonId) -> Result<RelationshipId, Box<dyn Error>> {
+    pub fn add_rel(&mut self, person_id: PersonId) -> Result<RelationshipId, Error> {
         if !self
             .tree_data
             .persons
@@ -99,7 +94,7 @@ impl FamilyTree {
             .map(|person| person.id)
             .any(|id| id == person_id)
         {
-            return Err("Person does not exist.".into());
+            return Err(InputError::PersonDoesNotExist.into());
         }
         let new_rel = Relationship::new(Some(person_id), None, vec![]);
         let new_rid = new_rel.id;
@@ -113,7 +108,7 @@ impl FamilyTree {
         &mut self,
         person_id: PersonId,
         partner_id: PersonId,
-    ) -> Result<RelationshipId, Box<dyn Error>> {
+    ) -> Result<RelationshipId, Error> {
         if !self
             .tree_data
             .persons
@@ -127,9 +122,9 @@ impl FamilyTree {
                 .map(|person| person.id)
                 .any(|id| id == partner_id)
         {
-            return Err("Person does not exist.".into());
+            return Err(InputError::PersonDoesNotExist.into());
         }
-        let new_rel = Relationship::new(Some(person_id), Some(partner_id), vec![]);
+        let new_rel = Relationship::new(Some(person_id), Some(partner_id), Vec::new());
         let new_rid = new_rel.id;
         self.tree_data.relationships.push(new_rel);
         self.save()?;
@@ -141,16 +136,13 @@ impl FamilyTree {
         &mut self,
         person_id: PersonId,
         person_info: Option<PersonInfo>,
-    ) -> Result<(), Box<dyn Error>> {
-        let person = match self
+    ) -> Result<(), Error> {
+        let person = self
             .tree_data
             .persons
             .iter_mut()
             .find(|person| person.id == person_id)
-        {
-            Some(person) => person,
-            None => return Err("Invalid person id".into()),
-        };
+            .ok_or(InputError::InvalidPersonId)?;
         person.info = person_info;
         self.save()?;
 

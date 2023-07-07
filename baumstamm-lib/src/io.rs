@@ -1,13 +1,13 @@
-use crate::TreeData;
-use std::{error::Error, fs};
+use crate::{error::Error, TreeData};
+use std::fs;
 
-pub(super) fn read(file_name: &str) -> Result<TreeData, Box<dyn Error>> {
+pub(super) fn read(file_name: &str) -> Result<TreeData, Error> {
     let json_str = fs::read_to_string(file_name)?;
     let tree_data: TreeData = serde_json::from_str(&json_str)?;
     Ok(tree_data)
 }
 
-pub(super) fn write(file_name: &str, tree_data: &TreeData) -> Result<(), Box<dyn Error>> {
+pub(super) fn write(file_name: &str, tree_data: &TreeData) -> Result<(), Error> {
     let json_str = serde_json::to_string_pretty(tree_data)?;
     fs::write(file_name, json_str)?;
     Ok(())
@@ -17,15 +17,13 @@ pub(super) fn write(file_name: &str, tree_data: &TreeData) -> Result<(), Box<dyn
 mod test {
     use super::*;
     use crate::{graph, Person, Relationship};
+    use std::error::Error;
 
     fn compare_rels_to_file(
         test_rels: Vec<Relationship>,
         file_name: &str,
     ) -> Result<(), Box<dyn Error>> {
-        let tree_data = match read(file_name) {
-            Ok(value) => value,
-            Err(_) => return Err("Deserialization failed".into()),
-        };
+        let tree_data = read(file_name)?;
         if tree_data.relationships == test_rels {
             Ok(())
         } else {
@@ -56,10 +54,7 @@ mod test {
         test_persons: Vec<Person>,
         file_name: &str,
     ) -> Result<(), Box<dyn Error>> {
-        let tree_data = match read(file_name) {
-            Ok(value) => value,
-            Err(_) => return Err("Deserialization failed".into()),
-        };
+        let tree_data = read(file_name)?;
         if tree_data.persons == test_persons {
             Ok(())
         } else {
