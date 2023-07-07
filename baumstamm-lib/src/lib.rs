@@ -56,7 +56,7 @@ impl Relationship {
             .collect()
     }
 
-    fn descendants(&self, relationships: &[Relationship]) -> Vec<PersonId> {
+    fn descendants(&self, relationships: &[Self]) -> Vec<PersonId> {
         let mut descendants = self.children.clone();
         let mut index = 0;
         while index < descendants.len() {
@@ -86,7 +86,7 @@ pub struct Person {
 
 impl Person {
     fn new() -> Self {
-        Person {
+        Self {
             id: Uuid::new_v4().to_u128_le(),
             info: None,
         }

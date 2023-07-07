@@ -112,7 +112,7 @@ impl Node {
 struct DescendantWalker {
     node: Rc<Node>,
     index: usize,
-    child_walker: Option<Box<DescendantWalker>>,
+    child_walker: Option<Box<Self>>,
 }
 
 impl DescendantWalker {
@@ -138,7 +138,7 @@ impl Iterator for DescendantWalker {
                 self.next()
             }
         } else if let Some(child) = self.node.children.borrow().get(self.index) {
-            self.child_walker = Some(Box::new(DescendantWalker {
+            self.child_walker = Some(Box::new(Self {
                 node: Rc::clone(child),
                 index: 0,
                 child_walker: None,
@@ -196,15 +196,13 @@ impl Graph {
                     parent.children.borrow_mut().push(Rc::clone(node));
                     // add pointer to parent node to child
                     *node.parents.borrow_mut() = rids_of_parents(id, relationships).map(|rid| {
-                        if let Some(parent_id) = rid {
+                        rid.map_or_else(Weak::new, |parent_id| {
                             let parent_node = nodes
                                 .iter()
                                 .find(|node| node.value == parent_id)
                                 .expect("Parent relationship must exist");
                             Rc::downgrade(parent_node)
-                        } else {
-                            Weak::new()
-                        }
+                        })
                     });
                     // call function recursively for all children
                     parent

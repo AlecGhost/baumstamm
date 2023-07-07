@@ -13,7 +13,7 @@ impl FamilyTree {
     pub fn new(file_name: String) -> Result<Self, Error> {
         let initial_person = Person::new();
         let initial_rels = vec![Relationship::new(None, None, vec![initial_person.id])];
-        let tree = FamilyTree {
+        let tree = Self {
             file_name,
             tree_data: TreeData::new(initial_rels, vec![initial_person]),
         };
@@ -26,7 +26,7 @@ impl FamilyTree {
         let tree_data = io::read(&file_name)?;
         consistency::check(&tree_data)?;
 
-        Ok(FamilyTree {
+        Ok(Self {
             file_name,
             tree_data,
         })
