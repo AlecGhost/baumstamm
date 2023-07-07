@@ -6,15 +6,15 @@ mod consistency;
 mod graph;
 mod io;
 
-type PersonId = u128;
-type RelationshipId = u128;
+pub type PersonId = u128;
+pub type RelationshipId = u128;
 pub type PersonInfo = HashMap<String, String>;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-struct Relationship {
-    id: RelationshipId,
-    parents: [Option<PersonId>; 2],
-    children: Vec<PersonId>,
+pub struct Relationship {
+    pub id: RelationshipId,
+    pub parents: [Option<PersonId>; 2],
+    pub children: Vec<PersonId>,
 }
 
 impl Relationship {
@@ -75,8 +75,8 @@ impl Relationship {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub struct Person {
-    id: PersonId,
-    info: Option<PersonInfo>,
+    pub id: PersonId,
+    pub info: Option<PersonInfo>,
 }
 
 impl Person {
