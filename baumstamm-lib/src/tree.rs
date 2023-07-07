@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 use uuid::Uuid;
 
 mod consistency;
@@ -8,6 +8,7 @@ mod io;
 
 type PersonId = u128;
 type RelationshipId = u128;
+pub type PersonInfo = HashMap<String, String>;
 
 #[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 struct Relationship {
@@ -85,37 +86,6 @@ impl Person {
             info: None,
         }
     }
-
-    fn add_info(self, info: PersonInfo) -> Self {
-        Self {
-            info: Some(info),
-            ..self
-        }
-    }
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
-pub struct PersonInfo {
-    first_name: String,
-    last_name: Option<String>,
-    date_of_birth: Option<String>,
-    date_of_death: Option<String>,
-}
-
-impl PersonInfo {
-    pub fn new(
-        first_name: String,
-        last_name: Option<String>,
-        date_of_birth: Option<String>,
-        date_of_death: Option<String>,
-    ) -> PersonInfo {
-        PersonInfo {
-            first_name,
-            last_name,
-            date_of_birth,
-            date_of_death,
-        }
-    }
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -164,12 +134,6 @@ impl FamilyTree {
     pub fn save(&self) -> Result<(), Box<dyn Error>> {
         consistency::check(&self.tree_data)?;
         io::write(&self.file_name, &self.tree_data)?;
-        Ok(())
-    }
-
-    pub fn export_puml(&self, file_name: &str) -> Result<(), Box<dyn Error>> {
-        consistency::check(&self.tree_data)?;
-        io::export_puml(file_name, &self.tree_data)?;
         Ok(())
     }
 

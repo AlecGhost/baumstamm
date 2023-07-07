@@ -14,44 +14,6 @@ pub(super) fn write(file_name: &str, tree_data: &TreeData) -> Result<(), Box<dyn
     Ok(())
 }
 
-pub(super) fn export_puml(file_name: &str, tree_data: &TreeData) -> Result<(), Box<dyn Error>> {
-    let mut text = "@startuml\n".to_string();
-    text += "top to bottom direction\n";
-    tree_data.persons.iter().for_each(|person| {
-        let mut name = String::new();
-        if let Some(info) = &person.info {
-            name += info.first_name.as_str();
-            if let Some(last_name) = &info.last_name {
-                name += " ";
-                name += last_name.as_str();
-            }
-        } else {
-            name += "Unknown"
-        }
-        text += format!("object \"{}\" as p{}\n", name, person.id).as_str()
-    });
-    tree_data
-        .relationships
-        .iter()
-        .filter(|rel| !rel.parents().is_empty() || rel.children.len() > 1)
-        .for_each(|rel| text += format!("diamond r{}\n", rel.id).as_str());
-    tree_data
-        .relationships
-        .iter()
-        .filter(|rel| !rel.parents().is_empty() || rel.children.len() > 1)
-        .for_each(|rel| {
-            rel.parents()
-                .iter()
-                .for_each(|parent| text += format!("p{} -- r{}\n", parent, rel.id).as_str());
-            rel.children.iter().for_each(|child| {
-                text += format!("p{} <-u- r{}\n", child, rel.id).as_str();
-            });
-        });
-    text += "@enduml\n";
-    fs::write(file_name, text)?;
-    Ok(())
-}
-
 #[cfg(test)]
 mod test {
     use super::*;

@@ -1,7 +1,6 @@
-use std::error::Error;
-
-use baumstamm_lib::tree::{FamilyTree, PersonInfo};
+use baumstamm_lib::tree::FamilyTree;
 use clap::{Args, Parser, Subcommand};
+use std::error::Error;
 
 #[derive(Parser)]
 struct Cli {
@@ -28,22 +27,12 @@ enum Add {
     Child(Child),
     Parent(Parent),
     Relationship(Relationship),
-    Info(Info),
     RelationshipWithPartner(RelationshipWithPartner),
 }
 
 #[derive(Args)]
 struct Child {
     rel_id: u128,
-}
-
-#[derive(Args)]
-struct Info {
-    person_id: u128,
-    first_name: String,
-    last_name: Option<String>,
-    date_of_birth: Option<String>,
-    date_of_death: Option<String>,
 }
 
 #[derive(Args)]
@@ -84,15 +73,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                         result.0, result.1
                     );
                 }
-                Add::Info(info) => tree.add_info(
-                    info.person_id,
-                    Some(PersonInfo::new(
-                        info.first_name,
-                        info.last_name,
-                        info.date_of_birth,
-                        info.date_of_death,
-                    )),
-                )?,
                 Add::RelationshipWithPartner(rel) => {
                     let rel_id = tree.add_rel_with_partner(rel.person_id, rel.partner_id)?;
                     println!("Added relationship {}", rel_id);
@@ -104,9 +84,5 @@ fn main() -> Result<(), Box<dyn Error>> {
             },
         };
     };
-    if let Some(out_file) = &args.output {
-        tree.export_puml(out_file)?;
-    }
-
     Ok(())
 }
