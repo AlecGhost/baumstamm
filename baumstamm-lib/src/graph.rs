@@ -3,14 +3,14 @@ use itertools::Itertools;
 
 type Rid = RelationshipId;
 
-pub struct Node {
+struct Node {
     value: Rid,
     parents: [Option<Rid>; 2],
     children: Vec<Rid>,
 }
 
 impl Node {
-    fn new(value: Rid) -> Self {
+    const fn new(value: Rid) -> Self {
         Self {
             value,
             parents: [None, None],
@@ -43,7 +43,7 @@ struct DescendantWalker<'a> {
 }
 
 impl<'a> DescendantWalker<'a> {
-    fn new(graph: &'a Graph, rid: Rid) -> Self {
+    const fn new(graph: &'a Graph, rid: Rid) -> Self {
         Self {
             graph,
             rid,
@@ -137,10 +137,6 @@ impl Graph {
         Self { sources, nodes }
     }
 
-    pub fn get_sources(&self) -> &[Rid] {
-        self.sources.as_slice()
-    }
-
     fn parents_of(&self, rid: &Rid) -> Vec<Rid> {
         let node = self
             .nodes
@@ -179,7 +175,7 @@ impl Graph {
             .reduce(|acc, level| acc.max(level) + 1)
     }
 
-    fn walk_descendants(&self, rid: &Rid) -> DescendantWalker {
+    const fn walk_descendants(&self, rid: &Rid) -> DescendantWalker {
         DescendantWalker::new(self, *rid)
     }
 
@@ -402,6 +398,10 @@ impl Graph {
         update_sources(self);
         // cut xs
         cut_xs(self);
+    }
+
+    pub fn get_sources(&self) -> &[Rid] {
+        self.sources.as_slice()
     }
 
     pub fn layers(&self) -> Vec<Vec<Rid>> {

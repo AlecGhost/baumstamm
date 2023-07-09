@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 use error::InputError;
 use itertools::Itertools;
 use std::collections::HashMap;
@@ -7,7 +6,7 @@ use uuid::Uuid;
 
 mod consistency;
 pub mod error;
-mod graph;
+pub mod graph;
 mod io;
 mod tree;
 
