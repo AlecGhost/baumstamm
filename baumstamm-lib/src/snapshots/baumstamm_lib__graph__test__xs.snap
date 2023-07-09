@@ -4,27 +4,30 @@ expression: graph
 ---
 Graph {
     sources: [
+        0,
+        1,
+    ],
+    nodes: [
         Node {
             value: 0,
             children: [
-                Node {
-                    value: 3,
-                    children: [],
-                },
+                3,
             ],
         },
         Node {
             value: 1,
             children: [
-                Node {
-                    value: 2,
-                    children: [],
-                },
-                Node {
-                    value: 3,
-                    children: [],
-                },
+                2,
+                3,
             ],
+        },
+        Node {
+            value: 2,
+            children: [],
+        },
+        Node {
+            value: 3,
+            children: [],
         },
     ],
 }

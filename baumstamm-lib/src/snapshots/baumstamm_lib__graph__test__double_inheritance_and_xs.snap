@@ -4,58 +4,58 @@ expression: graph
 ---
 Graph {
     sources: [
+        0,
+        7,
+        1,
+    ],
+    nodes: [
         Node {
             value: 0,
             children: [
-                Node {
-                    value: 2,
-                    children: [
-                        Node {
-                            value: 8,
-                            children: [],
-                        },
-                    ],
-                },
-                Node {
-                    value: 3,
-                    children: [],
-                },
-            ],
-        },
-        Node {
-            value: 7,
-            children: [
-                Node {
-                    value: 2,
-                    children: [
-                        Node {
-                            value: 8,
-                            children: [],
-                        },
-                    ],
-                },
-                Node {
-                    value: 4,
-                    children: [],
-                },
-                Node {
-                    value: 6,
-                    children: [],
-                },
+                2,
+                3,
             ],
         },
         Node {
             value: 1,
             children: [
-                Node {
-                    value: 5,
-                    children: [],
-                },
-                Node {
-                    value: 6,
-                    children: [],
-                },
+                5,
+                6,
             ],
+        },
+        Node {
+            value: 2,
+            children: [
+                8,
+            ],
+        },
+        Node {
+            value: 3,
+            children: [],
+        },
+        Node {
+            value: 4,
+            children: [],
+        },
+        Node {
+            value: 5,
+            children: [],
+        },
+        Node {
+            value: 6,
+            children: [],
+        },
+        Node {
+            value: 7,
+            children: [
+                2,
+                4,
+                6,
+            ],
+        },
+        Node {
+            value: 8,
+            children: [],
         },
     ],
 }
