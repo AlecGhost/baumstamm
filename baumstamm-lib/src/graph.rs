@@ -79,7 +79,7 @@ impl<'a> Iterator for DescendantWalker<'a> {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Graph {
     sources: Vec<Rid>,
     nodes: Vec<Node>,
