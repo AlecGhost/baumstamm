@@ -1,82 +1,84 @@
 ---
 source: baumstamm-lib/src/graph.rs
-expression: graph
+expression: cut_graph
 ---
-Graph {
-    sources: [
-        0,
-        1,
-    ],
-    nodes: [
-        Node {
-            value: 0,
-            children: [
-                4,
-            ],
-        },
-        Node {
-            value: 1,
-            children: [
-                2,
-            ],
-        },
-        Node {
-            value: 2,
-            children: [
-                3,
-            ],
-        },
-        Node {
-            value: 3,
-            children: [
-                8,
-            ],
-        },
-        Node {
-            value: 4,
-            children: [
-                5,
-            ],
-        },
-        Node {
-            value: 5,
-            children: [
-                6,
-            ],
-        },
-        Node {
-            value: 6,
-            children: [
-                7,
-            ],
-        },
-        Node {
-            value: 7,
-            children: [
-                9,
-            ],
-        },
-        Node {
-            value: 8,
-            children: [
-                11,
-            ],
-        },
-        Node {
-            value: 9,
-            children: [
-                10,
-            ],
-        },
-        Node {
-            value: 10,
-            children: [
-                11,
-            ],
-        },
-        Node {
-            value: 11,
-            children: [],
-        },
-    ],
-}
+CutGraph(
+    Graph {
+        sources: [
+            0,
+            1,
+        ],
+        nodes: [
+            Node {
+                value: 0,
+                children: [
+                    4,
+                ],
+            },
+            Node {
+                value: 1,
+                children: [
+                    2,
+                ],
+            },
+            Node {
+                value: 2,
+                children: [
+                    3,
+                ],
+            },
+            Node {
+                value: 3,
+                children: [
+                    8,
+                ],
+            },
+            Node {
+                value: 4,
+                children: [
+                    5,
+                ],
+            },
+            Node {
+                value: 5,
+                children: [
+                    6,
+                ],
+            },
+            Node {
+                value: 6,
+                children: [
+                    7,
+                ],
+            },
+            Node {
+                value: 7,
+                children: [
+                    9,
+                ],
+            },
+            Node {
+                value: 8,
+                children: [
+                    11,
+                ],
+            },
+            Node {
+                value: 9,
+                children: [
+                    10,
+                ],
+            },
+            Node {
+                value: 10,
+                children: [
+                    11,
+                ],
+            },
+            Node {
+                value: 11,
+                children: [],
+            },
+        ],
+    },
+)

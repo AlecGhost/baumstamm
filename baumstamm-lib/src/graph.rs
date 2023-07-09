@@ -85,6 +85,9 @@ pub struct Graph {
     nodes: Vec<Node>,
 }
 
+#[derive(Debug)]
+pub struct CutGraph(Graph);
+
 impl Graph {
     pub fn new(relationships: &[Relationship]) -> Self {
         fn rids_of_children(rid: &Rid, relationships: &[Relationship]) -> Vec<Rid> {
@@ -179,7 +182,7 @@ impl Graph {
         DescendantWalker::new(self, *rid)
     }
 
-    pub fn cut(&mut self) {
+    pub fn cut(mut self) -> CutGraph {
         struct Descendant {
             rid: Rid,
             level: usize,
@@ -391,19 +394,24 @@ impl Graph {
 
         // cut cycles
         let sources = self.sources.clone();
-        sources.iter().for_each(|child| cut_cycles(self, child));
-        update_sources(self);
+        sources
+            .iter()
+            .for_each(|child| cut_cycles(&mut self, child));
+        update_sources(&mut self);
         // cut double inheritance
-        cut_double_inheritance(self);
-        update_sources(self);
+        cut_double_inheritance(&mut self);
+        update_sources(&mut self);
         // cut xs
-        cut_xs(self);
+        cut_xs(&mut self);
+        CutGraph(self)
     }
 
     pub fn get_sources(&self) -> &[Rid] {
         self.sources.as_slice()
     }
+}
 
+impl CutGraph {
     pub fn layers(&self) -> Vec<Vec<Rid>> {
         fn add_layer_rec(
             graph: &Graph,
@@ -434,11 +442,12 @@ impl Graph {
             });
         }
         let mut layers = vec![Vec::new()];
-        let start = self
+        let graph = &self.0;
+        let start = graph
             .sources
             .first()
             .expect("Root node must have at least one child");
-        add_layer_rec(self, start, &mut layers, None, 0);
+        add_layer_rec(graph, start, &mut layers, None, 0);
         layers
     }
 }
@@ -453,10 +462,10 @@ mod test {
     fn cycles() {
         let graph_data = io::read("test/graph/cycles.json").expect("Cannot read test file");
         consistency::check(&graph_data).expect("Test data inconsistent");
-        let mut graph = Graph::new(&graph_data.relationships);
-        graph.cut();
-        assert_debug_snapshot!(graph);
-        let layers = graph.layers();
+        let graph = Graph::new(&graph_data.relationships);
+        let cut_graph = graph.cut();
+        assert_debug_snapshot!(cut_graph);
+        let layers = cut_graph.layers();
         assert_debug_snapshot!(layers);
     }
 
@@ -465,10 +474,10 @@ mod test {
         let graph_data =
             io::read("test/graph/double_inheritance.json").expect("Cannot read test file");
         consistency::check(&graph_data).expect("Test data inconsistent");
-        let mut graph = Graph::new(&graph_data.relationships);
-        graph.cut();
-        assert_debug_snapshot!(graph);
-        let layers = graph.layers();
+        let graph = Graph::new(&graph_data.relationships);
+        let cut_graph = graph.cut();
+        assert_debug_snapshot!(cut_graph);
+        let layers = cut_graph.layers();
         assert_debug_snapshot!(layers);
     }
 
@@ -476,10 +485,10 @@ mod test {
     fn xs() {
         let graph_data = io::read("test/graph/xs.json").expect("Cannot read test file");
         consistency::check(&graph_data).expect("Test data inconsistent");
-        let mut graph = Graph::new(&graph_data.relationships);
-        graph.cut();
-        assert_debug_snapshot!(graph);
-        let layers = graph.layers();
+        let graph = Graph::new(&graph_data.relationships);
+        let cut_graph = graph.cut();
+        assert_debug_snapshot!(cut_graph);
+        let layers = cut_graph.layers();
         assert_debug_snapshot!(layers);
     }
 
@@ -488,10 +497,10 @@ mod test {
         let graph_data =
             io::read("test/graph/double_inheritance_and_xs.json").expect("Cannot read test file");
         consistency::check(&graph_data).expect("Test data inconsistent");
-        let mut graph = Graph::new(&graph_data.relationships);
-        graph.cut();
-        assert_debug_snapshot!(graph);
-        let layers = graph.layers();
+        let graph = Graph::new(&graph_data.relationships);
+        let cut_graph = graph.cut();
+        assert_debug_snapshot!(cut_graph);
+        let layers = cut_graph.layers();
         assert_debug_snapshot!(layers);
     }
 }

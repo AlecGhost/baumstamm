@@ -1,33 +1,35 @@
 ---
 source: baumstamm-lib/src/graph.rs
-expression: graph
+expression: cut_graph
 ---
-Graph {
-    sources: [
-        0,
-        1,
-    ],
-    nodes: [
-        Node {
-            value: 0,
-            children: [
-                3,
-            ],
-        },
-        Node {
-            value: 1,
-            children: [
-                2,
-                3,
-            ],
-        },
-        Node {
-            value: 2,
-            children: [],
-        },
-        Node {
-            value: 3,
-            children: [],
-        },
-    ],
-}
+CutGraph(
+    Graph {
+        sources: [
+            0,
+            1,
+        ],
+        nodes: [
+            Node {
+                value: 0,
+                children: [
+                    3,
+                ],
+            },
+            Node {
+                value: 1,
+                children: [
+                    2,
+                    3,
+                ],
+            },
+            Node {
+                value: 2,
+                children: [],
+            },
+            Node {
+                value: 3,
+                children: [],
+            },
+        ],
+    },
+)
