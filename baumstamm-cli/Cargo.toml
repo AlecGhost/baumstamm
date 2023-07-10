@@ -8,4 +8,4 @@ default-run = "baumstamm-cli"
 
 [dependencies]
 baumstamm-lib = { path = "../baumstamm-lib" }
-clap = { version = "4.0.18", features = ["derive"] }
+clap = { version = "4.3.11", features = ["derive"] }
