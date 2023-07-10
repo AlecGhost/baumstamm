@@ -3,9 +3,10 @@ use crate::{
     error::{Error, InputError},
     io, Person, PersonId, Relationship, RelationshipId, TreeData,
 };
+use specta::Type;
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Type)]
 pub struct FamilyTree {
     tree_data: TreeData,
 }

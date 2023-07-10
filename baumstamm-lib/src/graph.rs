@@ -1,11 +1,12 @@
 use crate::{error::DisplayError, Relationship};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::collections::HashMap;
 
 type Rid = u128;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Type)]
 struct Node {
     value: Rid,
     parents: [Option<Rid>; 2],
@@ -82,7 +83,7 @@ impl<'a> Iterator for DescendantWalker<'a> {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Type)]
 pub struct Graph {
     sources: Vec<Rid>,
     nodes: Vec<Node>,
@@ -591,11 +592,12 @@ impl CutGraph {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Type)]
 pub struct DisplayGraph(Graph);
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Type)]
 pub struct DisplayOptions {
+    #[serde(with = "crate::id")]
     start: Rid,
     retain_edges: HashMap<Rid, [Option<Rid>; 2]>,
 }

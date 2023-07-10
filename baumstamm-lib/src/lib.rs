@@ -1,6 +1,7 @@
 use error::InputError;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
+use specta::Type;
 use std::collections::HashMap;
 pub use tree::FamilyTree;
 use uuid::Uuid;
@@ -12,54 +13,12 @@ mod io;
 mod tree;
 
 pub type PersonInfo = HashMap<String, String>;
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct PersonId(pub u128);
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub struct RelationshipId(pub u128);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash, Type)]
+pub struct PersonId(#[serde(with = "id")] pub u128);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
+pub struct RelationshipId(#[serde(with = "id")] pub u128);
 
-impl Serialize for PersonId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(&format!("{:X}", self.0))
-    }
-}
-
-impl<'de> Deserialize<'de> for PersonId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s: &str = Deserialize::deserialize(deserializer)?;
-        u128::from_str_radix(s, 16)
-            .map(PersonId)
-            .map_err(serde::de::Error::custom)
-    }
-}
-
-impl Serialize for RelationshipId {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        serializer.serialize_str(&format!("{:X}", self.0))
-    }
-}
-
-impl<'de> Deserialize<'de> for RelationshipId {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        let s: &str = Deserialize::deserialize(deserializer)?;
-        u128::from_str_radix(s, 16)
-            .map(RelationshipId)
-            .map_err(serde::de::Error::custom)
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub struct Relationship {
     pub id: RelationshipId,
     pub parents: [Option<PersonId>; 2],
@@ -122,7 +81,7 @@ impl Relationship {
     }
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Type)]
 pub struct Person {
     pub id: PersonId,
     pub info: Option<PersonInfo>,
@@ -137,7 +96,7 @@ impl Person {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Type)]
 struct TreeData {
     relationships: Vec<Relationship>,
     persons: Vec<Person>,
@@ -156,4 +115,21 @@ fn extract_persons(relationships: &[Relationship]) -> Vec<PersonId> {
     let parents = relationships.iter().flat_map(|rel| rel.parents());
     let children = relationships.iter().flat_map(|rel| rel.children.to_vec());
     parents.chain(children).unique().collect()
+}
+
+mod id {
+    pub fn serialize<S>(value: &u128, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&format!("{:X}", value))
+    }
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<u128, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s: &str = serde::Deserialize::deserialize(deserializer)?;
+        u128::from_str_radix(s, 16).map_err(serde::de::Error::custom)
+    }
 }
