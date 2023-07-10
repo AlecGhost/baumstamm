@@ -604,14 +604,19 @@ impl DisplayGraph {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::{consistency, io};
+    use crate::{consistency, TreeData};
     use insta::assert_debug_snapshot;
+
+    fn read(file_name: &str) -> TreeData {
+        let json_data = std::fs::read_to_string(file_name).expect("Cannot read test file");
+        crate::io::read(&json_data).expect("Cannot convert test file")
+    }
 
     #[test]
     fn cycles() {
-        let graph_data = io::read("test/graph/cycles.json").expect("Cannot read test file");
-        consistency::check(&graph_data).expect("Test data inconsistent");
-        let graph = Graph::new(&graph_data.relationships);
+        let tree_date = read("test/graph/cycles.json");
+        consistency::check(&tree_date).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_date.relationships);
         let cut_graph = graph.cut();
         assert_debug_snapshot!(cut_graph);
         let layers = cut_graph.layers();
@@ -620,10 +625,9 @@ mod test {
 
     #[test]
     fn double_inheritance() {
-        let graph_data =
-            io::read("test/graph/double_inheritance.json").expect("Cannot read test file");
-        consistency::check(&graph_data).expect("Test data inconsistent");
-        let graph = Graph::new(&graph_data.relationships);
+        let tree_date = read("test/graph/double_inheritance.json");
+        consistency::check(&tree_date).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_date.relationships);
         let cut_graph = graph.cut();
         assert_debug_snapshot!(cut_graph);
         let layers = cut_graph.layers();
@@ -632,9 +636,9 @@ mod test {
 
     #[test]
     fn xs() {
-        let graph_data = io::read("test/graph/xs.json").expect("Cannot read test file");
-        consistency::check(&graph_data).expect("Test data inconsistent");
-        let graph = Graph::new(&graph_data.relationships);
+        let tree_date = read("test/graph/xs.json");
+        consistency::check(&tree_date).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_date.relationships);
         let cut_graph = graph.cut();
         assert_debug_snapshot!(cut_graph);
         let layers = cut_graph.layers();
@@ -643,10 +647,9 @@ mod test {
 
     #[test]
     fn double_inheritance_and_xs() {
-        let graph_data =
-            io::read("test/graph/double_inheritance_and_xs.json").expect("Cannot read test file");
-        consistency::check(&graph_data).expect("Test data inconsistent");
-        let graph = Graph::new(&graph_data.relationships);
+        let tree_date = read("test/graph/double_inheritance_and_xs.json");
+        consistency::check(&tree_date).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_date.relationships);
         let cut_graph = graph.cut();
         assert_debug_snapshot!(cut_graph);
         let layers = cut_graph.layers();
@@ -655,9 +658,9 @@ mod test {
 
     #[test]
     fn display_no_retain() {
-        let graph_data = io::read("test/graph/display.json").expect("Cannot read test file");
-        consistency::check(&graph_data).expect("Test data inconsistent");
-        let graph = Graph::new(&graph_data.relationships);
+        let tree_date = read("test/graph/display.json");
+        consistency::check(&tree_date).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_date.relationships);
         let cut_graph = graph.cut();
         assert_debug_snapshot!(cut_graph);
         let display = cut_graph.display(DisplayOptions {
@@ -669,9 +672,9 @@ mod test {
 
     #[test]
     fn display_retain_one() {
-        let graph_data = io::read("test/graph/display.json").expect("Cannot read test file");
-        consistency::check(&graph_data).expect("Test data inconsistent");
-        let graph = Graph::new(&graph_data.relationships);
+        let tree_date = read("test/graph/display.json");
+        consistency::check(&tree_date).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_date.relationships);
         let cut_graph = graph.cut();
         let display = cut_graph.display(DisplayOptions {
             start: 0,
@@ -682,9 +685,9 @@ mod test {
 
     #[test]
     fn display_retain_two() {
-        let graph_data = io::read("test/graph/display.json").expect("Cannot read test file");
-        consistency::check(&graph_data).expect("Test data inconsistent");
-        let graph = Graph::new(&graph_data.relationships);
+        let tree_date = read("test/graph/display.json");
+        consistency::check(&tree_date).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_date.relationships);
         let cut_graph = graph.cut();
         let display = cut_graph.display(DisplayOptions {
             start: 0,

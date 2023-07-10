@@ -6,37 +6,27 @@ use crate::{
 use std::collections::HashMap;
 
 pub struct FamilyTree {
-    file_name: String,
     tree_data: TreeData,
 }
 
 impl FamilyTree {
-    pub fn new(file_name: String) -> Result<Self, Error> {
+    pub fn new() -> Self {
         let initial_person = Person::new();
         let initial_rels = vec![Relationship::new(None, None, vec![initial_person.id])];
-        let tree = Self {
-            file_name,
+        Self {
             tree_data: TreeData::new(initial_rels, vec![initial_person]),
-        };
-        tree.save()?;
-
-        Ok(tree)
+        }
     }
 
-    pub fn from_disk(file_name: String) -> Result<Self, Error> {
-        let tree_data = io::read(&file_name)?;
+    pub fn from_string(json_str: &str) -> Result<Self, Error> {
+        let tree_data = io::read(json_str)?;
         consistency::check(&tree_data)?;
-
-        Ok(Self {
-            file_name,
-            tree_data,
-        })
+        Ok(Self { tree_data })
     }
 
-    pub fn save(&self) -> Result<(), Error> {
+    pub fn save(&self) -> Result<String, Error> {
         consistency::check(&self.tree_data)?;
-        io::write(&self.file_name, &self.tree_data)?;
-        Ok(())
+        io::write(&self.tree_data)
     }
 
     pub fn get_persons(&self) -> &[Person] {
@@ -164,5 +154,11 @@ impl FamilyTree {
         self.save()?;
 
         Ok(value)
+    }
+}
+
+impl Default for FamilyTree {
+    fn default() -> Self {
+        Self::new()
     }
 }

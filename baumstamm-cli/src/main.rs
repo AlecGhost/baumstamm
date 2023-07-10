@@ -1,5 +1,6 @@
-use baumstamm_lib::{error::Error, FamilyTree, PersonId, RelationshipId};
+use baumstamm_lib::{FamilyTree, PersonId, RelationshipId};
 use clap::{Args, Parser, Subcommand};
+use std::{error::Error, fs};
 
 #[derive(Parser)]
 struct Cli {
@@ -76,12 +77,16 @@ enum Show {
     Relationships,
 }
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
     let mut tree = if args.new {
-        FamilyTree::new(args.file)?
+        let tree = FamilyTree::new();
+        let json_str = tree.save()?;
+        fs::write(args.file, json_str)?;
+        tree
     } else {
-        FamilyTree::from_disk(args.file)?
+        let json_str = fs::read_to_string(args.file)?;
+        FamilyTree::from_string(&json_str)?
     };
 
     if let Some(action) = args.action {

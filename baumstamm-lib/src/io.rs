@@ -1,23 +1,31 @@
 use crate::{error::Error, TreeData};
-use std::fs;
 
-pub(super) fn read(file_name: &str) -> Result<TreeData, Error> {
-    let json_str = fs::read_to_string(file_name)?;
-    let tree_data: TreeData = serde_json::from_str(&json_str)?;
+pub(super) fn read(json_str: &str) -> Result<TreeData, Error> {
+    let tree_data = serde_json::from_str(json_str)?;
     Ok(tree_data)
 }
 
-pub(super) fn write(file_name: &str, tree_data: &TreeData) -> Result<(), Error> {
+pub(super) fn write(tree_data: &TreeData) -> Result<String, Error> {
     let json_str = serde_json::to_string_pretty(tree_data)?;
-    fs::write(file_name, json_str)?;
-    Ok(())
+    Ok(json_str)
 }
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::{extract_persons, Person, Relationship};
-    use std::error::Error;
+    use crate::{extract_persons, Person, Relationship, TreeData};
+    use std::{error::Error, fs};
+
+    fn read(file_name: &str) -> Result<TreeData, Box<dyn Error>> {
+        let json_data = fs::read_to_string(file_name)?;
+        let tree_data = super::read(&json_data)?;
+        Ok(tree_data)
+    }
+
+    fn write(file_name: &str, tree_data: &TreeData) -> Result<(), Box<dyn Error>> {
+        let json_str = super::write(tree_data)?;
+        fs::write(file_name, json_str)?;
+        Ok(())
+    }
 
     fn compare_rels_to_file(
         test_rels: Vec<Relationship>,

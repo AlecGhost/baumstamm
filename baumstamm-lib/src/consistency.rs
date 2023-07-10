@@ -117,7 +117,11 @@ fn check_persons(persons: &[Person]) -> Result<(), ConsistencyError> {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::io;
+
+    fn read(file_name: &str) -> TreeData {
+        let json_data = std::fs::read_to_string(file_name).expect("Cannot read test file");
+        crate::io::read(&json_data).expect("Cannot convert test file")
+    }
 
     enum FileType {
         Relationships,
@@ -125,7 +129,7 @@ mod test {
     }
 
     fn assert_err_for_file(expected_err_message: &str, file_name: &str, file_type: FileType) {
-        let tree_data = io::read(file_name).expect("Cannot read test file");
+        let tree_data = read(file_name);
         let err = match file_type {
             FileType::Relationships => {
                 check_relationships(&tree_data.relationships).expect_err("Consistency check failed")
@@ -211,8 +215,7 @@ mod test {
 
     #[test]
     fn check_both() -> Result<(), ConsistencyError> {
-        let tree_data =
-            io::read("test/consistency/check_both.json").expect("Cannot read test file");
+        let tree_data = read("test/consistency/check_both.json");
         match check(&tree_data) {
             Ok(_) => Ok(()),
             Err(err) => {
@@ -224,24 +227,21 @@ mod test {
 
     #[test]
     fn too_few_persons() {
-        let tree_data =
-            io::read("test/consistency/too_few_persons.json").expect("Cannot read test file");
+        let tree_data = read("test/consistency/too_few_persons.json");
         let err = check(&tree_data).expect_err("Consistency check failed");
         assert_eq!("The number of persons differs", format!("{err}"));
     }
 
     #[test]
     fn too_few_rels() {
-        let tree_data =
-            io::read("test/consistency/too_few_rels.json").expect("Cannot read test file");
+        let tree_data = read("test/consistency/too_few_rels.json");
         let err = check(&tree_data).expect_err("Consistency check failed");
         assert_eq!("The number of persons differs", format!("{err}"));
     }
 
     #[test]
     fn different_ids() {
-        let tree_data =
-            io::read("test/consistency/different_ids.json").expect("Cannot read test file");
+        let tree_data = read("test/consistency/different_ids.json");
         let err = check(&tree_data).expect_err("Consistency check failed");
         assert_eq!("Relationships and persons do not match", format!("{err}"));
     }

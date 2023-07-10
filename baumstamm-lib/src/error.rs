@@ -2,8 +2,6 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum Error {
-    #[error("I/O error")]
-    Io(#[from] std::io::Error),
     #[error("Serialization error")]
     Serialization(#[from] serde_json::Error),
     #[error("Consistency error")]
