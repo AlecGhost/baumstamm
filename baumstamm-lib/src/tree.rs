@@ -5,6 +5,7 @@ use crate::{
 };
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct FamilyTree {
     tree_data: TreeData,
 }

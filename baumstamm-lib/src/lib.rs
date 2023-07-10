@@ -1,5 +1,6 @@
 use error::InputError;
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 pub use tree::FamilyTree;
 use uuid::Uuid;
@@ -14,7 +15,7 @@ pub type PersonId = u128;
 pub type PersonInfo = HashMap<String, String>;
 pub type RelationshipId = u128;
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Relationship {
     pub id: RelationshipId,
     pub parents: [Option<PersonId>; 2],
@@ -77,7 +78,7 @@ impl Relationship {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Person {
     pub id: PersonId,
     pub info: Option<PersonInfo>,
@@ -92,7 +93,7 @@ impl Person {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 struct TreeData {
     relationships: Vec<Relationship>,
     persons: Vec<Person>,

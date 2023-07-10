@@ -1,11 +1,10 @@
 [package]
-name = "app"
+name = "baumstamm-app"
 version = "0.1.0"
-description = "A Tauri App"
+description = "Baumstamm App"
 authors = ["you"]
 license = ""
 repository = ""
-default-run = "app"
 edition = "2021"
 rust-version = "1.57"
 
@@ -15,6 +14,7 @@ rust-version = "1.57"
 tauri-build = { version = "1.1.1", features = [] }
 
 [dependencies]
+baumstamm-lib = { path = "../../baumstamm-lib" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.1.1", features = ["api-all"] }

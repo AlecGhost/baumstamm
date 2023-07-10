@@ -1,9 +1,11 @@
 use crate::{error::DisplayError, Relationship, RelationshipId};
 use itertools::Itertools;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 type Rid = RelationshipId;
 
+#[derive(Serialize, Deserialize)]
 struct Node {
     value: Rid,
     parents: [Option<Rid>; 2],
@@ -80,7 +82,7 @@ impl<'a> Iterator for DescendantWalker<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Graph {
     sources: Vec<Rid>,
     nodes: Vec<Node>,
@@ -586,10 +588,10 @@ impl CutGraph {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DisplayGraph(Graph);
 
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct DisplayOptions {
     start: Rid,
     retain_edges: HashMap<Rid, [Option<Rid>; 2]>,

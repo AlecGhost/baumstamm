@@ -1,3 +1,4 @@
+use serde::Serialize;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -12,7 +13,21 @@ pub enum Error {
     Display(#[from] DisplayError),
 }
 
-#[derive(Debug, Error)]
+impl Serialize for Error {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            Error::Serialization(err) => serializer.serialize_str(&err.to_string()),
+            Error::Consistency(err) => err.serialize(serializer),
+            Error::Input(err) => err.serialize(serializer),
+            Error::Display(err) => err.serialize(serializer),
+        }
+    }
+}
+
+#[derive(Debug, Error, Serialize)]
 pub enum ConsistencyError {
     #[error("The number of persons differs")]
     DifferentNumberOfPersons,
@@ -36,7 +51,7 @@ pub enum ConsistencyError {
     PersonIdExists,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Serialize)]
 pub enum InputError {
     #[error("Invalid relationship id")]
     InvalidRelationshipId,
@@ -50,7 +65,7 @@ pub enum InputError {
     AlreadyTwoParents,
 }
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Serialize)]
 pub enum DisplayError {
     #[error("Invalid starting relationship id")]
     InvalidStartId,
