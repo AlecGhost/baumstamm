@@ -11,9 +11,53 @@ pub mod graph;
 mod io;
 mod tree;
 
-pub type PersonId = u128;
 pub type PersonInfo = HashMap<String, String>;
-pub type RelationshipId = u128;
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct PersonId(pub u128);
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct RelationshipId(pub u128);
+
+impl Serialize for PersonId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&format!("{:X}", self.0))
+    }
+}
+
+impl<'de> Deserialize<'de> for PersonId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        u128::from_str_radix(s, 16)
+            .map(PersonId)
+            .map_err(serde::de::Error::custom)
+    }
+}
+
+impl Serialize for RelationshipId {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(&format!("{:X}", self.0))
+    }
+}
+
+impl<'de> Deserialize<'de> for RelationshipId {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let s: &str = Deserialize::deserialize(deserializer)?;
+        u128::from_str_radix(s, 16)
+            .map(RelationshipId)
+            .map_err(serde::de::Error::custom)
+    }
+}
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Relationship {
@@ -25,7 +69,7 @@ pub struct Relationship {
 impl Relationship {
     fn new(p1: Option<PersonId>, p2: Option<PersonId>, children: Vec<PersonId>) -> Self {
         Self {
-            id: Uuid::new_v4().to_u128_le(),
+            id: RelationshipId(Uuid::new_v4().to_u128_le()),
             parents: [p1, p2],
             children,
         }
@@ -78,7 +122,7 @@ impl Relationship {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Person {
     pub id: PersonId,
     pub info: Option<PersonInfo>,
@@ -87,7 +131,7 @@ pub struct Person {
 impl Person {
     fn new() -> Self {
         Self {
-            id: Uuid::new_v4().to_u128_le(),
+            id: PersonId(Uuid::new_v4().to_u128_le()),
             info: None,
         }
     }

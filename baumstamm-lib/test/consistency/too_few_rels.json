@@ -1,28 +1,28 @@
 {
   "persons": [
     {
-      "id": 0,
+      "id": "0",
       "info": null
     },
     {
-      "id": 1,
+      "id": "1",
       "info": null
     },
     {
-      "id": 2,
+      "id": "2",
       "info": null
     }
   ],
   "relationships": [
     {
-      "id": 0,
+      "id": "0",
       "parents": [
         null,
         null
       ],
       "children": [
-        0,
-        1
+        "0",
+        "1"
       ]
     }
   ]

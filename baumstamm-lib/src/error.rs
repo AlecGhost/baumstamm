@@ -1,8 +1,9 @@
 use serde::Serialize;
 use thiserror::Error;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Serialize)]
 pub enum Error {
+    #[serde(serialize_with = "serialize_serde_error")]
     #[error("Serialization error")]
     Serialization(#[from] serde_json::Error),
     #[error("Consistency error")]
@@ -13,18 +14,11 @@ pub enum Error {
     Display(#[from] DisplayError),
 }
 
-impl Serialize for Error {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match self {
-            Error::Serialization(err) => serializer.serialize_str(&err.to_string()),
-            Error::Consistency(err) => err.serialize(serializer),
-            Error::Input(err) => err.serialize(serializer),
-            Error::Display(err) => err.serialize(serializer),
-        }
-    }
+fn serialize_serde_error<S>(error: &serde_json::Error, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&error.to_string())
 }
 
 #[derive(Debug, Error, Serialize)]

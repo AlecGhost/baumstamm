@@ -12,7 +12,7 @@ pub(super) fn write(tree_data: &TreeData) -> Result<String, Error> {
 
 #[cfg(test)]
 mod test {
-    use crate::{extract_persons, Person, Relationship, TreeData};
+    use crate::{extract_persons, Person, PersonId, Relationship, RelationshipId, TreeData};
     use std::{error::Error, fs};
 
     fn read(file_name: &str) -> Result<TreeData, Box<dyn Error>> {
@@ -51,7 +51,7 @@ mod test {
     #[test]
     fn single_rel() -> Result<(), Box<dyn Error>> {
         let test_rels = vec![Relationship {
-            id: 0,
+            id: RelationshipId(0),
             parents: [None, None],
             children: Vec::new(),
         }];
@@ -81,7 +81,10 @@ mod test {
 
     #[test]
     fn single_person() -> Result<(), Box<dyn Error>> {
-        let test_persons = vec![Person { id: 0, info: None }];
+        let test_persons = vec![Person {
+            id: PersonId(0),
+            info: None,
+        }];
         compare_persons_to_file(test_persons, "test/io/single_person.json")
     }
 
@@ -89,7 +92,7 @@ mod test {
     fn unique_persons() -> Result<(), Box<dyn Error>> {
         let tree_data = read("test/io/unique_persons.json")?;
         let unique_persons = extract_persons(&tree_data.relationships);
-        let test_persons = vec![0, 1];
+        let test_persons = vec![PersonId(0), PersonId(1)];
         if unique_persons == test_persons {
             Ok(())
         } else {
@@ -106,28 +109,28 @@ Expected: {:?}",
     #[test]
     fn test_write_persons() {
         let mut tree_data = read("test/io/write_persons.json").unwrap();
-        assert_eq!(0, tree_data.persons[0].id);
-        tree_data.persons[0].id = 1;
+        assert_eq!(PersonId(0), tree_data.persons[0].id);
+        tree_data.persons[0].id = PersonId(1);
         write("test/io/write_persons.json", &tree_data).unwrap();
         let mut tree_data = read("test/io/write_persons.json").unwrap();
-        assert_eq!(1, tree_data.persons[0].id);
-        tree_data.persons[0].id = 0;
+        assert_eq!(PersonId(1), tree_data.persons[0].id);
+        tree_data.persons[0].id = PersonId(0);
         write("test/io/write_persons.json", &tree_data).unwrap();
         let tree_data = read("test/io/write_persons.json").unwrap();
-        assert_eq!(0, tree_data.persons[0].id);
+        assert_eq!(PersonId(0), tree_data.persons[0].id);
     }
 
     #[test]
     fn test_write_relationships() {
         let mut tree_data = read("test/io/write_relationships.json").unwrap();
-        assert_eq!(0, tree_data.relationships[0].id);
-        tree_data.relationships[0].id = 1;
+        assert_eq!(RelationshipId(0), tree_data.relationships[0].id);
+        tree_data.relationships[0].id = RelationshipId(1);
         write("test/io/write_relationships.json", &tree_data).unwrap();
         let mut tree_data = read("test/io/write_relationships.json").unwrap();
-        assert_eq!(1, tree_data.relationships[0].id);
-        tree_data.relationships[0].id = 0;
+        assert_eq!(RelationshipId(1), tree_data.relationships[0].id);
+        tree_data.relationships[0].id = RelationshipId(0);
         write("test/io/write_relationships.json", &tree_data).unwrap();
         let tree_data = read("test/io/write_relationships.json").unwrap();
-        assert_eq!(0, tree_data.relationships[0].id);
+        assert_eq!(RelationshipId(0), tree_data.relationships[0].id);
     }
 }

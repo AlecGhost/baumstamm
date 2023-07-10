@@ -33,23 +33,23 @@ enum Add {
 
 #[derive(Args)]
 struct NewRelationship {
-    person_id: PersonId,
+    person_id: u128,
 }
 
 #[derive(Args)]
 struct Child {
-    rel_id: RelationshipId,
+    rel_id: u128,
 }
 
 #[derive(Args)]
 struct Parent {
-    rel_id: RelationshipId,
+    rel_id: u128,
 }
 
 #[derive(Args)]
 struct RelationshipWithPartner {
-    person_id: PersonId,
-    partner_id: PersonId,
+    person_id: u128,
+    partner_id: u128,
 }
 
 #[derive(Subcommand)]
@@ -60,14 +60,14 @@ enum Info {
 
 #[derive(Args)]
 struct InsertInfo {
-    person_id: PersonId,
+    person_id: u128,
     key: String,
     value: String,
 }
 
 #[derive(Args)]
 struct RemoveInfo {
-    person_id: PersonId,
+    person_id: u128,
     key: String,
 }
 
@@ -93,38 +93,44 @@ fn main() -> Result<(), Box<dyn Error>> {
         match action {
             Action::Add(add) => match add {
                 Add::Child(child) => {
-                    let child_id = tree.add_child(child.rel_id)?;
-                    println!("Added child as {}", child_id);
+                    let child_id = tree.add_child(RelationshipId(child.rel_id))?;
+                    println!("Added child as {:?}", child_id);
                 }
                 Add::Parent(parent) => {
-                    let result = tree.add_parent(parent.rel_id)?;
+                    let result = tree.add_parent(RelationshipId(parent.rel_id))?;
                     println!(
-                        "Added parent as {} and child of relationship {}",
+                        "Added parent as {:?} and child of relationship {:?}",
                         result.0, result.1
                     );
                 }
                 Add::NewRelationship(rel) => {
-                    let rel_id = tree.add_new_relationship(rel.person_id)?;
-                    println!("Added new relationship {}", rel_id);
+                    let rel_id = tree.add_new_relationship(PersonId(rel.person_id))?;
+                    println!("Added new relationship {:?}", rel_id);
                 }
                 Add::RelationshipWithPartner(rel) => {
-                    let rel_id =
-                        tree.add_relationship_with_partner(rel.person_id, rel.partner_id)?;
-                    println!("Added relationship {}", rel_id);
+                    let rel_id = tree.add_relationship_with_partner(
+                        PersonId(rel.person_id),
+                        PersonId(rel.partner_id),
+                    )?;
+                    println!("Added relationship {:?}", rel_id);
                 }
             },
             Action::Info(info) => match info {
                 Info::Insert(insert) => {
-                    tree.insert_info(insert.person_id, insert.key.clone(), insert.value.clone())?;
+                    tree.insert_info(
+                        PersonId(insert.person_id),
+                        insert.key.clone(),
+                        insert.value.clone(),
+                    )?;
                     println!(
-                        "Inserted \"{}\": \"{}\" to {}",
+                        "Inserted \"{:?}\": \"{}\" to {}",
                         insert.key, insert.value, insert.person_id
                     );
                 }
                 Info::Remove(remove) => {
-                    let value = tree.remove_info(remove.person_id, &remove.key)?;
+                    let value = tree.remove_info(PersonId(remove.person_id), &remove.key)?;
                     println!(
-                        "Removed \"{}\": \"{}\" from {}",
+                        "Removed \"{:?}\": \"{}\" from {}",
                         remove.key, value, remove.person_id
                     );
                 }

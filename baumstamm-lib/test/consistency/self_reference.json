@@ -1,10 +1,10 @@
 {
   "relationships": [
     {
-      "id": 0,
+      "id": "0",
       "parents": [
-        0,
-        0
+        "0",
+        "0"
       ],
       "children": []
     }

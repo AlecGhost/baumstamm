@@ -1,9 +1,9 @@
-use crate::{error::DisplayError, Relationship, RelationshipId};
+use crate::{error::DisplayError, Relationship};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-type Rid = RelationshipId;
+type Rid = u128;
 
 #[derive(Serialize, Deserialize)]
 struct Node {
@@ -93,7 +93,7 @@ impl Graph {
         fn rids_of_children(rid: &Rid, relationships: &[Relationship]) -> Vec<Rid> {
             let current = relationships
                 .iter()
-                .find(|rel| rel.id == *rid)
+                .find(|rel| rel.id.0 == *rid)
                 .expect("Inconsistent data");
             relationships
                 .iter()
@@ -103,14 +103,14 @@ impl Graph {
                         .iter()
                         .any(|child| rel.parents().contains(child))
                 })
-                .map(|rel| rel.id)
+                .map(|rel| rel.id.0)
                 .collect()
         }
 
         fn rids_of_parents(rid: &Rid, relationships: &[Relationship]) -> [Option<Rid>; 2] {
             let current = relationships
                 .iter()
-                .find(|rel| rel.id == *rid)
+                .find(|rel| rel.id.0 == *rid)
                 .expect("Inconsistent data");
             current.parents.map(|opt| {
                 opt.as_ref()
@@ -119,17 +119,20 @@ impl Graph {
                             .iter()
                             .find(|rel| rel.children.contains(parent_id))
                     })
-                    .map(|rel| rel.id)
+                    .map(|rel| rel.id.0)
             })
         }
 
-        let mut nodes: Vec<Node> = relationships.iter().map(|rel| Node::new(rel.id)).collect();
+        let mut nodes: Vec<Node> = relationships
+            .iter()
+            .map(|rel| Node::new(rel.id.0))
+            .collect();
         // add relationships with no parents as top level nodes
         let sources = relationships
             .iter()
             // get relationships with no parents
             .filter(|rel| rel.parents().is_empty())
-            .map(|rel| rel.id)
+            .map(|rel| rel.id.0)
             .collect();
 
         nodes.iter_mut().for_each(|node| {
