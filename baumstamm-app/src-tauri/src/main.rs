@@ -20,6 +20,7 @@ fn main() {
     tauri::Builder::default()
         .manage(State::default())
         .invoke_handler(tauri::generate_handler![
+            commands::get_persons,
             commands::add_parent,
             commands::add_child,
             commands::add_new_relationship,

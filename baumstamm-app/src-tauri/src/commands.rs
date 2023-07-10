@@ -1,11 +1,18 @@
 use baumstamm_lib::{
     error::{DisplayError, Error},
     graph::{DisplayGraph, DisplayOptions, Graph},
+    Person,
 };
 
 type State<'a> = tauri::State<'a, crate::State>;
 type Rid = baumstamm_lib::RelationshipId;
 type Pid = baumstamm_lib::PersonId;
+
+#[tauri::command]
+pub(crate) fn get_persons(state: State) -> Result<Vec<Person>, ()> {
+    let persons = state.0.lock().unwrap().tree.get_persons().to_vec();
+    Ok(persons)
+}
 
 #[tauri::command]
 pub(crate) fn add_parent(rid: Rid, state: State) -> Result<(Pid, Rid), Error> {
