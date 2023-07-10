@@ -10,6 +10,8 @@ pub enum Error {
     Consistency(#[from] ConsistencyError),
     #[error("Input error")]
     Input(#[from] InputError),
+    #[error("Display error")]
+    Display(#[from] DisplayError),
 }
 
 #[derive(Debug, Error)]
@@ -48,4 +50,16 @@ pub enum InputError {
     NoInfo,
     #[error("Cannot add another parent")]
     AlreadyTwoParents,
+}
+
+#[derive(Debug, Error)]
+pub enum DisplayError {
+    #[error("Invalid starting relationship id")]
+    InvalidStartId,
+    #[error("Invalid retain relationship id")]
+    InvalidRetainId,
+    #[error("Invalid retaining edge")]
+    InvalidRetainEdge,
+    #[error("Conflicting retaining edge options")]
+    ConflictingRetain,
 }

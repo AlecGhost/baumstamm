@@ -1,5 +1,6 @@
-use crate::{Relationship, RelationshipId};
+use crate::{error::DisplayError, Relationship, RelationshipId};
 use itertools::Itertools;
+use std::collections::HashMap;
 
 type Rid = RelationshipId;
 
@@ -85,9 +86,6 @@ pub struct Graph {
     nodes: Vec<Node>,
 }
 
-#[derive(Debug)]
-pub struct CutGraph(Graph);
-
 impl Graph {
     pub fn new(relationships: &[Relationship]) -> Self {
         fn rids_of_children(rid: &Rid, relationships: &[Relationship]) -> Vec<Rid> {
@@ -140,21 +138,27 @@ impl Graph {
         Self { sources, nodes }
     }
 
-    fn parents_of(&self, rid: &Rid) -> Vec<Rid> {
-        let node = self
-            .nodes
+    fn get_node(&self, rid: &Rid) -> &Node {
+        self.nodes
             .iter()
             .find(|node| node.value == *rid)
-            .expect("Invalid RID");
+            .expect("Invalid RID")
+    }
+
+    fn get_node_mut(&mut self, rid: &Rid) -> &mut Node {
+        self.nodes
+            .iter_mut()
+            .find(|node| node.value == *rid)
+            .expect("Invalid RID")
+    }
+
+    fn parents_of(&self, rid: &Rid) -> Vec<Rid> {
+        let node = self.get_node(rid);
         node.parents.iter().filter_map(|parent| *parent).collect()
     }
 
     fn children_of(&self, rid: &Rid) -> &[Rid] {
-        let node = self
-            .nodes
-            .iter()
-            .find(|node| node.value == *rid)
-            .expect("Invalid RID");
+        let node = self.get_node(rid);
         node.children.as_slice()
     }
 
@@ -200,11 +204,7 @@ impl Graph {
         }
 
         fn cut_parent(graph: &mut Graph, child: &Rid, parent: &Rid) {
-            let node = graph
-                .nodes
-                .iter_mut()
-                .find(|node| node.value == *child)
-                .expect("Invalid RID");
+            let node = graph.get_node_mut(child);
             if let Some(cuttable_parent) = node
                 .parents
                 .iter_mut()
@@ -267,11 +267,7 @@ impl Graph {
                 .iter_mut()
                 .for_each(|child| cut_cycles(graph, child));
             // replace children
-            let parent_node = graph
-                .nodes
-                .iter_mut()
-                .find(|node| node.value == *parent)
-                .expect("Invalid RID");
+            let parent_node = graph.get_node_mut(parent);
             parent_node.children = children;
         }
 
@@ -312,11 +308,7 @@ impl Graph {
                     });
                 }
                 // replace children
-                let this_node = graph
-                    .nodes
-                    .iter_mut()
-                    .find(|node| node.value == *this)
-                    .expect("Invalid RID");
+                let this_node = graph.get_node_mut(this);
                 this_node.children = children;
             }
         }
@@ -405,50 +397,207 @@ impl Graph {
         cut_xs(&mut self);
         CutGraph(self)
     }
-
-    pub fn get_sources(&self) -> &[Rid] {
-        self.sources.as_slice()
-    }
 }
+
+fn layers(graph: &Graph) -> Vec<Vec<Rid>> {
+    fn add_layer_rec(
+        graph: &Graph,
+        rid: &Rid,
+        layers: &mut Vec<Vec<Rid>>,
+        origin: Option<Rid>,
+        level: usize,
+    ) {
+        if level == layers.len() {
+            layers.push(Vec::new());
+        }
+        layers[level].push(*rid);
+        graph.parents_of(rid).into_iter().for_each(|parent| {
+            if Some(parent) != origin {
+                let next_level = if level == 0 {
+                    layers.insert(0, Vec::new());
+                    0
+                } else {
+                    level - 1
+                };
+                add_layer_rec(graph, &parent, layers, Some(*rid), next_level);
+            }
+        });
+        graph.children_of(rid).iter().for_each(|child| {
+            if Some(*child) != origin {
+                add_layer_rec(graph, child, layers, Some(*rid), level + 1)
+            }
+        });
+    }
+    let mut layers = vec![Vec::new()];
+    let start = graph
+        .sources
+        .first()
+        .expect("Root node must have at least one child");
+    add_layer_rec(graph, start, &mut layers, None, 0);
+    layers
+}
+
+#[derive(Debug)]
+pub struct CutGraph(Graph);
 
 impl CutGraph {
     pub fn layers(&self) -> Vec<Vec<Rid>> {
-        fn add_layer_rec(
-            graph: &Graph,
+        layers(&self.0)
+    }
+
+    /// Modify graph, so that it can be displayed in 2D without overlapping edges.
+    /// For this, no more than two child relationships
+    /// can have their other-parent relationship displayed.
+    ///
+    /// The result is dependant on the starting relationship,
+    /// so it must be specified in the options.
+    /// Furthermore, edges that should be retained can be specified.
+    /// However, there must not be more than two other-parent relationships
+    /// per parent relationship.
+    ///
+    /// other-parent parent other-parent
+    ///      |  +------|------+  |
+    ///      \  |      |      |  /
+    ///      child   child   child
+    pub fn display(self, options: DisplayOptions) -> Result<DisplayGraph, DisplayError> {
+        fn cut_children(
             rid: &Rid,
-            layers: &mut Vec<Vec<Rid>>,
-            origin: Option<Rid>,
-            level: usize,
-        ) {
-            if level == layers.len() {
-                layers.push(Vec::new());
+            graph: &mut Graph,
+            options: &DisplayOptions,
+            previous: Option<&Rid>,
+        ) -> Result<(), DisplayError> {
+            let children = graph.children_of(rid).to_vec();
+
+            if children.len() > 2 {
+                let other_edges = children
+                    .iter()
+                    .flat_map(|child| {
+                        graph
+                            .parents_of(child)
+                            .into_iter()
+                            .filter(|parent| parent != rid)
+                            .map(|parent| (parent, *child))
+                            .collect_vec()
+                    })
+                    .collect_vec();
+                if other_edges.len() > 2 {
+                    type Edge = (Rid, Rid);
+                    let (mut retain, mut dismiss): (Vec<Edge>, Vec<Edge>) =
+                        other_edges.into_iter().partition(|(parent, child)| {
+                            if let Some(options) = options.retain_edges.get(parent) {
+                                options.iter().flatten().contains(child)
+                            } else {
+                                false
+                            }
+                        });
+                    if retain.len() > 2 {
+                        return Err(DisplayError::ConflictingRetain);
+                    }
+                    while retain.len() < 2 {
+                        retain.push(dismiss.pop().expect("There must be enough parents"))
+                    }
+                    dismiss.iter().for_each(|(parent, child)| {
+                        graph
+                            .get_node_mut(child)
+                            .parents
+                            .iter_mut()
+                            .for_each(|opt| {
+                                if matches!(opt, Some(p) if p == parent) {
+                                    *opt = None;
+                                }
+                            });
+                        graph.get_node_mut(parent).children.retain(|c| c != child);
+
+                        // cleanup
+                        let relatives = graph
+                            .nodes
+                            .iter()
+                            .map(|node| node.value)
+                            .filter(|rid| {
+                                graph.is_ancestor_of(parent, rid).is_some()
+                                    || graph.is_descendant_of(parent, rid).is_some()
+                            })
+                            .collect_vec();
+                        graph.nodes.retain(|node| !relatives.contains(&node.value));
+                        graph.sources.retain(|source| !relatives.contains(source));
+                    });
+                }
             }
-            layers[level].push(*rid);
-            graph.parents_of(rid).into_iter().for_each(|parent| {
-                if Some(parent) != origin {
-                    let next_level = if level == 0 {
-                        layers.insert(0, Vec::new());
-                        0
-                    } else {
-                        level - 1
-                    };
-                    add_layer_rec(graph, &parent, layers, Some(*rid), next_level);
-                }
-            });
-            graph.children_of(rid).iter().for_each(|child| {
-                if Some(*child) != origin {
-                    add_layer_rec(graph, child, layers, Some(*rid), level + 1)
-                }
-            });
+
+            for child in children
+                .iter()
+                .filter(|child| !matches!(previous, Some(rid) if rid == *child))
+            {
+                cut_children(child, graph, options, Some(rid))?;
+                cut_parents(child, graph, options, Some(rid))?;
+            }
+            Ok(())
         }
-        let mut layers = vec![Vec::new()];
-        let graph = &self.0;
+
+        fn cut_parents(
+            rid: &Rid,
+            graph: &mut Graph,
+            options: &DisplayOptions,
+            previous: Option<&Rid>,
+        ) -> Result<(), DisplayError> {
+            for parent in graph
+                .parents_of(rid)
+                .into_iter()
+                .filter(|parent| !matches!(previous, Some(rid) if rid == parent))
+            {
+                cut_children(&parent, graph, options, Some(rid))?;
+            }
+            Ok(())
+        }
+
+        fn is_valid(graph: &Graph, rid: &Rid) -> bool {
+            graph.nodes.iter().map(|node| node.value).contains(rid)
+        }
+
+        let mut graph = self.0;
         let start = graph
-            .sources
-            .first()
-            .expect("Root node must have at least one child");
-        add_layer_rec(graph, start, &mut layers, None, 0);
-        layers
+            .nodes
+            .iter()
+            .map(|node| node.value)
+            .find(|rid| *rid == options.start)
+            .ok_or(DisplayError::InvalidStartId)?;
+
+        // check retain edges
+        for (key, values) in options.retain_edges.iter() {
+            if !is_valid(&graph, key) {
+                return Err(DisplayError::InvalidRetainId);
+            }
+            for value in values.iter().flatten() {
+                if !is_valid(&graph, value) {
+                    return Err(DisplayError::InvalidRetainId);
+                }
+                let node = graph.get_node(key);
+                if !node.children.contains(value) {
+                    return Err(DisplayError::InvalidRetainEdge);
+                }
+            }
+        }
+
+        // start cutting
+        cut_children(&start, &mut graph, &options, None)?;
+        cut_parents(&start, &mut graph, &options, None)?;
+
+        Ok(DisplayGraph(graph))
+    }
+}
+
+#[derive(Debug)]
+pub struct DisplayGraph(Graph);
+
+#[derive(Debug)]
+pub struct DisplayOptions {
+    start: Rid,
+    retain_edges: HashMap<Rid, [Option<Rid>; 2]>,
+}
+
+impl DisplayGraph {
+    pub fn layers(&self) -> Vec<Vec<Rid>> {
+        layers(&self.0)
     }
 }
 
@@ -502,5 +651,45 @@ mod test {
         assert_debug_snapshot!(cut_graph);
         let layers = cut_graph.layers();
         assert_debug_snapshot!(layers);
+    }
+
+    #[test]
+    fn display_no_retain() {
+        let graph_data = io::read("test/graph/display.json").expect("Cannot read test file");
+        consistency::check(&graph_data).expect("Test data inconsistent");
+        let graph = Graph::new(&graph_data.relationships);
+        let cut_graph = graph.cut();
+        assert_debug_snapshot!(cut_graph);
+        let display = cut_graph.display(DisplayOptions {
+            start: 0,
+            retain_edges: HashMap::new(),
+        });
+        assert_debug_snapshot!(display);
+    }
+
+    #[test]
+    fn display_retain_one() {
+        let graph_data = io::read("test/graph/display.json").expect("Cannot read test file");
+        consistency::check(&graph_data).expect("Test data inconsistent");
+        let graph = Graph::new(&graph_data.relationships);
+        let cut_graph = graph.cut();
+        let display = cut_graph.display(DisplayOptions {
+            start: 0,
+            retain_edges: HashMap::from([(6, [Some(3), None])]),
+        });
+        assert_debug_snapshot!(display);
+    }
+
+    #[test]
+    fn display_retain_two() {
+        let graph_data = io::read("test/graph/display.json").expect("Cannot read test file");
+        consistency::check(&graph_data).expect("Test data inconsistent");
+        let graph = Graph::new(&graph_data.relationships);
+        let cut_graph = graph.cut();
+        let display = cut_graph.display(DisplayOptions {
+            start: 0,
+            retain_edges: HashMap::from([(6, [Some(3), None]), (7, [Some(4), None])]),
+        });
+        assert_debug_snapshot!(display);
     }
 }

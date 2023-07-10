@@ -1,0 +1,62 @@
+---
+source: baumstamm-lib/src/graph.rs
+expression: display
+---
+Ok(
+    DisplayGraph(
+        Graph {
+            sources: [
+                0,
+                1,
+                6,
+                7,
+            ],
+            nodes: [
+                Node {
+                    value: 0,
+                    children: [
+                        2,
+                    ],
+                },
+                Node {
+                    value: 1,
+                    children: [
+                        2,
+                    ],
+                },
+                Node {
+                    value: 2,
+                    children: [
+                        3,
+                        4,
+                        5,
+                    ],
+                },
+                Node {
+                    value: 3,
+                    children: [],
+                },
+                Node {
+                    value: 4,
+                    children: [],
+                },
+                Node {
+                    value: 5,
+                    children: [],
+                },
+                Node {
+                    value: 6,
+                    children: [
+                        3,
+                    ],
+                },
+                Node {
+                    value: 7,
+                    children: [
+                        4,
+                    ],
+                },
+            ],
+        },
+    ),
+)
