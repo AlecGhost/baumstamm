@@ -107,30 +107,32 @@ Expected: {:?}",
     }
 
     #[test]
-    fn test_write_persons() {
-        let mut tree_data = read("test/io/write_persons.json").unwrap();
+    fn test_write_persons() -> Result<(), Box<dyn Error>> {
+        let mut tree_data = read("test/io/write_persons.json")?;
         assert_eq!(PersonId(0), tree_data.persons[0].id);
         tree_data.persons[0].id = PersonId(1);
-        write("test/io/write_persons.json", &tree_data).unwrap();
-        let mut tree_data = read("test/io/write_persons.json").unwrap();
+        write("test/io/write_persons.json", &tree_data)?;
+        let mut tree_data = read("test/io/write_persons.json")?;
         assert_eq!(PersonId(1), tree_data.persons[0].id);
         tree_data.persons[0].id = PersonId(0);
-        write("test/io/write_persons.json", &tree_data).unwrap();
-        let tree_data = read("test/io/write_persons.json").unwrap();
+        write("test/io/write_persons.json", &tree_data)?;
+        let tree_data = read("test/io/write_persons.json")?;
         assert_eq!(PersonId(0), tree_data.persons[0].id);
+        Ok(())
     }
 
     #[test]
-    fn test_write_relationships() {
-        let mut tree_data = read("test/io/write_relationships.json").unwrap();
+    fn test_write_relationships() -> Result<(), Box<dyn Error>> {
+        let mut tree_data = read("test/io/write_relationships.json")?;
         assert_eq!(RelationshipId(0), tree_data.relationships[0].id);
         tree_data.relationships[0].id = RelationshipId(1);
-        write("test/io/write_relationships.json", &tree_data).unwrap();
-        let mut tree_data = read("test/io/write_relationships.json").unwrap();
+        write("test/io/write_relationships.json", &tree_data)?;
+        let mut tree_data = read("test/io/write_relationships.json")?;
         assert_eq!(RelationshipId(1), tree_data.relationships[0].id);
         tree_data.relationships[0].id = RelationshipId(0);
-        write("test/io/write_relationships.json", &tree_data).unwrap();
-        let tree_data = read("test/io/write_relationships.json").unwrap();
+        write("test/io/write_relationships.json", &tree_data)?;
+        let tree_data = read("test/io/write_relationships.json")?;
         assert_eq!(RelationshipId(0), tree_data.relationships[0].id);
+        Ok(())
     }
 }

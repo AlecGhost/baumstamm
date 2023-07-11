@@ -322,6 +322,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-specta",
+ "thiserror",
 ]
 
 [[package]]

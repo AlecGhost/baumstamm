@@ -19,6 +19,7 @@ serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.4.1", features = ["api-all"] }
 specta = "1.0.4"
 tauri-specta = { version = "1.0.2", features = ["javascript", "typescript"] }
+thiserror = "1.0.43"
 
 [features]
 # by default Tauri runs in production mode
