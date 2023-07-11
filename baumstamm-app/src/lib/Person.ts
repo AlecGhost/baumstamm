@@ -1,11 +1,13 @@
+import type { Person as RPerson } from '../bindings';
+
 export class Person {
-	id: number;
+	id: string;
 	info: Map<string, string>;
 	firstName: string | null = null;
 	lastName: string | null = null;
 	image: string | null = null;
 
-	constructor(id: number, info: Map<string, string>) {
+	constructor(id: string, info: Map<string, string>) {
 		this.id = id;
 		const firstName = info.get('@firstName');
 		if (firstName !== undefined) {
@@ -25,6 +27,13 @@ export class Person {
 		this.info = info;
 	}
 
+	static from(person: RPerson): Person {
+		return new Person(
+			person.id,
+			person.info !== null ? new Map(Object.entries(person.info)) : new Map()
+		);
+	}
+
 	public name(): string {
 		if (this.firstName != null && this.lastName != null) {
 			return this.firstName + ' ' + this.lastName;
@@ -42,7 +51,11 @@ export class Person {
 		let secondLetter = this.lastName
 			? [...this.lastName].find((char) => char === char.toUpperCase()) ?? this.lastName?.at(0)
 			: undefined;
-		return (firstLetter ?? '') + (secondLetter ?? '');
+		if (firstLetter == null && secondLetter == null) {
+			return '?';
+		} else {
+			return (firstLetter ?? '') + (secondLetter ?? '');
+		}
 	}
 
 	public avatar(): string {
