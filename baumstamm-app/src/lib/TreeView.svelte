@@ -10,9 +10,9 @@
 	let unlisten: UnlistenFn;
 	onMount(async () => {
 		unlisten = await listen('open', async () => {
-			grid = await getGrid();
+			persons = await getGrid();
 		});
-		grid = await getGrid();
+		persons = await getGrid();
 	});
 
 	onDestroy(async () => {
@@ -20,7 +20,7 @@
 	});
 
 	// grid
-	let grid: Person[] = [];
+	let persons: Person[] = [];
 	async function getGrid(): Promise<Person[]> {
 		let persons = await getPersons();
 		return persons.map((person) => Person.from(person));
@@ -33,8 +33,8 @@
 </script>
 
 <div class="h-full w-full tree-view" use:initPanzoom>
-	{#each grid as person}
-		<PersonCard {person} />
+	{#each persons as person}
+		<PersonCard {person} on:selectPerson />
 	{/each}
 </div>
 
