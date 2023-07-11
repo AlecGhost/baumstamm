@@ -50,8 +50,8 @@ fn main() {
                                 match commands::open_file(path, state) {
                                     Ok(_) => app.emit_all("open", ()).expect("open event failed"),
                                     Err(err) => app
-                                        .emit_all("open_error", err.to_string())
-                                        .expect("open_error event failed"),
+                                        .emit_all("open-error", err.to_string())
+                                        .expect("open-error event failed"),
                                 };
                             }
                         });
@@ -63,8 +63,8 @@ fn main() {
                             if let Some(path) = path {
                                 let state = app.state();
                                 if let Err(err) = commands::save_file(path, state) {
-                                    app.emit_all("save_as_error", err.to_string())
-                                        .expect("save_as_error event failed");
+                                    app.emit_all("save-as-error", err.to_string())
+                                        .expect("save-as-error event failed");
                                 }
                             }
                         });

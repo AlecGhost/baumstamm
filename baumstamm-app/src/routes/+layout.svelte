@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
 	// Skeleton theme
 	import '@skeletonlabs/skeleton/themes/theme-skeleton.css';
 	// Skeletons required styles:

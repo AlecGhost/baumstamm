@@ -1,7 +1,38 @@
 <script lang="ts">
-	import { AppShell, AppBar, Avatar } from '@skeletonlabs/skeleton';
+	import {
+		AppShell,
+		AppBar,
+		Avatar,
+		Toast,
+		toastStore,
+		type ToastSettings
+	} from '@skeletonlabs/skeleton';
 	import Sidebar from '$lib/Sidebar.svelte';
 	import TreeView from '$lib/TreeView.svelte';
+    import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+    import { onDestroy, onMount } from 'svelte';
+
+    // tauri events
+    let unlisten: UnlistenFn[] = [];
+    onMount(async () => {
+        let unlistenOpen = await listen('open-error', (e) => {
+            const toast: ToastSettings = {
+                message: e.payload as string
+            };
+            toastStore.trigger(toast);
+        });
+        let unlistenSave = await listen('save-as-error', (e) => {
+            const toast: ToastSettings = {
+                message: e.payload as string
+            };
+            toastStore.trigger(toast);
+        });
+        unlisten = [unlistenOpen, unlistenSave];
+    });
+
+    onDestroy(async () => {
+        unlisten.forEach((unlisten) => unlisten());
+    });
 
 	// sidebar
 	let showSidebar = false;
@@ -43,3 +74,5 @@
 	<!-- body -->
 	<TreeView />
 </AppShell>
+
+<Toast />

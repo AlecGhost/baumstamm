@@ -4,13 +4,13 @@ use thiserror::Error;
 #[derive(Debug, Error, Serialize)]
 pub enum Error {
     #[serde(serialize_with = "serialize_serde_error")]
-    #[error("Serialization error")]
+    #[error("Serialization error: {0}")]
     Serialization(#[from] serde_json::Error),
-    #[error("Consistency error")]
+    #[error("Consistency error: {0}")]
     Consistency(#[from] ConsistencyError),
-    #[error("Input error")]
+    #[error("Input error: {0}")]
     Input(#[from] InputError),
-    #[error("Display error")]
+    #[error("Display error: {0}")]
     Display(#[from] DisplayError),
 }
 
