@@ -1,19 +1,16 @@
 <script lang="ts">
 	import { Avatar } from '@skeletonlabs/skeleton';
 	import type { Person } from '$lib/Person';
-	import { createEventDispatcher } from 'svelte';
+	import { selectedStore } from './store';
 
 	export let person: Person;
 
-	// dispatch select person event
-	let dispatch = createEventDispatcher();
-
-	function dispatchSelect() {
-		dispatch('selectPerson', person);
+	function select() {
+		selectedStore.update(() => person);
 	}
 </script>
 
-<div class="person-card card p-4" on:click={dispatchSelect}>
+<div class="person-card card p-4" on:click={select}>
 	<header class="card-header justify-center flex">
 		<Avatar src={person.avatar()} initials={person.initials()} />
 	</header>

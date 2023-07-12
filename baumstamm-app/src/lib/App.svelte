@@ -7,47 +7,42 @@
 		toastStore,
 		type ToastSettings
 	} from '@skeletonlabs/skeleton';
+	import { update, selectedStore } from '$lib/store';
 	import Sidebar from '$lib/Sidebar.svelte';
 	import TreeView from '$lib/TreeView.svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { onDestroy, onMount } from 'svelte';
-	import type { Person } from './Person';
 
 	// tauri events
 	let unlisten: UnlistenFn[] = [];
-	onMount(async () => {
-		let unlistenOpen = await listen('open', async () => {
-			selectedPerson = null;
-		});
-		let unlistenOpenError = await listen('open-error', (e) => {
+	onMount(() => {
+        update();
+		listen('open', () => {
+			update();
+		}).then((handle) => unlisten.push(handle));
+		listen('open-error', (e) => {
 			const toast: ToastSettings = {
 				message: e.payload as string
 			};
 			toastStore.trigger(toast);
-		});
-		let unlistenSaveError = await listen('save-as-error', (e) => {
+		}).then((handle) => unlisten.push(handle));
+		listen('save-as-error', (e) => {
 			const toast: ToastSettings = {
 				message: e.payload as string
 			};
 			toastStore.trigger(toast);
-		});
-		unlisten = [unlistenOpen, unlistenOpenError, unlistenSaveError];
+		}).then((handle) => unlisten.push(handle));
 	});
 
-	onDestroy(async () => {
+	onDestroy(() => {
 		unlisten.forEach((unlisten) => unlisten());
 	});
 
 	// sidebar
 	let showSidebar = false;
-	let selectedPerson: Person | null = null;
 
 	function toggleSidebar() {
 		showSidebar = !showSidebar;
-	}
-
-	function selectPerson(e: CustomEvent<Person>) {
-		selectedPerson = e.detail;
 	}
 </script>
 
@@ -63,8 +58,8 @@
 					on:click={toggleSidebar}
 				>
 					{#if !showSidebar}
-						{#if selectedPerson !== null}
-							<Avatar initials={selectedPerson.initials()} />
+						{#if $selectedStore !== null}
+							<Avatar initials={$selectedStore.initials()} />
 						{:else}
 							<div class="placeholder-circle animate-pulse w-20" />
 						{/if}
@@ -79,13 +74,13 @@
 	<svelte:fragment slot="sidebarRight">
 		{#if showSidebar}
 			<div class="bg-surface-500/10 w-80 h-full">
-				<Sidebar person={selectedPerson} />
+				<Sidebar person={$selectedStore} />
 			</div>
 		{/if}
 	</svelte:fragment>
 
 	<!-- body -->
-	<TreeView on:selectPerson={selectPerson} />
+	<TreeView />
 </AppShell>
 
 <Toast />
