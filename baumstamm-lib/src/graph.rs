@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 use std::collections::HashMap;
 
-type Rid = u128;
+type Rid = crate::RelationshipId;
 
 #[derive(Serialize, Deserialize, Type)]
 struct Node {
@@ -94,7 +94,7 @@ impl Graph {
         fn rids_of_children(rid: &Rid, relationships: &[Relationship]) -> Vec<Rid> {
             let current = relationships
                 .iter()
-                .find(|rel| rel.id.0 == *rid)
+                .find(|rel| rel.id == *rid)
                 .expect("Inconsistent data");
             relationships
                 .iter()
@@ -104,14 +104,14 @@ impl Graph {
                         .iter()
                         .any(|child| rel.parents().contains(child))
                 })
-                .map(|rel| rel.id.0)
+                .map(|rel| rel.id)
                 .collect()
         }
 
         fn rids_of_parents(rid: &Rid, relationships: &[Relationship]) -> [Option<Rid>; 2] {
             let current = relationships
                 .iter()
-                .find(|rel| rel.id.0 == *rid)
+                .find(|rel| rel.id == *rid)
                 .expect("Inconsistent data");
             current.parents.map(|opt| {
                 opt.as_ref()
@@ -120,20 +120,17 @@ impl Graph {
                             .iter()
                             .find(|rel| rel.children.contains(parent_id))
                     })
-                    .map(|rel| rel.id.0)
+                    .map(|rel| rel.id)
             })
         }
 
-        let mut nodes: Vec<Node> = relationships
-            .iter()
-            .map(|rel| Node::new(rel.id.0))
-            .collect();
+        let mut nodes: Vec<Node> = relationships.iter().map(|rel| Node::new(rel.id)).collect();
         // add relationships with no parents as top level nodes
         let sources = relationships
             .iter()
             // get relationships with no parents
             .filter(|rel| rel.parents().is_empty())
-            .map(|rel| rel.id.0)
+            .map(|rel| rel.id)
             .collect();
 
         nodes.iter_mut().for_each(|node| {
@@ -597,7 +594,6 @@ pub struct DisplayGraph(Graph);
 
 #[derive(Debug, Serialize, Deserialize, Type)]
 pub struct DisplayOptions {
-    #[serde(with = "crate::id")]
     start: Rid,
     retain_edges: HashMap<Rid, [Option<Rid>; 2]>,
 }
@@ -671,7 +667,7 @@ mod test {
         let cut_graph = graph.cut();
         assert_debug_snapshot!(cut_graph);
         let display = cut_graph.display(DisplayOptions {
-            start: 0,
+            start: 0.into(),
             retain_edges: HashMap::new(),
         });
         assert_debug_snapshot!(display);
@@ -684,8 +680,8 @@ mod test {
         let graph = Graph::new(&tree_date.relationships);
         let cut_graph = graph.cut();
         let display = cut_graph.display(DisplayOptions {
-            start: 0,
-            retain_edges: HashMap::from([(6, [Some(3), None])]),
+            start: 0.into(),
+            retain_edges: HashMap::from([(6.into(), [Some(3.into()), None])]),
         });
         assert_debug_snapshot!(display);
     }
@@ -697,8 +693,11 @@ mod test {
         let graph = Graph::new(&tree_date.relationships);
         let cut_graph = graph.cut();
         let display = cut_graph.display(DisplayOptions {
-            start: 0,
-            retain_edges: HashMap::from([(6, [Some(3), None]), (7, [Some(4), None])]),
+            start: 0.into(),
+            retain_edges: HashMap::from([
+                (6.into(), [Some(3.into()), None]),
+                (7.into(), [Some(4.into()), None]),
+            ]),
         });
         assert_debug_snapshot!(display);
     }

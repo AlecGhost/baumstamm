@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { Avatar } from '@skeletonlabs/skeleton';
 	import type { Person } from '$lib/Person';
-	import { selectedStore } from './store';
+	import { selected } from './store';
 
 	export let person: Person;
 
 	function select() {
-		selectedStore.update(() => person);
+		selected.update(() => person);
 	}
 </script>
 

@@ -94,7 +94,7 @@ pub(crate) fn remove_info(pid: Pid, key: &str, state: State) -> Result<String, E
 
 #[tauri::command]
 #[specta]
-pub(crate) fn display_graph(options: DisplayOptions, state: State) -> Result<DisplayGraph, Error> {
+pub(crate) fn get_display_graph(options: DisplayOptions, state: State) -> Result<DisplayGraph, Error> {
     let guard = state.0.lock().unwrap();
     let relationships = guard.tree.get_relationships();
     let result = Graph::new(relationships)
@@ -102,4 +102,10 @@ pub(crate) fn display_graph(options: DisplayOptions, state: State) -> Result<Dis
         .display(options)
         .map_err(baumstamm_lib::error::Error::from)?;
     Ok(result)
+}
+
+#[tauri::command]
+#[specta]
+pub(crate) fn get_layers(graph: DisplayGraph) -> Vec<Vec<Rid>> {
+    graph.layers()
 }

@@ -7,7 +7,7 @@
 		toastStore,
 		type ToastSettings
 	} from '@skeletonlabs/skeleton';
-	import { update, selectedStore } from '$lib/store';
+	import { update, selected } from '$lib/store';
 	import Sidebar from '$lib/Sidebar.svelte';
 	import TreeView from '$lib/TreeView.svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
@@ -58,8 +58,8 @@
 					on:click={toggleSidebar}
 				>
 					{#if !showSidebar}
-						{#if $selectedStore !== null}
-							<Avatar initials={$selectedStore.initials()} />
+						{#if $selected !== null}
+							<Avatar initials={$selected.initials()} />
 						{:else}
 							<div class="placeholder-circle animate-pulse w-20" />
 						{/if}
@@ -74,7 +74,7 @@
 	<svelte:fragment slot="sidebarRight">
 		{#if showSidebar}
 			<div class="bg-surface-500/10 w-80 h-full">
-				<Sidebar person={$selectedStore} />
+				<Sidebar person={$selected} />
 			</div>
 		{/if}
 	</svelte:fragment>

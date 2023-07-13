@@ -13,10 +13,24 @@ mod io;
 mod tree;
 
 pub type PersonInfo = HashMap<String, String>;
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Hash, Type)]
+
+#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Type)]
 pub struct PersonId(#[serde(with = "id")] pub u128);
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
+
+impl std::fmt::Debug for PersonId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
 pub struct RelationshipId(#[serde(with = "id")] pub u128);
+
+impl std::fmt::Debug for RelationshipId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub struct Relationship {
@@ -81,6 +95,12 @@ impl Relationship {
     }
 }
 
+impl From<u128> for RelationshipId {
+    fn from(value: u128) -> Self {
+        Self(value)
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Type)]
 pub struct Person {
     pub id: PersonId,
@@ -93,6 +113,12 @@ impl Person {
             id: PersonId(Uuid::new_v4().to_u128_le()),
             info: None,
         }
+    }
+}
+
+impl From<u128> for PersonId {
+    fn from(value: u128) -> Self {
+        Self(value)
     }
 }
 
