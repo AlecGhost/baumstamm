@@ -10,10 +10,6 @@ declare global {
 // Function avoids 'window not defined' in SSR
 const invoke = () => window.__TAURI_INVOKE__;
 
-export function getLayers(graph: DisplayGraph) {
-    return invoke()<RelationshipId[][]>("get_layers", { graph })
-}
-
 export function getPersons() {
     return invoke()<Person[]>("get_persons")
 }
@@ -42,14 +38,17 @@ export function removeInfo(pid: PersonId, key: string) {
     return invoke()<string>("remove_info", { pid,key })
 }
 
-export function getDisplayGraph(options: DisplayOptions) {
-    return invoke()<DisplayGraph>("get_display_graph", { options })
+export function getCutGraph() {
+    return invoke()<CutGraph>("get_cut_graph")
+}
+
+export function getLayers(graph: CutGraph) {
+    return invoke()<RelationshipId[][]>("get_layers", { graph })
 }
 
 export type PersonId = string
 export type Person = { id: PersonId; info: { [key: string]: string } | null }
-export type Node = { value: RelationshipId; parents: (RelationshipId | null)[]; children: RelationshipId[] }
 export type RelationshipId = string
-export type DisplayOptions = { start: RelationshipId; retain_edges: { [key: RelationshipId]: (RelationshipId | null)[] } }
-export type DisplayGraph = Graph
 export type Graph = { sources: RelationshipId[]; nodes: Node[] }
+export type CutGraph = Graph
+export type Node = { value: RelationshipId; parents: (RelationshipId | null)[]; children: RelationshipId[] }

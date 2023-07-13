@@ -1,8 +1,5 @@
 use crate::error::Error;
-use baumstamm_lib::{
-    graph::{DisplayGraph, DisplayOptions, Graph},
-    FamilyTree, Person,
-};
+use baumstamm_lib::{graph::{Graph, CutGraph}, FamilyTree, Person};
 use specta::specta;
 use std::path::PathBuf;
 
@@ -94,18 +91,15 @@ pub(crate) fn remove_info(pid: Pid, key: &str, state: State) -> Result<String, E
 
 #[tauri::command]
 #[specta]
-pub(crate) fn get_display_graph(options: DisplayOptions, state: State) -> Result<DisplayGraph, Error> {
+pub(crate) fn get_cut_graph(state: State) -> Result<CutGraph, ()> {
     let guard = state.0.lock().unwrap();
     let relationships = guard.tree.get_relationships();
-    let result = Graph::new(relationships)
-        .cut()
-        .display(options)
-        .map_err(baumstamm_lib::error::Error::from)?;
+    let result = Graph::new(relationships).cut();
     Ok(result)
 }
 
 #[tauri::command]
 #[specta]
-pub(crate) fn get_layers(graph: DisplayGraph) -> Vec<Vec<Rid>> {
+pub(crate) fn get_layers(graph: CutGraph) -> Vec<Vec<Rid>> {
     graph.layers()
 }
