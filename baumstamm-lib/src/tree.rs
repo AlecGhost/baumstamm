@@ -61,7 +61,11 @@ impl FamilyTree {
 
         self.tree_data.persons.push(parent);
         self.tree_data.relationships.push(new_rel);
-        self.save()?;
+        if let Err(err) = consistency::check(&self.tree_data) {
+            self.tree_data.persons.pop();
+            self.tree_data.relationships.pop();
+            return Err(err.into());
+        }
 
         Ok((new_pid, new_rid))
     }
@@ -78,7 +82,10 @@ impl FamilyTree {
         let new_id = new_person.id;
         self.tree_data.persons.push(new_person);
         rel.children.push(new_id);
-        self.save()?;
+        if let Err(err) = consistency::check(&self.tree_data) {
+            self.tree_data.persons.pop();
+            return Err(err.into());
+        }
 
         Ok(new_id)
     }
@@ -102,7 +109,10 @@ impl FamilyTree {
         let new_rel = Relationship::new(Some(person_id), None, vec![]);
         let new_rid = new_rel.id;
         self.tree_data.relationships.push(new_rel);
-        self.save()?;
+        if let Err(err) = consistency::check(&self.tree_data) {
+            self.tree_data.relationships.pop();
+            return Err(err.into());
+        }
 
         Ok(new_rid)
     }
@@ -117,7 +127,10 @@ impl FamilyTree {
         let new_rel = Relationship::new(Some(person_id), Some(partner_id), Vec::new());
         let new_rid = new_rel.id;
         self.tree_data.relationships.push(new_rel);
-        self.save()?;
+        if let Err(err) = consistency::check(&self.tree_data) {
+            self.tree_data.relationships.pop();
+            return Err(err.into());
+        }
 
         Ok(new_rid)
     }
@@ -139,7 +152,6 @@ impl FamilyTree {
         } else {
             person.info = Some(HashMap::from([(key, value)]));
         }
-        self.save()?;
 
         Ok(())
     }
@@ -153,7 +165,6 @@ impl FamilyTree {
             .ok_or(InputError::InvalidPersonId)?;
         let info = person.info.as_mut().ok_or(InputError::NoInfo)?;
         let value = info.remove(key).ok_or(InputError::InvalidKey)?;
-        self.save()?;
 
         Ok(value)
     }
