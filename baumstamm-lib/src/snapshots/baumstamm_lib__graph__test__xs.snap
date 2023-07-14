@@ -12,7 +12,7 @@ CutGraph(
             Node {
                 value: 0,
                 children: [
-                    3,
+                    2,
                 ],
             },
             Node {

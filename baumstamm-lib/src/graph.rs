@@ -1,11 +1,12 @@
-use crate::Relationship;
+use crate::{extract_persons, Relationship};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 type Rid = crate::RelationshipId;
+type Pid = crate::PersonId;
 
-#[derive(Serialize, Deserialize, Type)]
+#[derive(Clone, Serialize, Deserialize, Type)]
 struct Node {
     value: Rid,
     parents: [Option<Rid>; 2],
@@ -82,7 +83,7 @@ impl<'a> Iterator for DescendantWalker<'a> {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct Graph {
     sources: Vec<Rid>,
     nodes: Vec<Node>,
@@ -189,6 +190,7 @@ impl Graph {
     }
 
     pub fn cut(mut self) -> CutGraph {
+        #[derive(Debug)]
         struct Descendant {
             rid: Rid,
             level: usize,
@@ -252,7 +254,7 @@ impl Graph {
                     let is_cycle_child = |child: &Rid| {
                         cycle_children
                             .iter()
-                            .any(|descendant| *child == descendant.rid)
+                            .any(|desc| *child == desc.rid)
                     };
                     children.retain(|child| {
                         if *child == has_longest_edge || !is_cycle_child(child) {
@@ -273,119 +275,82 @@ impl Graph {
             parent_node.children = children;
         }
 
+        /// Double inheritance is when two ancestor nodes
+        /// have more than one common descendant node.
+        /// Those occurrences are cut by removing the connection
+        /// between the common descendant node and one of its parents
         fn cut_double_inheritance(graph: &mut Graph) {
-            let sources = graph.sources.clone();
-            for (this, next) in sources.iter().tuple_combinations() {
-                let mut children = graph.children_of(this).to_vec();
-                let cuttable_children = children
-                    .iter()
-                    .filter_map(|child| {
-                        graph.walk_descendants(child).find_map(|descendant| {
-                            graph
-                                .is_descendant_of(&descendant, next)
-                                .map(|level| Descendant { rid: *child, level })
-                        })
-                    })
-                    .collect_vec();
-                if cuttable_children.len() > 1 {
-                    // find out, which of the child relationships has the longer edge to the node, and should therefore remain in the graph
-                    let has_longest_edge = cuttable_children
-                        .iter()
-                        .reduce(|acc, child| if acc.level > child.level { acc } else { child })
-                        .expect("There must be at least two cuttable children")
-                        .rid;
-                    // remove the pointers to the child relationships, where there is a cycle, except for the longest edge to the node
-                    let should_cut = |child: &Rid| {
-                        cuttable_children
-                            .iter()
-                            .any(|descendant| child == &descendant.rid)
-                    };
-                    children.retain(|child| {
-                        if *child == has_longest_edge || !should_cut(child) {
-                            true
-                        } else {
-                            cut_parent(graph, child, this);
-                            false
-                        }
-                    });
-                }
-                // replace children
-                let this_node = graph.get_node_mut(this);
-                this_node.children = children;
-            }
-        }
-
-        fn cut_xs(graph: &mut Graph) {
-            fn is_descendant_of_both(graph: &Graph, child: &Rid, anc_a: &Rid, anc_b: &Rid) -> bool {
-                graph.is_descendant_of(child, anc_a).is_some()
-                    && graph.is_descendant_of(child, anc_b).is_some()
+            #[derive(Debug)]
+            struct DoubleInheritance {
+                anc_a: Rid,
+                anc_b: Rid,
+                common_descs: Vec<Rid>,
             }
 
-            fn is_x_child(
-                graph: &Graph,
-                child_a: &Rid,
-                child_b: &Rid,
-                anc_a: &Rid,
-                anc_b: &Rid,
-            ) -> bool {
-                is_descendant_of_both(graph, child_a, anc_a, anc_b)
-                    && is_descendant_of_both(graph, child_b, anc_a, anc_b)
-                    && !graph
-                        .parents_of(child_a)
-                        .iter()
-                        .any(|parent| is_descendant_of_both(graph, parent, anc_a, anc_b))
-                    && !graph
-                        .parents_of(child_b)
-                        .iter()
-                        .any(|parent| is_descendant_of_both(graph, parent, anc_a, anc_b))
-            }
-
-            let x_children: Vec<Rid> = graph
+            let mut double_inheritances = graph
                 .nodes
                 .iter()
                 .map(|node| node.value)
                 .tuple_combinations()
-                .filter(|(child_a, child_b)| {
-                    // x is only possible, when there are two parents
-                    graph.parents_of(child_a).len() == 2 && graph.parents_of(child_b).len() == 2
+                .filter_map(|(anc_a, anc_b)| {
+                    if graph.is_descendant_of(&anc_a, &anc_b).is_some()
+                        || graph.is_descendant_of(&anc_b, &anc_a).is_some()
+                    {
+                        // anc_a and anc_b are related
+                        return None;
+                    }
+                    let common_descs = graph
+                        .walk_descendants(&anc_a)
+                        .filter(|desc| graph.is_descendant_of(&desc, &anc_b).is_some())
+                        .filter(|desc| {
+                            !graph.parents_of(&desc).iter().any(|parent| {
+                                graph.is_descendant_of(parent, &anc_a).is_some()
+                                    && graph.is_descendant_of(parent, &anc_b).is_some()
+                            })
+                        })
+                        .collect_vec();
+                    if common_descs.len() >= 2 {
+                        Some(DoubleInheritance {
+                            anc_a,
+                            anc_b,
+                            common_descs,
+                        })
+                    } else {
+                        None
+                    }
                 })
-                .filter(|(child_a, child_b)| {
-                    graph
-                        .nodes
-                        .iter()
-                        .map(|node| &node.value)
-                        .tuple_combinations()
-                        .any(|(anc_a, anc_b)| is_x_child(graph, child_a, child_b, anc_a, anc_b))
-                })
-                .map(|(child_a, _)| child_a)
-                .collect();
-            let x_parents: Vec<Rid> = x_children
-                .iter()
-                .map(|x_child| {
-                    graph
-                        .parents_of(x_child)
-                        .first()
-                        .cloned()
-                        .expect("X child's parent must exist")
-                })
-                .collect();
-            graph
-                .nodes
-                .iter_mut()
-                .filter(|node| x_children.contains(&node.value))
-                .for_each(|x_child_node| x_child_node.parents[0] = None);
-            graph
-                .nodes
-                .iter_mut()
-                .filter(|node| x_parents.contains(&node.value))
-                .enumerate()
-                .for_each(|(i, x_parent_node)| {
-                    x_parent_node
-                        .children
-                        .retain(|child| child != &x_children[i])
-                });
-        }
+                .collect_vec();
 
+            while let Some(double_inheritance) = double_inheritances.pop() {
+                // cut
+                double_inheritance
+                    .common_descs
+                    .iter()
+                    .skip(1)
+                    .for_each(|desc| {
+                        let desc_node = graph.get_node_mut(&desc);
+                        let parent = desc_node.parents[0].expect("Parent must be present");
+                        desc_node.parents[0] = None;
+                        let parent_node = graph.get_node_mut(&parent);
+                        parent_node.children.retain(|child| child != desc);
+                    });
+
+                fn is_resolved(graph: &Graph, double_inheritance: &mut DoubleInheritance) -> bool {
+                    double_inheritance.common_descs.retain(|desc| {
+                        graph
+                            .is_descendant_of(&desc, &double_inheritance.anc_a)
+                            .is_some()
+                            && graph
+                                .is_descendant_of(&desc, &double_inheritance.anc_b)
+                                .is_some()
+                    });
+                    double_inheritance.common_descs.len() < 2
+                }
+
+                double_inheritances
+                    .retain_mut(|double_inheritance| !is_resolved(graph, double_inheritance));
+            }
+        }
         // cut cycles
         let sources = self.sources.clone();
         sources
@@ -394,14 +359,11 @@ impl Graph {
         update_sources(&mut self);
         // cut double inheritance
         cut_double_inheritance(&mut self);
-        update_sources(&mut self);
-        // cut xs
-        cut_xs(&mut self);
         CutGraph(self)
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Type)]
+#[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct CutGraph(Graph);
 
 impl CutGraph {
@@ -491,13 +453,9 @@ impl CutGraph {
                 for parent in previous_layer {
                     let (one_other_parent, two_other_parents): (Vec<Rid>, Vec<Rid>) = graph
                         .children_of(parent)
-                        .into_iter()
+                        .iter()
                         .filter(|child| !new_layer.contains(*child))
                         .partition(|child| graph.parents_of(child).len() == 1);
-                    eprintln!(
-                        "parent: {:?}, one: {:?}, two: {:?}",
-                        parent, one_other_parent, two_other_parents
-                    );
                     new_layer.extend(one_other_parent);
                     new_layer.extend(two_other_parents);
                 }
@@ -526,7 +484,7 @@ impl CutGraph {
                         for (i, other_parent) in other_parents.into_iter().enumerate() {
                             if i < middle {
                                 new_layer.insert(rid_index, other_parent);
-                                rid_index = rid_index + 1;
+                                rid_index += 1;
                             } else {
                                 new_layer.insert(rid_index + 1, other_parent);
                             }
@@ -573,6 +531,33 @@ impl CutGraph {
         add_layer_rec(graph, start, &mut layers, None, 0);
         sort_layers(graph, &mut layers);
         layers
+    }
+
+    pub fn person_layers(
+        &self,
+        layers: &Vec<Vec<Rid>>,
+        relationships: &[Relationship],
+    ) -> Vec<Vec<Pid>> {
+        // let graph = &self.0;
+        let mut person_layers = Vec::new();
+
+        for layer in layers {
+            let mut person_layer = Vec::new();
+            for rid in layer {
+                let rel = relationships
+                    .iter()
+                    .find(|rel| rel.id == *rid)
+                    .expect("Relationship must exist");
+                let parents = rel.parents();
+                person_layer.extend(parents);
+            }
+            person_layers.push(person_layer);
+            // TODO: add children without relationship
+        }
+
+        let nr_persons: usize = person_layers.iter().map(|layer| layer.len()).sum();
+        assert_eq!(nr_persons, extract_persons(relationships).len());
+        person_layers
     }
 }
 

@@ -7,13 +7,12 @@ CutGraph(
         sources: [
             0,
             7,
-            1,
         ],
         nodes: [
             Node {
                 value: 0,
                 children: [
-                    2,
+                    1,
                     3,
                 ],
             },
