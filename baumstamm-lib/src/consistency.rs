@@ -36,6 +36,19 @@ fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), Consiste
         return Err(ConsistencyError::RelationshipIdExists);
     }
 
+    let parents = relationships
+        .iter()
+        .map(|rel| rel.parents())
+        .filter(|parents| parents.len() == 2)
+        .map(|mut parents| {
+            parents.sort();
+            parents
+        })
+        .collect_vec();
+    if parents.len() != parents.iter().unique().count() {
+        return Err(ConsistencyError::RelationshipExists);
+    }
+
     if relationships
         .iter()
         .filter(|rel| !rel.parents().is_empty())

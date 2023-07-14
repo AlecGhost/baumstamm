@@ -29,6 +29,8 @@ pub enum ConsistencyError {
     UnmatchedQuantity,
     #[error("More than one relationship with the same id")]
     RelationshipIdExists,
+    #[error("More than one relationship with the same parents")]
+    RelationshipExists,
     #[error("Self referencing relationship")]
     SelfReference,
     #[error("A Child cannot be its parent")]

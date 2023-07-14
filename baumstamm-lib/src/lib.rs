@@ -14,7 +14,7 @@ mod tree;
 
 pub type PersonInfo = HashMap<String, String>;
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash, Type)]
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash, Type)]
 pub struct PersonId(#[serde(with = "id")] pub u128);
 
 impl std::fmt::Debug for PersonId {
