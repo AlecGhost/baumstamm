@@ -1,6 +1,6 @@
 use baumstamm_lib::{FamilyTree, PersonId, RelationshipId};
 use clap::{Args, Parser, Subcommand};
-use std::{error::Error, fs};
+use std::{error::Error, fs, path::Path};
 
 #[derive(Parser)]
 struct Cli {
@@ -33,23 +33,23 @@ enum Add {
 
 #[derive(Args)]
 struct NewRelationship {
-    person_id: u128,
+    person_id: String,
 }
 
 #[derive(Args)]
 struct Child {
-    rel_id: u128,
+    rel_id: String,
 }
 
 #[derive(Args)]
 struct Parent {
-    rel_id: u128,
+    rel_id: String,
 }
 
 #[derive(Args)]
 struct RelationshipWithPartner {
-    person_id: u128,
-    partner_id: u128,
+    person_id: String,
+    partner_id: String,
 }
 
 #[derive(Subcommand)]
@@ -60,14 +60,14 @@ enum Info {
 
 #[derive(Args)]
 struct InsertInfo {
-    person_id: u128,
+    person_id: String,
     key: String,
     value: String,
 }
 
 #[derive(Args)]
 struct RemoveInfo {
-    person_id: u128,
+    person_id: String,
     key: String,
 }
 
@@ -77,15 +77,19 @@ enum Show {
     Relationships,
 }
 
+fn save<P: AsRef<Path>>(path: P, tree: &FamilyTree) -> Result<(), Box<dyn Error>> {
+    fs::write(path, tree.save()?)?;
+    Ok(())
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     let args = Cli::parse();
     let mut tree = if args.new {
         let tree = FamilyTree::new();
-        let json_str = tree.save()?;
-        fs::write(args.file, json_str)?;
+        save(&args.file, &tree)?;
         tree
     } else {
-        let json_str = fs::read_to_string(args.file)?;
+        let json_str = fs::read_to_string(&args.file)?;
         FamilyTree::from_string(&json_str)?
     };
 
@@ -93,44 +97,58 @@ fn main() -> Result<(), Box<dyn Error>> {
         match action {
             Action::Add(add) => match add {
                 Add::Child(child) => {
-                    let child_id = tree.add_child(RelationshipId(child.rel_id))?;
-                    println!("Added child as {:?}", child_id);
+                    let child_id =
+                        tree.add_child(RelationshipId(u128::from_str_radix(&child.rel_id, 16)?))?;
+                    save(&args.file, &tree)?;
+                    println!("Added child as \"{}\"", child_id);
                 }
                 Add::Parent(parent) => {
-                    let result = tree.add_parent(RelationshipId(parent.rel_id))?;
+                    let result =
+                        tree.add_parent(RelationshipId(u128::from_str_radix(&parent.rel_id, 16)?))?;
+                    save(&args.file, &tree)?;
                     println!(
-                        "Added parent as {:?} and child of relationship {:?}",
+                        "Added parent as \"{}\" and child of relationship \"{}\"",
                         result.0, result.1
                     );
                 }
                 Add::NewRelationship(rel) => {
-                    let rel_id = tree.add_new_relationship(PersonId(rel.person_id))?;
-                    println!("Added new relationship {:?}", rel_id);
+                    let rel_id = tree.add_new_relationship(PersonId(u128::from_str_radix(
+                        &rel.person_id,
+                        16,
+                    )?))?;
+                    save(&args.file, &tree)?;
+                    println!("Added new relationship \"{}\"", rel_id);
                 }
                 Add::RelationshipWithPartner(rel) => {
                     let rel_id = tree.add_relationship_with_partner(
-                        PersonId(rel.person_id),
-                        PersonId(rel.partner_id),
+                        PersonId(u128::from_str_radix(&rel.person_id, 16)?),
+                        PersonId(u128::from_str_radix(&rel.partner_id, 16)?),
                     )?;
-                    println!("Added relationship {:?}", rel_id);
+                    save(&args.file, &tree)?;
+                    println!("Added relationship \"{}\"", rel_id);
                 }
             },
             Action::Info(info) => match info {
                 Info::Insert(insert) => {
                     tree.insert_info(
-                        PersonId(insert.person_id),
+                        PersonId(u128::from_str_radix(&insert.person_id, 16)?),
                         insert.key.clone(),
                         insert.value.clone(),
                     )?;
+                    save(&args.file, &tree)?;
                     println!(
-                        "Inserted \"{:?}\": \"{}\" to {}",
+                        "Inserted \"{}\": \"{}\" to \"{}\"",
                         insert.key, insert.value, insert.person_id
                     );
                 }
                 Info::Remove(remove) => {
-                    let value = tree.remove_info(PersonId(remove.person_id), &remove.key)?;
+                    let value = tree.remove_info(
+                        PersonId(u128::from_str_radix(&remove.person_id, 16)?),
+                        &remove.key,
+                    )?;
+                    save(&args.file, &tree)?;
                     println!(
-                        "Removed \"{:?}\": \"{}\" from {}",
+                        "Removed \"{}\": \"{}\" from \"{}\"",
                         remove.key, value, remove.person_id
                     );
                 }
