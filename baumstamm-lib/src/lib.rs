@@ -19,7 +19,13 @@ pub struct PersonId(#[serde(with = "id")] pub u128);
 
 impl std::fmt::Debug for PersonId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{:X}", self.0)
+    }
+}
+
+impl std::fmt::Display for PersonId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self, f)
     }
 }
 
@@ -28,7 +34,13 @@ pub struct RelationshipId(#[serde(with = "id")] pub u128);
 
 impl std::fmt::Debug for RelationshipId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "{:X}", self.0)
+    }
+}
+
+impl std::fmt::Display for RelationshipId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self, f)
     }
 }
 
