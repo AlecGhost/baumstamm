@@ -60,23 +60,23 @@ CutGraph(
             Node {
                 value: 8,
                 children: [
-                    11,
+                    B,
                 ],
             },
             Node {
                 value: 9,
                 children: [
-                    10,
+                    A,
                 ],
             },
             Node {
-                value: 10,
+                value: A,
                 children: [
-                    11,
+                    B,
                 ],
             },
             Node {
-                value: 11,
+                value: B,
                 children: [],
             },
         ],

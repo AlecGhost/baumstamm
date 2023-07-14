@@ -1,6 +1,6 @@
 ---
 source: baumstamm-lib/src/graph.rs
-expression: gens
+expression: layers
 ---
 [
     [
@@ -25,10 +25,10 @@ expression: gens
         3,
     ],
     [
-        10,
+        A,
         8,
     ],
     [
-        11,
+        B,
     ],
 ]
