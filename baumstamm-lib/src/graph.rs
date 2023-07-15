@@ -165,16 +165,6 @@ impl Graph {
         node.children.as_slice()
     }
 
-    fn is_ancestor_of(&self, rid: &Rid, other: &Rid) -> Option<usize> {
-        if rid == other {
-            return Some(0);
-        }
-        self.children_of(rid)
-            .iter()
-            .filter_map(|child| self.is_ancestor_of(child, other))
-            .reduce(|acc, level| acc.max(level) + 1)
-    }
-
     fn is_descendant_of(&self, rid: &Rid, other: &Rid) -> Option<usize> {
         if rid == other {
             return Some(0);
@@ -182,7 +172,8 @@ impl Graph {
         self.parents_of(rid)
             .iter()
             .filter_map(|parent| self.is_descendant_of(parent, other))
-            .reduce(|acc, level| acc.max(level) + 1)
+            .reduce(|acc, level| acc.max(level))
+            .map(|level| level + 1)
     }
 
     const fn walk_descendants(&self, rid: &Rid) -> DescendantWalker {
@@ -238,7 +229,7 @@ impl Graph {
                     .iter()
                     .filter_map(|child| {
                         graph
-                            .is_ancestor_of(child, rid)
+                            .is_descendant_of(rid, child)
                             .map(|level| Descendant { rid: *child, level })
                     })
                     .collect();
@@ -250,12 +241,10 @@ impl Graph {
                         .reduce(|acc, child| if acc.level > child.level { acc } else { child })
                         .expect("There must be at least two cycle children")
                         .rid;
-                    // remove the pointers to the child relationships, where there is a cycle, except for the longest edge to the node
-                    let is_cycle_child = |child: &Rid| {
-                        cycle_children
-                            .iter()
-                            .any(|desc| *child == desc.rid)
-                    };
+                    // remove the pointers to the child relationships,
+                    // where there is a cycle, except for the longest edge to the node
+                    let is_cycle_child =
+                        |child: &Rid| cycle_children.iter().any(|desc| *child == desc.rid);
                     children.retain(|child| {
                         if *child == has_longest_edge || !is_cycle_child(child) {
                             true
@@ -529,36 +518,127 @@ impl CutGraph {
         };
         let mut layers = vec![Vec::new()];
         add_layer_rec(graph, start, &mut layers, None, 0);
+        let parents_in_top_row: usize = layers[0]
+            .iter()
+            .map(|rid| graph.parents_of(rid).len())
+            .sum();
+        assert_eq!(parents_in_top_row, 0, "No parents in top row");
         sort_layers(graph, &mut layers);
         layers
     }
+}
 
-    pub fn person_layers(
-        &self,
-        layers: &Vec<Vec<Rid>>,
-        relationships: &[Relationship],
-    ) -> Vec<Vec<Pid>> {
-        // let graph = &self.0;
-        let mut person_layers = Vec::new();
+pub fn person_layers(layers: &Vec<Vec<Rid>>, relationships: &[Relationship]) -> Vec<Vec<Pid>> {
+    if layers.is_empty() {
+        return Vec::new();
+    }
+    let mut person_layers = vec![Vec::new(); layers.len()];
 
-        for layer in layers {
-            let mut person_layer = Vec::new();
-            for rid in layer {
-                let rel = relationships
+    // add all children
+    for (i, layer) in layers.iter().enumerate() {
+        for rid in layer {
+            let rel = relationships
+                .iter()
+                .find(|rel| rel.id == *rid)
+                .expect("Relationship must exist");
+            person_layers[i].extend(rel.children.clone());
+        }
+    }
+
+    // add missing parents
+    for (i, layer) in layers.iter().skip(1).enumerate() {
+        let parents = layer
+            .iter()
+            .map(|rid| {
+                relationships
                     .iter()
                     .find(|rel| rel.id == *rid)
-                    .expect("Relationship must exist");
-                let parents = rel.parents();
-                person_layer.extend(parents);
-            }
-            person_layers.push(person_layer);
-            // TODO: add children without relationship
+                    .expect("Relationship must exist")
+                    .parents
+            })
+            .collect_vec();
+
+        let mut missing_partners = parents
+            .iter()
+            .filter_map(|parents| match parents {
+                [Some(parent_a), Some(parent_b)] => Some((parent_a, parent_b)),
+                _ => None,
+            })
+            .filter_map(|(parent_a, parent_b)| {
+                match (
+                    person_layers[i].iter().position(|pid| pid == parent_a),
+                    person_layers[i].iter().position(|pid| pid == parent_b),
+                ) {
+                    (Some(_), Some(_)) => None,
+                    (Some(pos_a), None) => Some((pos_a, parent_b)),
+                    (None, Some(pos_b)) => Some((pos_b, parent_a)),
+                    (None, None) => panic!("Wrong parents"),
+                }
+            })
+            .sorted_by(|(pos_a, _), (pos_b, _)| Ord::cmp(pos_a, pos_b))
+            .collect_vec();
+
+        fn add_to_layer(layer: &mut Vec<Pid>, index: usize, acc: Vec<Pid>) {
+            let len = acc.len();
+            let middle = if len % 2 == 0 {
+                // even
+                len / 2
+            } else {
+                // uneven
+                (len - 1) / 2
+            };
+            let mut offset = 0;
+            acc.into_iter().enumerate().for_each(|(i, pid)| {
+                if i < middle {
+                    layer.insert(offset + index, pid);
+                    offset += 1;
+                } else {
+                    layer.insert(offset + index + 1, pid)
+                }
+            });
         }
 
-        let nr_persons: usize = person_layers.iter().map(|layer| layer.len()).sum();
-        assert_eq!(nr_persons, extract_persons(relationships).len());
-        person_layers
+        let mut offset = 0;
+        let mut last_index = 0;
+        let mut acc = Vec::new();
+        while let Some((index, missing_parent)) = missing_partners.pop() {
+            if index == last_index {
+                acc.push(*missing_parent);
+                continue;
+            }
+            let acc_len = acc.len();
+            add_to_layer(&mut person_layers[i], last_index + offset, acc);
+            offset += acc_len;
+            last_index = index;
+            acc = vec![*missing_parent];
+        }
+        add_to_layer(&mut person_layers[i], last_index, acc);
+
+        let missing_singles = parents
+            .iter()
+            .into_iter()
+            .filter_map(|parents| match parents {
+                [Some(parent), None] => Some(parent),
+                [None, Some(parent)] => Some(parent),
+                _ => None,
+            })
+            .filter(|pid| !person_layers[i].contains(pid))
+            .collect_vec();
+        person_layers[i].extend(missing_singles);
     }
+
+    // remove last layer if empty
+    if person_layers
+        .last()
+        .expect("Must have at least one layer")
+        .is_empty()
+    {
+        person_layers.pop();
+    }
+
+    let nr_persons: usize = person_layers.iter().flatten().unique().count();
+    assert_eq!(nr_persons, extract_persons(relationships).len());
+    person_layers
 }
 
 #[cfg(test)]
@@ -574,56 +654,66 @@ mod test {
 
     #[test]
     fn cycles() {
-        let tree_date = read("test/graph/cycles.json");
-        consistency::check(&tree_date).expect("Test data inconsistent");
-        let graph = Graph::new(&tree_date.relationships);
+        let tree_data = read("test/graph/cycles.json");
+        consistency::check(&tree_data).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_data.relationships);
         let cut_graph = graph.cut();
         assert_debug_snapshot!(cut_graph);
         let layers = cut_graph.layers();
         assert_debug_snapshot!(layers);
+        let person_layers = person_layers(&layers, &tree_data.relationships);
+        assert_debug_snapshot!(person_layers);
     }
 
     #[test]
     fn double_inheritance() {
-        let tree_date = read("test/graph/double_inheritance.json");
-        consistency::check(&tree_date).expect("Test data inconsistent");
-        let graph = Graph::new(&tree_date.relationships);
+        let tree_data = read("test/graph/double_inheritance.json");
+        consistency::check(&tree_data).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_data.relationships);
         let cut_graph = graph.cut();
         assert_debug_snapshot!(cut_graph);
         let layers = cut_graph.layers();
         assert_debug_snapshot!(layers);
+        let person_layers = person_layers(&layers, &tree_data.relationships);
+        assert_debug_snapshot!(person_layers);
     }
 
     #[test]
     fn xs() {
-        let tree_date = read("test/graph/xs.json");
-        consistency::check(&tree_date).expect("Test data inconsistent");
-        let graph = Graph::new(&tree_date.relationships);
+        let tree_data = read("test/graph/xs.json");
+        consistency::check(&tree_data).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_data.relationships);
         let cut_graph = graph.cut();
         assert_debug_snapshot!(cut_graph);
         let layers = cut_graph.layers();
         assert_debug_snapshot!(layers);
+        let person_layers = person_layers(&layers, &tree_data.relationships);
+        assert_debug_snapshot!(person_layers);
     }
 
     #[test]
     fn double_inheritance_and_xs() {
-        let tree_date = read("test/graph/double_inheritance_and_xs.json");
-        consistency::check(&tree_date).expect("Test data inconsistent");
-        let graph = Graph::new(&tree_date.relationships);
+        let tree_data = read("test/graph/double_inheritance_and_xs.json");
+        consistency::check(&tree_data).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_data.relationships);
         let cut_graph = graph.cut();
         assert_debug_snapshot!(cut_graph);
         let layers = cut_graph.layers();
         assert_debug_snapshot!(layers);
+        let person_layers = person_layers(&layers, &tree_data.relationships);
+        assert_debug_snapshot!(person_layers);
     }
 
     #[test]
     fn sort_long_chain() {
-        let tree_date = read("test/graph/sort_long_chain.json");
-        consistency::check(&tree_date).expect("Test data inconsistent");
-        let graph = Graph::new(&tree_date.relationships);
+        let tree_data = read("test/graph/sort_long_chain.json");
+        consistency::check(&tree_data).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_data.relationships);
         let cut_graph = graph.cut();
         assert_debug_snapshot!(cut_graph);
         let layers = cut_graph.layers();
         assert_debug_snapshot!(layers);
+        let person_layers = person_layers(&layers, &tree_data.relationships);
+        assert_debug_snapshot!(person_layers);
     }
 }

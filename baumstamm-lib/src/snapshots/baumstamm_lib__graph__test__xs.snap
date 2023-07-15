@@ -6,13 +6,12 @@ CutGraph(
     Graph {
         sources: [
             0,
-            1,
         ],
         nodes: [
             Node {
                 value: 0,
                 children: [
-                    2,
+                    1,
                 ],
             },
             Node {
