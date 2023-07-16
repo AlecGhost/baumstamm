@@ -14,6 +14,14 @@ export function getPersons() {
     return invoke()<Person[]>("get_persons")
 }
 
+export function getRelationships() {
+    return invoke()<Relationship[]>("get_relationships")
+}
+
+export function getPersonLayers() {
+    return invoke()<PersonId[][]>("get_person_layers")
+}
+
 export function addParent(rid: RelationshipId) {
     return invoke()<[PersonId, RelationshipId]>("add_parent", { rid })
 }
@@ -38,17 +46,7 @@ export function removeInfo(pid: PersonId, key: string) {
     return invoke()<string>("remove_info", { pid,key })
 }
 
-export function getCutGraph() {
-    return invoke()<CutGraph>("get_cut_graph")
-}
-
-export function getLayers(graph: CutGraph) {
-    return invoke()<RelationshipId[][]>("get_layers", { graph })
-}
-
+export type Relationship = { id: RelationshipId; parents: (PersonId | null)[]; children: PersonId[] }
+export type RelationshipId = string
 export type PersonId = string
 export type Person = { id: PersonId; info: { [key: string]: string } | null }
-export type RelationshipId = string
-export type Graph = { sources: RelationshipId[]; nodes: Node[] }
-export type CutGraph = Graph
-export type Node = { value: RelationshipId; parents: (RelationshipId | null)[]; children: RelationshipId[] }

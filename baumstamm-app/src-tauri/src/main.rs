@@ -74,14 +74,14 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::get_persons,
+            commands::get_relationships,
+            commands::get_person_layers,
             commands::add_parent,
             commands::add_child,
             commands::add_new_relationship,
             commands::add_relationship_with_partner,
             commands::insert_info,
             commands::remove_info,
-            commands::get_cut_graph,
-            commands::get_layers,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -98,14 +98,14 @@ fn export() {
     ts::export_with_cfg(
         collect_types![
             commands::get_persons,
+            commands::get_relationships,
+            commands::get_person_layers,
             commands::add_parent,
             commands::add_child,
             commands::add_new_relationship,
             commands::add_relationship_with_partner,
             commands::insert_info,
             commands::remove_info,
-            commands::get_cut_graph,
-            commands::get_layers,
         ]
         .expect("type collection failed"),
         ExportConfiguration::default().bigint(BigIntExportBehavior::String),

@@ -44,7 +44,7 @@ impl std::fmt::Display for RelationshipId {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub struct Relationship {
     pub id: RelationshipId,
     pub parents: [Option<PersonId>; 2],

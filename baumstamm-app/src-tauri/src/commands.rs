@@ -1,5 +1,8 @@
 use crate::error::Error;
-use baumstamm_lib::{graph::{Graph, CutGraph}, FamilyTree, Person};
+use baumstamm_lib::{
+    graph::{person_layers, Graph},
+    FamilyTree, Person, Relationship,
+};
 use specta::specta;
 use std::path::PathBuf;
 
@@ -7,6 +10,7 @@ type State<'a> = tauri::State<'a, crate::State>;
 type Rid = baumstamm_lib::RelationshipId;
 type Pid = baumstamm_lib::PersonId;
 
+// io
 pub(crate) fn open_file(path: PathBuf, state: State) -> Result<(), Error> {
     let data = std::fs::read_to_string(&path)?;
     let tree = if data.is_empty() {
@@ -31,6 +35,7 @@ pub(crate) fn save_file(path: PathBuf, state: State) -> Result<(), Error> {
     Ok(())
 }
 
+// get datastructures
 #[tauri::command]
 #[specta]
 pub(crate) fn get_persons(state: State) -> Result<Vec<Person>, ()> {
@@ -40,22 +45,43 @@ pub(crate) fn get_persons(state: State) -> Result<Vec<Person>, ()> {
 
 #[tauri::command]
 #[specta]
+pub(crate) fn get_relationships(state: State) -> Result<Vec<Relationship>, ()> {
+    let persons = state.0.lock().unwrap().tree.get_relationships().to_vec();
+    Ok(persons)
+}
+
+#[tauri::command]
+#[specta]
+pub(crate) fn get_person_layers(state: State) -> Vec<Vec<Pid>> {
+    let state = state.0.lock().unwrap();
+    let relationships = state.tree.get_relationships();
+    let graph = Graph::new(relationships).cut();
+    let layers = graph.layers();
+    person_layers(&layers, relationships)
+}
+
+// adding nodes
+#[tauri::command]
+#[specta]
 pub(crate) fn add_parent(rid: Rid, state: State) -> Result<(Pid, Rid), Error> {
-    let result = state.0.lock().unwrap().tree.add_parent(rid)?;
+    let mut state = state.0.lock().unwrap();
+    let result = state.tree.add_parent(rid)?;
     Ok(result)
 }
 
 #[tauri::command]
 #[specta]
 pub(crate) fn add_child(rid: Rid, state: State) -> Result<Pid, Error> {
-    let result = state.0.lock().unwrap().tree.add_child(rid)?;
+    let mut state = state.0.lock().unwrap();
+    let result = state.tree.add_child(rid)?;
     Ok(result)
 }
 
 #[tauri::command]
 #[specta]
 pub(crate) fn add_new_relationship(pid: Pid, state: State) -> Result<Rid, Error> {
-    let result = state.0.lock().unwrap().tree.add_new_relationship(pid)?;
+    let mut state = state.0.lock().unwrap();
+    let result = state.tree.add_new_relationship(pid)?;
     Ok(result)
 }
 
@@ -66,15 +92,12 @@ pub(crate) fn add_relationship_with_partner(
     partner_pid: Pid,
     state: State,
 ) -> Result<Rid, Error> {
-    let result = state
-        .0
-        .lock()
-        .unwrap()
-        .tree
-        .add_relationship_with_partner(pid, partner_pid)?;
+    let mut state = state.0.lock().unwrap();
+    let result = state.tree.add_relationship_with_partner(pid, partner_pid)?;
     Ok(result)
 }
 
+// info
 #[tauri::command]
 #[specta]
 pub(crate) fn insert_info(pid: Pid, key: String, value: String, state: State) -> Result<(), Error> {
@@ -87,19 +110,4 @@ pub(crate) fn insert_info(pid: Pid, key: String, value: String, state: State) ->
 pub(crate) fn remove_info(pid: Pid, key: &str, state: State) -> Result<String, Error> {
     let result = state.0.lock().unwrap().tree.remove_info(pid, key)?;
     Ok(result)
-}
-
-#[tauri::command]
-#[specta]
-pub(crate) fn get_cut_graph(state: State) -> Result<CutGraph, ()> {
-    let guard = state.0.lock().unwrap();
-    let relationships = guard.tree.get_relationships();
-    let result = Graph::new(relationships).cut();
-    Ok(result)
-}
-
-#[tauri::command]
-#[specta]
-pub(crate) fn get_layers(graph: CutGraph) -> Vec<Vec<Rid>> {
-    graph.layers()
 }

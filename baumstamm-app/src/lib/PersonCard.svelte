@@ -10,7 +10,7 @@
 	}
 </script>
 
-<div class="person-card card p-4" on:click={select}>
+<div class="person-card card p-4 mx-4" on:click={select}>
 	<header class="card-header justify-center flex">
 		<Avatar src={person.avatar()} initials={person.initials()} />
 	</header>
@@ -22,7 +22,7 @@
 <style>
 	.person-card {
 		width: 200px;
-		/* user-select: all; */
+		height: 200px;
 		cursor: pointer;
 	}
 </style>
