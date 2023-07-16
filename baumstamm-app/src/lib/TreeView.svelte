@@ -23,7 +23,7 @@
 </script>
 
 <div
-	class="h-full w-full tree-view"
+	class="tree-view"
 	style="grid-template-columns: repeat({gridColumns}, 1fr); grid-template-rows: repeat({gridRows}, 1fr)"
 	use:initPanzoom
 >
@@ -41,7 +41,6 @@
 <style>
 	.tree-view {
 		user-select: none;
-		position: absolute;
 		cursor: move;
 		display: grid;
 	}
