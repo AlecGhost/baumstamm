@@ -1,10 +1,10 @@
-import type { Connection } from './Connection';
+import { Connections } from './Connections';
 import { Person } from './Person';
 
 export class GridItem {
-	value: Person | Connection[];
+	value: Person | Connections;
 
-	private constructor(value: Person | Connection[]) {
+	private constructor(value: Person | Connections) {
 		this.value = value;
 	}
 
@@ -12,7 +12,7 @@ export class GridItem {
 		return new GridItem(value);
 	}
 
-	static fromConnectionArray(value: Connection[]): GridItem {
+	static fromConnections(value: Connections): GridItem {
 		return new GridItem(value);
 	}
 
@@ -24,9 +24,8 @@ export class GridItem {
 		}
 	}
 
-	public getConnections(): Connection[] {
-		// use Array for the lack of runtime generic type checking
-		if (this.value instanceof Array) {
+	public getConnections(): Connections {
+		if (this.value instanceof Connections) {
 			return this.value;
 		} else {
 			throw TypeError();

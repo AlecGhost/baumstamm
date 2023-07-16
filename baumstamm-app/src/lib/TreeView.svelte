@@ -23,7 +23,7 @@
 </script>
 
 <div
-	class="tree-view"
+	class="tree-view h-full w-full"
 	style="grid-template-columns: repeat({gridColumns}, 1fr); grid-template-rows: repeat({gridRows}, 1fr)"
 	use:initPanzoom
 >

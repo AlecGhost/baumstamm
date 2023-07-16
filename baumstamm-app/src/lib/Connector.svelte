@@ -1,7 +1,84 @@
 <script lang="ts">
-	import type { Connection } from './Connection';
+	import type { Connections } from './Connections';
 
-	export let connections: Connection[];
+	export let connections: Connections;
+
+	function y(connection: number): number {
+		return ((connection + 1) / (connections.total + 1)) * 100;
+	}
+
+	function xEnding(connection: number): number {
+		return ((connection + 1) / (connections.ending.length + 1)) * 100;
+	}
+
+	function xCrossing(index: number): number {
+		return ((index + 1) / (connections.crossing.length + 1)) * 100;
+	}
 </script>
 
-<div />
+<svg width="100%" height="100%">
+	{#each connections.passing as passing}
+		<!-- horizontal line -->
+		<line
+			x1="0%"
+			y1="{y(passing.connection)}%"
+			x2="100%"
+			y2="{y(passing.connection)}%"
+			style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+		/>
+	{/each}
+	{#each connections.ending as ending}
+		<!-- horizontal line -->
+		<line
+			x1="{ending.origin == 'left' ? 0 : 100}%"
+			y1="{y(ending.connection)}%"
+			x2="{xEnding(ending.connection)}%"
+			y2="{y(ending.connection)}%"
+			style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+		/>
+		<!-- vertical line -->
+		<line
+			x1="{xEnding(ending.connection)}%"
+			y1="{connections.orientation == 'up' ? 0 : 100}%"
+			x2="{xEnding(ending.connection)}%"
+			y2="{y(ending.connection)}%"
+			style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+		/>
+	{/each}
+	{#each connections.crossing as crossing, i}
+		<!-- horizontal line -->
+		<!-- {#if crossing.origin == 'left'} -->
+		<!-- 	<line -->
+		<!-- 		x1="0%" -->
+		<!-- 		y1="{y(crossing.connection)}%" -->
+		<!-- 		x2="{xCrossing(i)}%" -->
+		<!-- 		y2="{y(crossing.connection)}%" -->
+		<!-- 		style="stroke:rgb(0, 0, 0);stroke-width: 5;" -->
+		<!-- 	/> -->
+		<!-- {:else if crossing.origin == 'right'} -->
+		<!-- 	<line -->
+		<!-- 		x1="100%" -->
+		<!-- 		y1="{y(crossing.connection)}%" -->
+		<!-- 		x2="{xCrossing(i)}%" -->
+		<!-- 		y2="{y(crossing.connection)}%" -->
+		<!-- 		style="stroke:rgb(0, 0, 0);stroke-width: 5;" -->
+		<!-- 	/> -->
+		<!-- {:else} -->
+		<!-- 	<line -->
+		<!-- 		x1="0%" -->
+		<!-- 		y1="{y(crossing.connection)}%" -->
+		<!-- 		x2="100%" -->
+		<!-- 		y2="{y(crossing.connection)}%" -->
+		<!-- 		style="stroke:rgb(0, 0, 0);stroke-width: 5;" -->
+		<!-- 	/> -->
+		<!-- {/if} -->
+		<!-- vertical line -->
+		<line
+			x1="{xCrossing(i)}%"
+			y1="{connections.orientation == 'up' ? 100 : 0}%"
+			x2="{xCrossing(i)}%"
+			y2="{y(crossing.connection)}%"
+			style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+		/>
+	{/each}
+</svg>

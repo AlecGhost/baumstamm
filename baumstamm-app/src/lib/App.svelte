@@ -16,7 +16,7 @@
 	// tauri events
 	let unlisten: UnlistenFn[] = [];
 	onMount(() => {
-        update();
+		update();
 		listen('open', () => {
 			update();
 		}).then((handle) => unlisten.push(handle));
@@ -46,7 +46,7 @@
 	}
 </script>
 
-<AppShell>
+<AppShell regionPage="overflow-hidden">
 	<svelte:fragment slot="header">
 		<AppBar>
 			<svelte:fragment slot="lead"><h1>Baumstamm</h1></svelte:fragment>
