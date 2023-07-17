@@ -371,6 +371,11 @@ impl CutGraph {
                 layers.push(Vec::new());
             }
             layers[level].push(*rid);
+            graph.children_of(rid).iter().for_each(|child| {
+                if Some(*child) != origin {
+                    add_layer_rec(graph, child, layers, Some(*rid), level + 1)
+                }
+            });
             graph.parents_of(rid).into_iter().for_each(|parent| {
                 if Some(parent) != origin {
                     let next_level = if level == 0 {
@@ -380,11 +385,6 @@ impl CutGraph {
                         level - 1
                     };
                     add_layer_rec(graph, &parent, layers, Some(*rid), next_level);
-                }
-            });
-            graph.children_of(rid).iter().for_each(|child| {
-                if Some(*child) != origin {
-                    add_layer_rec(graph, child, layers, Some(*rid), level + 1)
                 }
             });
         }

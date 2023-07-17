@@ -43,15 +43,12 @@ impl FamilyTree {
         &mut self,
         relationship_id: RelationshipId,
     ) -> Result<(PersonId, RelationshipId), Error> {
-        let rel_opt = self
+        let rel = self
             .tree_data
             .relationships
             .iter_mut()
-            .find(|rel| rel.id == relationship_id);
-        let rel = match rel_opt {
-            Some(rel) => rel,
-            None => return Err(InputError::InvalidRelationshipId.into()),
-        };
+            .find(|rel| rel.id == relationship_id)
+            .ok_or(InputError::InvalidRelationshipId)?;
 
         let parent = rel.add_parent()?;
         let new_pid = parent.id;
