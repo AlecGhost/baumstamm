@@ -367,22 +367,34 @@ impl CutGraph {
             origin: Option<Rid>,
             level: usize,
         ) {
+            if layers.iter().flat_map(|layer| layer).contains(rid) {
+                // overflow protection
+                return;
+            }
             if level == layers.len() {
                 layers.push(Vec::new());
             }
             layers[level].push(*rid);
             graph.children_of(rid).iter().for_each(|child| {
                 if Some(*child) != origin {
-                    add_layer_rec(graph, child, layers, Some(*rid), level + 1)
+                    let current_level = layers
+                        .iter()
+                        .position(|layer| layer.contains(rid))
+                        .expect("Rid must be in layers");
+                    add_layer_rec(graph, child, layers, Some(*rid), current_level + 1)
                 }
             });
             graph.parents_of(rid).into_iter().for_each(|parent| {
                 if Some(parent) != origin {
-                    let next_level = if level == 0 {
+                    let current_level = layers
+                        .iter()
+                        .position(|layer| layer.contains(rid))
+                        .expect("Rid must be in layers");
+                    let next_level = if current_level == 0 {
                         layers.insert(0, Vec::new());
                         0
                     } else {
-                        level - 1
+                        current_level - 1
                     };
                     add_layer_rec(graph, &parent, layers, Some(*rid), next_level);
                 }
@@ -487,7 +499,7 @@ impl CutGraph {
                     }
                 }
 
-                // add new rids, that are not directly conncected
+                // add new rids, that are not directly connected
                 let layer = &layers[index];
                 let new_rids = layer
                     .iter()
