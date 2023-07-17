@@ -7,8 +7,8 @@
 		return ((connection + 1) / (connections.total + 1)) * 100;
 	}
 
-	function xEnding(connection: number): number {
-		return ((connection + 1) / (connections.ending.length + 1)) * 100;
+	function xEnding(index: number): number {
+		return ((index + 1) / (connections.ending.length + 1)) * 100;
 	}
 
 	function xCrossing(index: number): number {
@@ -27,51 +27,61 @@
 			style="stroke:rgb(0, 0, 0);stroke-width: 5;"
 		/>
 	{/each}
-	{#each connections.ending as ending}
+	{#each connections.ending as ending, i}
 		<!-- horizontal line -->
-		<line
-			x1="{ending.origin == 'left' ? 0 : 100}%"
-			y1="{y(ending.connection)}%"
-			x2="{xEnding(ending.connection)}%"
-			y2="{y(ending.connection)}%"
-			style="stroke:rgb(0, 0, 0);stroke-width: 5;"
-		/>
+		{#if ending.origin == 'left'}
+			<line
+				x1="0%"
+				y1="{y(ending.connection)}%"
+				x2="{xEnding(i)}%"
+				y2="{y(ending.connection)}%"
+				style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+			/>
+		{:else if ending.origin == 'right'}
+			<line
+				x1="100%"
+				y1="{y(ending.connection)}%"
+				x2="{xEnding(i)}%"
+				y2="{y(ending.connection)}%"
+				style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+			/>
+		{:else}
+			<line
+				x1="0%"
+				y1="{y(ending.connection)}%"
+				x2="100%"
+				y2="{y(ending.connection)}%"
+				style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+			/>
+		{/if}
 		<!-- vertical line -->
 		<line
-			x1="{xEnding(ending.connection)}%"
+			x1="{xEnding(i)}%"
 			y1="{connections.orientation == 'up' ? 0 : 100}%"
-			x2="{xEnding(ending.connection)}%"
+			x2="{xEnding(i)}%"
 			y2="{y(ending.connection)}%"
 			style="stroke:rgb(0, 0, 0);stroke-width: 5;"
 		/>
 	{/each}
 	{#each connections.crossing as crossing, i}
 		<!-- horizontal line -->
-		<!-- {#if crossing.origin == 'left'} -->
-		<!-- 	<line -->
-		<!-- 		x1="0%" -->
-		<!-- 		y1="{y(crossing.connection)}%" -->
-		<!-- 		x2="{xCrossing(i)}%" -->
-		<!-- 		y2="{y(crossing.connection)}%" -->
-		<!-- 		style="stroke:rgb(0, 0, 0);stroke-width: 5;" -->
-		<!-- 	/> -->
-		<!-- {:else if crossing.origin == 'right'} -->
-		<!-- 	<line -->
-		<!-- 		x1="100%" -->
-		<!-- 		y1="{y(crossing.connection)}%" -->
-		<!-- 		x2="{xCrossing(i)}%" -->
-		<!-- 		y2="{y(crossing.connection)}%" -->
-		<!-- 		style="stroke:rgb(0, 0, 0);stroke-width: 5;" -->
-		<!-- 	/> -->
-		<!-- {:else} -->
-		<!-- 	<line -->
-		<!-- 		x1="0%" -->
-		<!-- 		y1="{y(crossing.connection)}%" -->
-		<!-- 		x2="100%" -->
-		<!-- 		y2="{y(crossing.connection)}%" -->
-		<!-- 		style="stroke:rgb(0, 0, 0);stroke-width: 5;" -->
-		<!-- 	/> -->
-		<!-- {/if} -->
+		{#if crossing.origin == 'left'}
+			<line
+				x1="0%"
+				y1="{y(crossing.connection)}%"
+				x2="{xCrossing(i)}%"
+				y2="{y(crossing.connection)}%"
+				style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+			/>
+		{:else if crossing.origin == 'right'}
+			<line
+				x1="100%"
+				y1="{y(crossing.connection)}%"
+				x2="{xCrossing(i)}%"
+				y2="{y(crossing.connection)}%"
+				style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+			/>
+		{/if}
 		<!-- vertical line -->
 		<line
 			x1="{xCrossing(i)}%"

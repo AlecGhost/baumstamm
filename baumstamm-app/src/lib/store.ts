@@ -1,8 +1,14 @@
 import { writable, get } from 'svelte/store';
 import { Person } from './Person';
-import { getPersonLayers, getPersons, getRelationships, type Relationship } from '../bindings';
+import {
+	getPersonLayers,
+	getPersons,
+	getRelationships,
+	type PersonId,
+	type Relationship
+} from '../bindings';
 import { GridItem } from './GridItem';
-import { Connections } from './Connections';
+import { Connections, type ConnectionParams } from './Connections';
 
 export const persons = writable<Person[]>([]);
 export const relationships = writable<Relationship[]>([]);
@@ -41,16 +47,30 @@ export async function update() {
 				if (person !== undefined) {
 					return GridItem.fromPerson(person);
 				} else {
-					throw new ReferenceError();
+					throw new Error('Could not find person');
 				}
 			});
 		while (personRow.length < longestRow) {
 			personRow.push(GridItem.fromConnections(Connections.empty()));
 		}
 
-		items[index] = siblingRow(personRow, newRelationships);
+		items[index] = siblingRow(
+			personRow,
+			newRelationships
+				.map((rel) => rel.children)
+				.filter((children) => children.length > 1)
+				.filter((children) => children.every((child) => layer.includes(child)))
+		);
 		items[index + 1] = personRow;
-		items[index + 2] = relationshipRow(personRow, newRelationships);
+		items[index + 2] = relationshipRow(
+			personRow,
+			newRelationships
+				.map((rel) => rel.parents)
+				// filter parents with two valid pids
+				.map((parents) => parents.filter((parent): parent is string => Boolean(parent)))
+				.filter((parents) => parents.length == 2)
+				.filter((parents) => parents.every((parent) => layer.includes(parent)))
+		);
 
 		index += 3;
 	});
@@ -58,18 +78,89 @@ export async function update() {
 	grid.update(() => items);
 }
 
-function siblingRow(personRow: GridItem[], relationships: Relationship[]): GridItem[] {
+function siblingRow(personRow: GridItem[], childrenArrays: PersonId[][]): GridItem[] {
+	const orientation = 'down';
+	const ranges = childrenArrays.map((children) =>
+		children.map((child) => getIndex(personRow, child)).sort()
+	);
+	const total = ranges.length;
 	let items = [];
-	for (let _ in personRow) {
-		items.push(GridItem.fromConnections(Connections.empty()));
+	for (let i = 0; i < personRow.length; i++) {
+		let params: ConnectionParams = {
+			total,
+			orientation,
+			passing: [],
+			ending: [],
+			crossing: []
+		};
+		ranges.forEach((range, connection) => {
+			if (i == range[0]) {
+				params.ending.push({
+					connection,
+					origin: 'right'
+				});
+			} else if (i == range[range.length - 1]) {
+				params.ending.push({
+					connection,
+					origin: 'left'
+				});
+			} else if (range.includes(i)) {
+				params.ending.push({
+					connection,
+					origin: 'both'
+				});
+			} else if (range[0] < i && i < range[range.length - 1]) {
+				params.passing.push({
+					connection
+				});
+			}
+		});
+		items.push(GridItem.fromConnections(new Connections(params)));
 	}
 	return items;
 }
 
-function relationshipRow(personRow: GridItem[], relationships: Relationship[]): GridItem[] {
+function relationshipRow(personRow: GridItem[], parentPairs: PersonId[][]): GridItem[] {
+	const orientation = 'up';
+	const ranges = parentPairs.map((parents) =>
+		parents.map((parent) => getIndex(personRow, parent)).sort()
+	);
+	const total = ranges.length;
 	let items = [];
-	for (let _ in personRow) {
-		items.push(GridItem.fromConnections(Connections.empty()));
+	for (let i = 0; i < personRow.length; i++) {
+		let params: ConnectionParams = {
+			total,
+			orientation,
+			passing: [],
+			ending: [],
+			crossing: []
+		};
+		ranges.forEach((range, connection) => {
+			if (i == range[0]) {
+				params.ending.push({
+					connection,
+					origin: 'right'
+				});
+			} else if (i == range[1]) {
+				params.ending.push({
+					connection,
+					origin: 'left'
+				});
+			} else if (range[0] < i && i < range[1]) {
+				params.passing.push({
+					connection
+				});
+			}
+		});
+		items.push(GridItem.fromConnections(new Connections(params)));
 	}
 	return items;
+}
+
+function getIndex(personRow: GridItem[], pid: PersonId): number {
+	const index = personRow.findIndex((item) => item.isPerson() && item.getPerson().id === pid);
+	if (index < 0) {
+		throw new Error('Index not found');
+	}
+	return index;
 }

@@ -4,12 +4,12 @@ export type Passing = {
 
 export type Ending = {
 	connection: number;
-	origin: 'left' | 'right';
+	origin: 'left' | 'right' | 'both';
 };
 
 export type Crossing = {
 	connection: number;
-	origin: 'left' | 'right' | 'both';
+	origin: 'left' | 'right' | 'none';
 };
 
 export type ConnectionParams = {
