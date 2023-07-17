@@ -10,13 +10,15 @@
 	}
 </script>
 
-<div class="person-card card p-4 mx-4" on:click={select}>
-	<header class="card-header justify-center flex">
-		<Avatar src={person.avatar()} initials={person.initials()} />
-	</header>
-	<section class="p-4">
-		<p class="font-bold text-center">{person.name()}</p>
-	</section>
+<div class="person-card m-0">
+	<div class="card p-4 mx-4 h-full" on:click={select}>
+		<header class="card-header justify-center flex">
+			<Avatar src={person.avatar()} initials={person.initials()} />
+		</header>
+		<section class="p-4">
+			<p class="font-bold text-center">{person.name()}</p>
+		</section>
+	</div>
 </div>
 
 <style>

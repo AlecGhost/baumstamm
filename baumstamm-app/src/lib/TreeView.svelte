@@ -23,8 +23,8 @@
 </script>
 
 <div
-	class="tree-view h-full w-full"
-	style="grid-template-columns: repeat({gridColumns}, 1fr); grid-template-rows: repeat({gridRows}, 1fr)"
+	class="tree-view"
+	style="grid-template-columns: repeat({gridColumns}, 200px); grid-template-rows: repeat({gridRows}, 200px)"
 	use:initPanzoom
 >
 	{#each $grid as layer}
@@ -43,5 +43,6 @@
 		user-select: none;
 		cursor: move;
 		display: grid;
+        place-content: center;
 	}
 </style>

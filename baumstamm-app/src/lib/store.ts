@@ -26,7 +26,7 @@ export async function update() {
 	if (
 		mappedPersons.length > 0 &&
 		currentSelected !== null &&
-		!mappedPersons.map((person) => person).includes(currentSelected)
+		!mappedPersons.map((person) => person.id).includes(currentSelected.id)
 	) {
 		selected.update(() => mappedPersons[0]);
 	}
