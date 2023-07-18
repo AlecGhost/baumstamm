@@ -36,6 +36,7 @@
 </script>
 
 <section class="p-4">
+    <span class="label">Info:</span>
 	<div class="table-container m-1">
 		<table class="table table-hover">
 			<tbody>

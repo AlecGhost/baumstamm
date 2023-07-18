@@ -9,6 +9,7 @@
 	import ParentSection from './sidebar/ParentSection.svelte';
 	import ChildSection from './sidebar/ChildSection.svelte';
 	import PartnerSection from './sidebar/PartnerSection.svelte';
+	import NameSection from './sidebar/NameSection.svelte';
 
 	export let person: Person | null;
 
@@ -38,12 +39,12 @@
 	}
 </script>
 
-<div class="p-4">
+<section>
 	{#if person !== null}
-		<section class="flex justify-center p-4">
+		<section class="flex justify-center">
 			<Avatar src={person.avatar()} initials={person.initials()} width="w-60" />
 		</section>
-		<p class="font-bold text-center">{person.name()}</p>
+		<NameSection {person} />
 		<InfoSection {person} />
 		<hr />
 		{#if parentRel !== undefined}
@@ -54,9 +55,15 @@
 		<hr />
 		<PartnerSection {ownRelationships} pid={person.id} />
 	{:else}
-		<div class="flex justify-center p-4">
+		<section class="flex justify-center">
 			<div class="placeholder-circle animate-pulse w-60" />
-		</div>
+		</section>
 		<p class="text-center">No person selected.</p>
 	{/if}
-</div>
+</section>
+
+<style>
+	section {
+		padding: 1rem;
+	}
+</style>
