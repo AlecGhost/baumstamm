@@ -1,14 +1,22 @@
 <script lang="ts">
-	import type { Person } from "$lib/Person";
-	import { update } from "$lib/store";
-	import { insertInfo, removeInfo } from "../../bindings";
-    import { focusTrap } from "@skeletonlabs/skeleton";
+	import type { Person } from '$lib/Person';
+	import { update } from '$lib/store';
+	import { insertInfo, removeInfo } from '../../bindings';
+	import { focusTrap } from '@skeletonlabs/skeleton';
 
-    export let person: Person;
+	export let person: Person;
 
 	let isFocused: boolean = true;
 	let infoKey = '';
 	let infoValue = '';
+
+	// clear fields if person changes
+	let pid = person.id;
+	$: if (person.id !== pid) {
+		infoKey = '';
+		infoValue = '';
+		pid = person.id;
+	}
 
 	function submitInfo() {
 		if (person !== null) {
@@ -36,7 +44,7 @@
 </script>
 
 <section class="p-4">
-    <span class="label">Info:</span>
+	<span class="label">Info:</span>
 	<div class="table-container m-1">
 		<table class="table table-hover">
 			<tbody>
