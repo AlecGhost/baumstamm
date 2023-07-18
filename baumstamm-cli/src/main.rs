@@ -1,4 +1,7 @@
-use baumstamm_lib::{FamilyTree, PersonId, RelationshipId};
+use baumstamm_lib::{
+    graph::{person_layers, Graph},
+    FamilyTree, PersonId, RelationshipId,
+};
 use clap::{Args, Parser, Subcommand};
 use std::{error::Error, fs, path::Path};
 
@@ -75,6 +78,8 @@ struct RemoveInfo {
 enum Show {
     Persons,
     Relationships,
+    Layers,
+    PersonLayers,
 }
 
 fn save<P: AsRef<Path>>(path: P, tree: &FamilyTree) -> Result<(), Box<dyn Error>> {
@@ -156,6 +161,17 @@ fn main() -> Result<(), Box<dyn Error>> {
             Action::Show(show) => match show {
                 Show::Persons => println!("Persons: {:#?}", tree.get_persons()),
                 Show::Relationships => println!("Relationships: {:#?}", tree.get_relationships()),
+                Show::Layers => {
+                    let graph = Graph::new(tree.get_relationships()).cut();
+                    println!("Layers: {:#?}", graph.layers())
+                }
+                Show::PersonLayers => {
+                    let graph = Graph::new(tree.get_relationships()).cut();
+                    println!(
+                        "Person Layers: {:#?}",
+                        person_layers(&graph.layers(), tree.get_relationships())
+                    )
+                }
             },
         };
     };
