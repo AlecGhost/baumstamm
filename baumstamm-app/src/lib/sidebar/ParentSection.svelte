@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { type Relationship, addParent } from '../../bindings';
-	import { persons, update } from '$lib/store';
+	import { persons, update, updateSelected } from '$lib/store';
 
 	export let parentRel: Relationship;
 
-	function newParent() {
-		addParent(parentRel.id);
-		update();
+	async function newParent() {
+		let [pid, _] = await addParent(parentRel.id);
+		await update();
+		updateSelected(pid);
 	}
 </script>
 

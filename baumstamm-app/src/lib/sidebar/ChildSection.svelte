@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { addChild, type PersonId, type Relationship, type RelationshipId } from '../../bindings';
-	import { persons, update } from '$lib/store';
+	import { persons, update, updateSelected } from '$lib/store';
 	import { onDestroy, onMount } from 'svelte';
 	import type { Unsubscriber } from 'svelte/motion';
 	import type { Person } from '$lib/Person';
@@ -29,9 +29,10 @@
 	}
 
 	let childPartner: RelationshipId;
-	function newChild() {
-		addChild(childPartner);
-		update();
+	async function newChild() {
+		let pid = await addChild(childPartner);
+		await update();
+		updateSelected(pid);
 	}
 </script>
 

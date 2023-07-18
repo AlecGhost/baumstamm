@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { persons, update } from '$lib/store';
+	import { persons, update, updateSelected } from '$lib/store';
 	import {
 		addNewRelationship,
 		addParent,
@@ -13,14 +13,16 @@
 
 	async function newPartner() {
 		let rid = await addNewRelationship(pid);
-		addParent(rid);
-		update();
+		let [partner, _] = await addParent(rid);
+		await update();
+		updateSelected(partner);
 	}
 
 	let existingPartner: PersonId;
-	function newRelationshipWithPartner() {
-		addRelationshipWithPartner(pid, existingPartner);
-		update();
+	async function newRelationshipWithPartner() {
+		let partner = await addRelationshipWithPartner(pid, existingPartner);
+		await update();
+		updateSelected(partner);
 	}
 </script>
 
