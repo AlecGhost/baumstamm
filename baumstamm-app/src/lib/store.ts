@@ -81,7 +81,7 @@ export async function update() {
 function siblingRow(personRow: GridItem[], childrenArrays: PersonId[][]): GridItem[] {
 	const orientation = 'down';
 	const ranges = childrenArrays.map((children) =>
-		children.map((child) => getIndex(personRow, child)).sort()
+		children.map((child) => getIndex(personRow, child)).sort((a, b) => a - b)
 	);
 	const total = ranges.length;
 	let items = [];
@@ -123,7 +123,7 @@ function siblingRow(personRow: GridItem[], childrenArrays: PersonId[][]): GridIt
 function relationshipRow(personRow: GridItem[], parentPairs: PersonId[][]): GridItem[] {
 	const orientation = 'up';
 	const ranges = parentPairs.map((parents) =>
-		parents.map((parent) => getIndex(personRow, parent)).sort()
+		parents.map((parent) => getIndex(personRow, parent)).sort((a, b) => a - b)
 	);
 	const total = ranges.length;
 	let items = [];
