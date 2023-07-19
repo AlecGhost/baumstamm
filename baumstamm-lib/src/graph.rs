@@ -357,139 +357,6 @@ pub struct CutGraph(Graph);
 
 impl CutGraph {
     pub fn layers(&self) -> Vec<Vec<Rid>> {
-        type Layer = Vec<Rid>;
-        type Layers = Vec<Layer>;
-
-        fn sort_layers(graph: &Graph, layers: &mut Layers) {
-            fn other_parents(graph: &Graph, rid: &Rid) -> Vec<Rid> {
-                graph
-                    .get_node(rid)
-                    .children
-                    .iter()
-                    .flat_map(|child| graph.parents_of(child))
-                    .filter(|parent| parent != rid)
-                    .unique()
-                    .collect_vec()
-            }
-
-            fn sort_first_layer(graph: &Graph, layers: &mut Layers) {
-                let mut first_layer = layers[0].clone();
-                first_layer.reverse();
-                let mut new_first_layer = Vec::new();
-                while let Some(rid) = first_layer.pop() {
-                    let other_parents = other_parents(graph, &rid)
-                        .into_iter()
-                        .filter(|other_parent| !new_first_layer.contains(other_parent))
-                        .collect_vec();
-                    match other_parents.len() {
-                        0 => new_first_layer.push(rid),
-                        nr_other_parents => {
-                            let middle = if nr_other_parents % 2 == 0 {
-                                // even
-                                nr_other_parents / 2
-                            } else {
-                                // uneven
-                                (nr_other_parents - 1) / 2
-                            };
-                            for (i, other_parent) in other_parents.into_iter().enumerate() {
-                                if i == middle {
-                                    new_first_layer.push(rid);
-                                }
-                                first_layer.retain(|rid| *rid != other_parent);
-                                new_first_layer.push(other_parent);
-                            }
-                        }
-                    }
-                }
-                assert_eq!(
-                    new_first_layer.len(),
-                    layers[0].len(),
-                    "sorting in first layer failed"
-                );
-                layers[0] = new_first_layer;
-            }
-
-            fn sort_consecutive_layer(graph: &Graph, layers: &mut Layers, index: usize) {
-                let previous_layer = &layers[index - 1];
-                let mut new_layer = Vec::new();
-
-                // add children of first row
-                for parent in previous_layer {
-                    let (one_other_parent, two_other_parents): (Vec<Rid>, Vec<Rid>) = graph
-                        .children_of(parent)
-                        .iter()
-                        .filter(|child| !new_layer.contains(*child))
-                        .partition(|child| graph.parents_of(child).len() == 1);
-                    new_layer.extend(one_other_parent);
-                    new_layer.extend(two_other_parents);
-                }
-
-                // add new other parents
-                let mut last_len: usize = new_layer.len();
-                let mut current_new_layer = new_layer.clone();
-                loop {
-                    for rid in current_new_layer {
-                        let mut rid_index = new_layer
-                            .iter()
-                            .position(|id| *id == rid)
-                            .expect("Rid must be in new layer");
-                        let other_parents = other_parents(graph, &rid)
-                            .into_iter()
-                            .filter(|other_parent| !new_layer.contains(other_parent))
-                            .collect_vec();
-                        let nr_other_parents = other_parents.len();
-                        let middle = if nr_other_parents % 2 == 0 {
-                            // even
-                            nr_other_parents / 2
-                        } else {
-                            // uneven
-                            (nr_other_parents - 1) / 2
-                        };
-                        for (i, other_parent) in other_parents.into_iter().enumerate() {
-                            if i < middle {
-                                new_layer.insert(rid_index, other_parent);
-                                rid_index += 1;
-                            } else {
-                                new_layer.insert(rid_index + 1, other_parent);
-                            }
-                        }
-                    }
-                    if new_layer.len() == last_len {
-                        break;
-                    } else {
-                        last_len = new_layer.len();
-                        current_new_layer = new_layer.clone()
-                    }
-                }
-
-                // add new rids, that are not directly connected
-                let layer = &layers[index];
-                let new_rids = layer
-                    .iter()
-                    .filter(|rid| !new_layer.contains(rid))
-                    .collect_vec();
-                new_layer.extend(new_rids);
-
-                assert_eq!(
-                    new_layer.len(),
-                    layers[index].len(),
-                    "sorting consecutive layer failed"
-                );
-                layers[index] = new_layer;
-            }
-
-            match layers.len() {
-                0 => panic!("Must contain at least one layer"),
-                1 => return, // no sorting needed
-                _ => { /* continue sorting */ }
-            }
-
-            sort_first_layer(graph, layers);
-            for layer_index in 1..(layers.len() - 1) {
-                sort_consecutive_layer(graph, layers, layer_index);
-            }
-        }
-
         let graph = &self.0;
         let start = match graph.sources.first() {
             Some(rid) => *rid,
@@ -531,7 +398,8 @@ impl CutGraph {
             for layer in layers.iter() {
                 let mut parents: Vec<Rid> = Vec::new();
                 for rid in layer.iter() {
-                    let mut current_parents = graph.parents_of(rid).into_iter().unique().collect_vec();
+                    let mut current_parents =
+                        graph.parents_of(rid).into_iter().unique().collect_vec();
                     current_parents.retain(|parent| !added.contains(parent));
                     added.extend(current_parents.clone());
                     parents.extend(current_parents)
@@ -564,7 +432,6 @@ impl CutGraph {
             .map(|rid| graph.parents_of(rid).len())
             .sum();
         assert_eq!(parents_in_top_row, 0, "No parents in top row");
-        sort_layers(graph, &mut layers);
         layers
     }
 }
