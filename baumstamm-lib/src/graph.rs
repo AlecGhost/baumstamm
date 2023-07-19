@@ -360,47 +360,6 @@ impl CutGraph {
         type Layer = Vec<Rid>;
         type Layers = Vec<Layer>;
 
-        fn add_layer_rec(
-            graph: &Graph,
-            rid: &Rid,
-            layers: &mut Layers,
-            origin: Option<Rid>,
-            level: usize,
-        ) {
-            if layers.iter().flat_map(|layer| layer).contains(rid) {
-                // overflow protection
-                return;
-            }
-            if level == layers.len() {
-                layers.push(Vec::new());
-            }
-            layers[level].push(*rid);
-            graph.children_of(rid).iter().for_each(|child| {
-                if Some(*child) != origin {
-                    let current_level = layers
-                        .iter()
-                        .position(|layer| layer.contains(rid))
-                        .expect("Rid must be in layers");
-                    add_layer_rec(graph, child, layers, Some(*rid), current_level + 1)
-                }
-            });
-            graph.parents_of(rid).into_iter().for_each(|parent| {
-                if Some(parent) != origin {
-                    let current_level = layers
-                        .iter()
-                        .position(|layer| layer.contains(rid))
-                        .expect("Rid must be in layers");
-                    let next_level = if current_level == 0 {
-                        layers.insert(0, Vec::new());
-                        0
-                    } else {
-                        current_level - 1
-                    };
-                    add_layer_rec(graph, &parent, layers, Some(*rid), next_level);
-                }
-            });
-        }
-
         fn sort_layers(graph: &Graph, layers: &mut Layers) {
             fn other_parents(graph: &Graph, rid: &Rid) -> Vec<Rid> {
                 graph
@@ -442,7 +401,11 @@ impl CutGraph {
                         }
                     }
                 }
-                assert_eq!(new_first_layer.len(), layers[0].len());
+                assert_eq!(
+                    new_first_layer.len(),
+                    layers[0].len(),
+                    "sorting in first layer failed"
+                );
                 layers[0] = new_first_layer;
             }
 
@@ -507,7 +470,11 @@ impl CutGraph {
                     .collect_vec();
                 new_layer.extend(new_rids);
 
-                assert_eq!(new_layer.len(), layers[index].len());
+                assert_eq!(
+                    new_layer.len(),
+                    layers[index].len(),
+                    "sorting consecutive layer failed"
+                );
                 layers[index] = new_layer;
             }
 
@@ -525,11 +492,73 @@ impl CutGraph {
 
         let graph = &self.0;
         let start = match graph.sources.first() {
-            Some(rid) => rid,
+            Some(rid) => *rid,
             None => return Vec::new(), // no nodes, no layers
         };
-        let mut layers = vec![Vec::new()];
-        add_layer_rec(graph, start, &mut layers, None, 0);
+        let mut layers = vec![vec![start]];
+        let mut added = vec![start];
+        while added.len() < graph.nodes.len() {
+            // sweep down
+            let mut new_layers = Vec::new();
+            for layer in layers.iter() {
+                let mut children: Vec<Rid> = Vec::new();
+                for rid in layer.iter() {
+                    let mut current_children = graph.children_of(rid).to_vec();
+                    current_children.retain(|child| !added.contains(child));
+                    added.extend(current_children.clone());
+                    children.extend(current_children)
+                }
+                new_layers.push(children);
+            }
+            // add to layers
+            layers.push(Vec::new());
+            layers
+                .iter_mut()
+                .skip(1)
+                .enumerate()
+                .for_each(|(i, layer)| layer.append(&mut new_layers[i]));
+            // cleanup
+            if layers
+                .last()
+                .expect("Must have at least one layer")
+                .is_empty()
+            {
+                layers.pop();
+            }
+
+            // sweep up
+            let mut new_layers = Vec::new();
+            for layer in layers.iter() {
+                let mut parents: Vec<Rid> = Vec::new();
+                for rid in layer.iter() {
+                    let mut current_parents = graph.parents_of(rid).into_iter().unique().collect_vec();
+                    current_parents.retain(|parent| !added.contains(parent));
+                    added.extend(current_parents.clone());
+                    parents.extend(current_parents)
+                }
+                new_layers.push(parents);
+            }
+            // add to layers
+            layers.insert(0, Vec::new());
+            layers.iter_mut().enumerate().for_each(|(i, layer)| {
+                if i != new_layers.len() {
+                    layer.append(&mut new_layers[i])
+                }
+            });
+            // cleanup
+            if layers
+                .first()
+                .expect("Must have at least one layer")
+                .is_empty()
+            {
+                layers.remove(0);
+            }
+        }
+        assert_eq!(
+            added.len(),
+            graph.nodes.len(),
+            "Number of nodes in layers and graph must be equal"
+        );
         let parents_in_top_row: usize = layers[0]
             .iter()
             .map(|rid| graph.parents_of(rid).len())
@@ -584,7 +613,7 @@ pub fn person_layers(layers: &Vec<Vec<Rid>>, relationships: &[Relationship]) -> 
                     (Some(_), Some(_)) => None,
                     (Some(pos_a), None) => Some((pos_a, parent_b)),
                     (None, Some(pos_b)) => Some((pos_b, parent_a)),
-                    (None, None) => panic!("Wrong parents"),
+                    (None, None) => None,
                 }
             })
             .sorted_by(|(pos_a, _), (pos_b, _)| Ord::cmp(pos_a, pos_b))
@@ -649,7 +678,11 @@ pub fn person_layers(layers: &Vec<Vec<Rid>>, relationships: &[Relationship]) -> 
     }
 
     let nr_persons: usize = person_layers.iter().flatten().unique().count();
-    assert_eq!(nr_persons, extract_persons(relationships).len());
+    assert_eq!(
+        nr_persons,
+        extract_persons(relationships).len(),
+        "Number of persons in layer inconsistent"
+    );
     person_layers
 }
 
@@ -719,6 +752,19 @@ mod test {
     #[test]
     fn sort_long_chain() {
         let tree_data = read("test/graph/sort_long_chain.json");
+        consistency::check(&tree_data).expect("Test data inconsistent");
+        let graph = Graph::new(&tree_data.relationships);
+        let cut_graph = graph.cut();
+        assert_debug_snapshot!(cut_graph);
+        let layers = cut_graph.layers();
+        assert_debug_snapshot!(layers);
+        let person_layers = person_layers(&layers, &tree_data.relationships);
+        assert_debug_snapshot!(person_layers);
+    }
+
+    #[test]
+    fn siblings() {
+        let tree_data = read("test/graph/siblings.json");
         consistency::check(&tree_data).expect("Test data inconsistent");
         let graph = Graph::new(&tree_data.relationships);
         let cut_graph = graph.cut();
