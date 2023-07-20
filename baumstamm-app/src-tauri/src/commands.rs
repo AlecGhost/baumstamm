@@ -1,8 +1,8 @@
-use crate::error::Error;
-use baumstamm_lib::{
-    graph::{person_layers, Graph},
-    FamilyTree, Person, Relationship,
+use crate::{
+    error::Error,
+    grid::{self, GridItem},
 };
+use baumstamm_lib::{FamilyTree, Person, Relationship};
 use specta::specta;
 use std::path::PathBuf;
 
@@ -52,12 +52,10 @@ pub(crate) fn get_relationships(state: State) -> Result<Vec<Relationship>, ()> {
 
 #[tauri::command]
 #[specta]
-pub(crate) fn get_person_layers(state: State) -> Vec<Vec<Pid>> {
-    let lock = state.0.lock().unwrap();
-    let relationships = lock.tree.get_relationships();
-    let graph = Graph::new(relationships).cut();
-    let layers = graph.layers();
-    person_layers(&layers, relationships)
+pub(crate) fn get_grid(state: State) -> Result<Vec<Vec<GridItem>>, ()> {
+    let tree = &state.0.lock().unwrap().tree;
+    let grid = grid::generate(tree);
+    Ok(grid)
 }
 
 // adding nodes

@@ -14,6 +14,7 @@ use tauri_specta::ts;
 
 mod commands;
 mod error;
+mod grid;
 
 #[derive(Debug, Default)]
 struct State(Mutex<AppState>);
@@ -75,7 +76,7 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             commands::get_persons,
             commands::get_relationships,
-            commands::get_person_layers,
+            commands::get_grid,
             commands::add_parent,
             commands::add_child,
             commands::add_new_relationship,
@@ -99,7 +100,7 @@ fn export() {
         collect_types![
             commands::get_persons,
             commands::get_relationships,
-            commands::get_person_layers,
+            commands::get_grid,
             commands::add_parent,
             commands::add_child,
             commands::add_new_relationship,

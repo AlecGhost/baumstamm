@@ -18,8 +18,8 @@ export function getRelationships() {
     return invoke()<Relationship[]>("get_relationships")
 }
 
-export function getPersonLayers() {
-    return invoke()<PersonId[][]>("get_person_layers")
+export function getGrid() {
+    return invoke()<GridItem[][]>("get_grid")
 }
 
 export function addParent(rid: RelationshipId) {
@@ -46,7 +46,14 @@ export function removeInfo(pid: PersonId, key: string) {
     return invoke()<string>("remove_info", { pid,key })
 }
 
+export type Crossing = { connection: number; color: number; origin: Origin }
 export type Relationship = { id: RelationshipId; parents: (PersonId | null)[]; children: PersonId[] }
+export type GridItem = { Person: PersonId } | { Connections: Connections }
+export type Connections = { orientation: Orientation; total: number; passing: Passing[]; ending: Ending[]; crossing: Crossing[] }
 export type RelationshipId = string
 export type PersonId = string
+export type Passing = { connection: number; color: number }
+export type Ending = { connection: number; color: number; origin: Origin }
 export type Person = { id: PersonId; info: { [key: string]: string } | null }
+export type Origin = "Left" | "Right" | "None"
+export type Orientation = "Up" | "Down"
