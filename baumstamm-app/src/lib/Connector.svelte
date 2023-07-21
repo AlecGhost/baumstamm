@@ -24,7 +24,7 @@
 			y1="{y(passing.connection)}%"
 			x2="100%"
 			y2="{y(passing.connection)}%"
-			style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+			style="--color: {passing.color[0]}, {passing.color[1]}%, {passing.color[2]}%"
 		/>
 	{/each}
 	{#each connections.ending as ending, i}
@@ -35,7 +35,7 @@
 				y1="{y(ending.connection)}%"
 				x2="{xEnding(i)}%"
 				y2="{y(ending.connection)}%"
-				style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+				style="--color: {ending.color[0]}, {ending.color[1]}%, {ending.color[2]}%"
 			/>
 		{:else if ending.origin == 'Right'}
 			<line
@@ -43,7 +43,7 @@
 				y1="{y(ending.connection)}%"
 				x2="{xEnding(i)}%"
 				y2="{y(ending.connection)}%"
-				style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+				style="--color: {ending.color[0]}, {ending.color[1]}%, {ending.color[2]}%"
 			/>
 		{/if}
 		<!-- vertical line -->
@@ -52,7 +52,7 @@
 			y1="{connections.orientation == 'Up' ? 0 : 100}%"
 			x2="{xEnding(i)}%"
 			y2="{y(ending.connection)}%"
-			style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+			style="--color: {ending.color[0]}, {ending.color[1]}%, {ending.color[2]}%"
 		/>
 	{/each}
 	{#each connections.crossing as crossing, i}
@@ -63,7 +63,7 @@
 				y1="{y(crossing.connection)}%"
 				x2="{xCrossing(i)}%"
 				y2="{y(crossing.connection)}%"
-				style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+				style="--color: {crossing.color[0]}, {crossing.color[1]}%, {crossing.color[2]}%"
 			/>
 		{:else if crossing.origin == 'Right'}
 			<line
@@ -71,7 +71,7 @@
 				y1="{y(crossing.connection)}%"
 				x2="{xCrossing(i)}%"
 				y2="{y(crossing.connection)}%"
-				style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+				style="--color: {crossing.color[0]}, {crossing.color[1]}%, {crossing.color[2]}%"
 			/>
 		{/if}
 		<!-- vertical line -->
@@ -80,7 +80,14 @@
 			y1="{connections.orientation == 'Up' ? 100 : 0}%"
 			x2="{xCrossing(i)}%"
 			y2="{y(crossing.connection)}%"
-			style="stroke:rgb(0, 0, 0);stroke-width: 5;"
+			style="--color: {crossing.color[0]}, {crossing.color[1]}%, {crossing.color[2]}%"
 		/>
 	{/each}
 </svg>
+
+<style>
+	line {
+		stroke-width: 5;
+		stroke: hsl(var(--color));
+	}
+</style>

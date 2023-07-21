@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 type Pid = baumstamm_lib::PersonId;
+type Color = (f32, f32, f32);
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub enum GridItem {
@@ -39,20 +40,20 @@ pub enum Orientation {
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct Passing {
     connection: u32,
-    color: u32,
+    color: Color,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct Ending {
     connection: u32,
-    color: u32,
+    color: Color,
     origin: Origin,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct Crossing {
     connection: u32,
-    color: u32,
+    color: Color,
     origin: Origin,
 }
 
@@ -93,7 +94,6 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                 .collect_vec()
         })
         .collect_vec();
-    eprintln!("person_indices: {person_indices:#?}");
     let mut rel_indices = layers
         .iter()
         .enumerate()
@@ -105,7 +105,6 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                         .iter()
                         .find(|rel| rel.id == *rid)
                         .expect("Inconsistent relationships");
-                    eprintln!("rel: {rel:#?}");
                     let mut rel_indices = RelIndices::default();
                     if index > 0 {
                         if let Some(parent_indices) = person_indices.get(index - 1) {
@@ -145,7 +144,6 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                             rel_indices.children = children_indices;
                         }
                     }
-                    eprintln!("rel_indices: {rel_indices:#?}");
                     rel_indices
                 })
                 .collect_vec()
@@ -158,13 +156,14 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
             let item = match layer_index % 3 {
                 0 => {
                     // sibling row
+                    let total = rel_indices
+                        .len()
+                        .try_into()
+                        .expect("Too many relationships");
                     let rel_indices = &rel_indices[layer_index / 3];
                     let mut connections = Connections {
                         orientation: Orientation::Down,
-                        total: rel_indices
-                            .len()
-                            .try_into()
-                            .expect("Too many relationships"),
+                        total,
                         ..Default::default()
                     };
                     rel_indices
@@ -206,7 +205,7 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                                         connection: connection
                                             .try_into()
                                             .expect("Too many relationships"),
-                                        color: 0,
+                                        color: color(connection, total),
                                         origin,
                                     });
                                     if rel_indices.children.len() == 1 && item_index == first {
@@ -214,7 +213,7 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                                             connection: connection
                                                 .try_into()
                                                 .expect("Too many relationships"),
-                                            color: 0,
+                                            color: color(connection, total),
                                             origin: Origin::None,
                                         });
                                         return;
@@ -226,7 +225,7 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                                     connection: connection
                                         .try_into()
                                         .expect("Too many relationships"),
-                                    color: 0,
+                                    color: color(connection, total),
                                     origin: Origin::Right,
                                 });
                             } else if item_index == end && item_index == last {
@@ -234,7 +233,7 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                                     connection: connection
                                         .try_into()
                                         .expect("Too many relationships"),
-                                    color: 0,
+                                    color: color(connection, total),
                                     origin: Origin::Left,
                                 });
                             } else if start < item_index && item_index < end {
@@ -247,7 +246,7 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                                         connection: connection
                                             .try_into()
                                             .expect("Too many relationships"),
-                                        color: 0,
+                                        color: color(connection, total),
                                         origin: Origin::None,
                                     });
                                 }
@@ -255,7 +254,7 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                                     connection: connection
                                         .try_into()
                                         .expect("Too many relationships"),
-                                    color: 0,
+                                    color: color(connection, total),
                                 })
                             }
                         });
@@ -271,13 +270,14 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                 }
                 2 => {
                     // relationship row
+                    let total = rel_indices
+                        .len()
+                        .try_into()
+                        .expect("Too many relationships");
                     let rel_indices = &rel_indices[(layer_index - 2) / 3 + 1];
                     let mut connections = Connections {
                         orientation: Orientation::Up,
-                        total: rel_indices
-                            .len()
-                            .try_into()
-                            .expect("Too many relationships"),
+                        total,
                         ..Default::default()
                     };
                     rel_indices
@@ -294,7 +294,7 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                                         connection: connection
                                             .try_into()
                                             .expect("Too many relationships"),
-                                        color: 0,
+                                        color: color(connection, total),
                                         origin: Origin::None,
                                     });
                                 }
@@ -309,7 +309,7 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                                     connection: connection
                                         .try_into()
                                         .expect("Too many relationships"),
-                                    color: 0,
+                                    color: color(connection, total),
                                     origin,
                                 });
                             } else if matches!(last, Some(index) if index == item_index) {
@@ -322,7 +322,7 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                                     connection: connection
                                         .try_into()
                                         .expect("Too many relationships"),
-                                    color: 0,
+                                    color: color(connection, total),
                                     origin,
                                 });
                             } else if matches!((first, last),
@@ -332,7 +332,7 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                                     connection: connection
                                         .try_into()
                                         .expect("Too many relationships"),
-                                    color: 0,
+                                    color: color(connection, total),
                                 })
                             }
                         });
@@ -353,4 +353,9 @@ fn middle(a: usize, b: usize) -> usize {
     } else {
         (diff - 1) / 2
     }
+}
+
+fn color(connection: usize, total: u32) -> Color {
+    let fraction = connection as f32 / (total + 1) as f32;
+    ((360.0 * fraction), 70.0, 50.0)
 }
