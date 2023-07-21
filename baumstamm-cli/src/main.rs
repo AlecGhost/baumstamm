@@ -95,7 +95,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         tree
     } else {
         let json_str = fs::read_to_string(&args.file)?;
-        FamilyTree::from_string(&json_str)?
+        FamilyTree::try_from(&json_str)?
     };
 
     if let Some(action) = args.action {

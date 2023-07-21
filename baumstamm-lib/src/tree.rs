@@ -13,17 +13,7 @@ pub struct FamilyTree {
 
 impl FamilyTree {
     pub fn new() -> Self {
-        let initial_person = Person::new();
-        let initial_rels = vec![Relationship::new(None, None, vec![initial_person.id])];
-        Self {
-            tree_data: TreeData::new(initial_rels, vec![initial_person]),
-        }
-    }
-
-    pub fn from_string(json_str: &str) -> Result<Self, Error> {
-        let tree_data = io::read(json_str)?;
-        consistency::check(&tree_data)?;
-        Ok(Self { tree_data })
+        Self::default()
     }
 
     pub fn save(&self) -> Result<String, Error> {
@@ -169,6 +159,43 @@ impl FamilyTree {
 
 impl Default for FamilyTree {
     fn default() -> Self {
-        Self::new()
+        let initial_person = Person::new();
+        let initial_rels = vec![Relationship::new(None, None, vec![initial_person.id])];
+        Self {
+            tree_data: TreeData::new(initial_rels, vec![initial_person]),
+        }
+    }
+}
+
+impl TryFrom<TreeData> for FamilyTree {
+    type Error = Error;
+
+    fn try_from(tree_data: TreeData) -> Result<Self, Self::Error> {
+        consistency::check(&tree_data)?;
+        Ok(Self { tree_data })
+    }
+}
+
+impl TryFrom<&str> for FamilyTree {
+    type Error = Error;
+
+    fn try_from(json_str: &str) -> Result<Self, Self::Error> {
+        let tree_data = io::read(json_str)?;
+        consistency::check(&tree_data)?;
+        Ok(Self { tree_data })
+    }
+}
+
+impl TryFrom<&String> for FamilyTree {
+    type Error = Error;
+
+    fn try_from(value: &String) -> Result<Self, Self::Error> {
+        Self::try_from(value.as_str())
+    }
+}
+
+impl From<FamilyTree> for TreeData {
+    fn from(value: FamilyTree) -> Self {
+        value.tree_data
     }
 }

@@ -109,14 +109,12 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                     if index > 0 {
                         if let Some(parent_indices) = person_indices.get(index - 1) {
                             let mut parent_indices = rel.parents.map(|opt_parent| {
-                                opt_parent
-                                    .map(|parent| {
-                                        parent_indices
-                                            .iter()
-                                            .find(|(_, pid)| **pid == parent)
-                                            .map(|(i, _)| *i)
-                                    })
-                                    .flatten()
+                                opt_parent.and_then(|parent| {
+                                    parent_indices
+                                        .iter()
+                                        .find(|(_, pid)| **pid == parent)
+                                        .map(|(i, _)| *i)
+                                })
                             });
                             parent_indices.sort();
                             rel_indices.parents = parent_indices;

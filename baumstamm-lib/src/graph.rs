@@ -290,9 +290,9 @@ impl Graph {
                     }
                     let common_descs = graph
                         .walk_descendants(&anc_a)
-                        .filter(|desc| graph.is_descendant_of(&desc, &anc_b).is_some())
+                        .filter(|desc| graph.is_descendant_of(desc, &anc_b).is_some())
                         .filter(|desc| {
-                            !graph.parents_of(&desc).iter().any(|parent| {
+                            !graph.parents_of(desc).iter().any(|parent| {
                                 graph.is_descendant_of(parent, &anc_a).is_some()
                                     && graph.is_descendant_of(parent, &anc_b).is_some()
                             })
@@ -317,7 +317,7 @@ impl Graph {
                     .iter()
                     .skip(1)
                     .for_each(|desc| {
-                        let desc_node = graph.get_node_mut(&desc);
+                        let desc_node = graph.get_node_mut(desc);
                         let parent = desc_node.parents[0].expect("Parent must be present");
                         desc_node.parents[0] = None;
                         let parent_node = graph.get_node_mut(&parent);
@@ -327,10 +327,10 @@ impl Graph {
                 fn is_resolved(graph: &Graph, double_inheritance: &mut DoubleInheritance) -> bool {
                     double_inheritance.common_descs.retain(|desc| {
                         graph
-                            .is_descendant_of(&desc, &double_inheritance.anc_a)
+                            .is_descendant_of(desc, &double_inheritance.anc_a)
                             .is_some()
                             && graph
-                                .is_descendant_of(&desc, &double_inheritance.anc_b)
+                                .is_descendant_of(desc, &double_inheritance.anc_b)
                                 .is_some()
                     });
                     double_inheritance.common_descs.len() < 2
@@ -524,7 +524,6 @@ pub fn person_layers(layers: &Vec<Vec<Rid>>, relationships: &[Relationship]) -> 
 
         let missing_singles = parents
             .iter()
-            .into_iter()
             .filter_map(|parents| match parents {
                 [Some(parent), None] => Some(parent),
                 [None, Some(parent)] => Some(parent),

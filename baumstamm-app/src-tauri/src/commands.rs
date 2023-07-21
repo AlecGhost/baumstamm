@@ -19,7 +19,7 @@ pub(crate) fn open_file(path: PathBuf, state: State) -> Result<(), Error> {
         std::fs::write(&path, data)?;
         tree
     } else {
-        FamilyTree::from_string(&data)?
+        FamilyTree::try_from(&data)?
     };
     let mut lock = state.0.lock().unwrap();
     lock.path = Some(path);

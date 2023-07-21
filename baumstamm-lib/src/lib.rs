@@ -135,7 +135,7 @@ impl From<u128> for PersonId {
 }
 
 #[derive(Debug, Serialize, Deserialize, Type)]
-struct TreeData {
+pub struct TreeData {
     relationships: Vec<Relationship>,
     persons: Vec<Person>,
 }
