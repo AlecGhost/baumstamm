@@ -59,6 +59,8 @@ pub enum InputError {
     NoInfo,
     #[error("Cannot add another parent")]
     AlreadyTwoParents,
+    #[error("Cannot remove person")]
+    CannotRemovePerson,
 }
 
 #[derive(Debug, Error, Serialize)]
