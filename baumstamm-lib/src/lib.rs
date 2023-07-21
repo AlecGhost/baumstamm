@@ -14,36 +14,11 @@ mod tree;
 
 pub type PersonInfo = HashMap<String, String>;
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash, Type)]
-pub struct PersonId(#[serde(with = "id")] pub u128);
-
-impl std::fmt::Debug for PersonId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:X}", self.0)
-    }
-}
-
-impl std::fmt::Display for PersonId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(&self, f)
-    }
-}
-
+/// UUID for a `Relationship`, stored as u128.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
 pub struct RelationshipId(#[serde(with = "id")] pub u128);
 
-impl std::fmt::Debug for RelationshipId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:X}", self.0)
-    }
-}
-
-impl std::fmt::Display for RelationshipId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        std::fmt::Debug::fmt(&self, f)
-    }
-}
-
+/// A relationship referencing two optional parents and the resulting children.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub struct Relationship {
     pub id: RelationshipId,
@@ -107,12 +82,11 @@ impl Relationship {
     }
 }
 
-impl From<u128> for RelationshipId {
-    fn from(value: u128) -> Self {
-        Self(value)
-    }
-}
+/// UUID for a `Person`, stored as u128.
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash, Type)]
+pub struct PersonId(#[serde(with = "id")] pub u128);
 
+/// A person with a unique identifier and arbitrary attached information
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Type)]
 pub struct Person {
     pub id: PersonId,
@@ -128,16 +102,11 @@ impl Person {
     }
 }
 
-impl From<u128> for PersonId {
-    fn from(value: u128) -> Self {
-        Self(value)
-    }
-}
-
+/// Raw family tree data.
 #[derive(Debug, Serialize, Deserialize, Type)]
 pub struct TreeData {
-    relationships: Vec<Relationship>,
-    persons: Vec<Person>,
+    pub relationships: Vec<Relationship>,
+    pub persons: Vec<Person>,
 }
 
 impl TreeData {
@@ -149,10 +118,49 @@ impl TreeData {
     }
 }
 
+/// Extract all `PersonId`'s referenced in a slice of `Relationship`'s.
 fn extract_persons(relationships: &[Relationship]) -> Vec<PersonId> {
     let parents = relationships.iter().flat_map(|rel| rel.parents());
     let children = relationships.iter().flat_map(|rel| rel.children.to_vec());
     parents.chain(children).unique().collect()
+}
+
+// Trait impls for `PersonId`
+impl From<u128> for PersonId {
+    fn from(value: u128) -> Self {
+        Self(value)
+    }
+}
+
+impl std::fmt::Debug for PersonId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:X}", self.0)
+    }
+}
+
+impl std::fmt::Display for PersonId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self, f)
+    }
+}
+
+// Trait impls for `RelationshipId`
+impl From<u128> for RelationshipId {
+    fn from(value: u128) -> Self {
+        Self(value)
+    }
+}
+
+impl std::fmt::Debug for RelationshipId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:X}", self.0)
+    }
+}
+
+impl std::fmt::Display for RelationshipId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Debug::fmt(&self, f)
+    }
 }
 
 mod id {

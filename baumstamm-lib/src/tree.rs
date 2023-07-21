@@ -6,6 +6,7 @@ use crate::{
 use specta::Type;
 use std::collections::HashMap;
 
+/// The central datatype, containing **consistent** tree data.
 #[derive(Debug, Type)]
 pub struct FamilyTree {
     tree_data: TreeData,
@@ -16,8 +17,8 @@ impl FamilyTree {
         Self::default()
     }
 
+    /// Serialize the tree data to JSON.
     pub fn save(&self) -> Result<String, Error> {
-        consistency::check(&self.tree_data)?;
         io::write(&self.tree_data)
     }
 
