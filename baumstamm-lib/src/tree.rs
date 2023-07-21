@@ -3,6 +3,7 @@ use crate::{
     error::{Error, InputError},
     io, Person, PersonId, Relationship, RelationshipId, TreeData,
 };
+use itertools::Itertools;
 use specta::Type;
 use std::collections::HashMap;
 
@@ -78,7 +79,7 @@ impl FamilyTree {
         Ok(new_id)
     }
 
-    fn validate_person(&self, person_id: PersonId) -> Result<(), Error> {
+    fn validate_person(&self, person_id: PersonId) -> Result<(), InputError> {
         if self
             .tree_data
             .persons
@@ -121,6 +122,53 @@ impl FamilyTree {
         }
 
         Ok(new_rid)
+    }
+
+    pub fn remove_person(&mut self, person_id: PersonId) -> Result<(), Error> {
+        let persons_index = self
+            .tree_data
+            .persons
+            .iter()
+            .map(|person| person.id)
+            .position(|id| id == person_id)
+            .ok_or(InputError::InvalidPersonId)?;
+        let backup_person = self.tree_data.persons.remove(persons_index);
+        let backup_rels = self
+            .tree_data
+            .relationships
+            .iter()
+            .filter(|rel| {
+                rel.children.contains(&person_id) || rel.parents.contains(&Some(person_id))
+            })
+            .cloned()
+            .collect_vec();
+        self.tree_data.relationships.retain_mut(|rel| {
+            rel.parents.iter_mut().for_each(|parent| {
+                if matches!(parent, Some(pid) if *pid == person_id) {
+                    *parent = None;
+                }
+            });
+            rel.children.retain(|child| *child != person_id);
+            // delete rel if it is empty now
+            rel.parents.iter().flatten().count() != 0 || !rel.children.is_empty()
+        });
+        if consistency::check(&self.tree_data).is_err() {
+            self.tree_data.persons.push(backup_person);
+            for backup_rel in backup_rels {
+                if let Some(rel) = self
+                    .tree_data
+                    .relationships
+                    .iter_mut()
+                    .find(|rel| rel.id == backup_rel.id)
+                {
+                    *rel = backup_rel;
+                } else {
+                    self.tree_data.relationships.push(backup_rel);
+                }
+            }
+            return Err(InputError::CannotRemovePerson.into());
+        }
+        Ok(())
     }
 
     pub fn insert_info(

@@ -12,6 +12,7 @@ pub mod graph;
 mod io;
 mod tree;
 
+/// Arbitrary information about a person.
 pub type PersonInfo = HashMap<String, String>;
 
 /// UUID for a `Relationship`, stored as u128.

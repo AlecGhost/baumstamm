@@ -44,7 +44,6 @@
 	</div>
 	<button on:click={newPartner} type="button" class="btn variant-filled m-1">Add new Partner</button
 	>
-	<button />
 	<button on:click={newRelationshipWithPartner} type="button" class="btn variant-filled m-1"
 		>Add existing Partner</button
 	>

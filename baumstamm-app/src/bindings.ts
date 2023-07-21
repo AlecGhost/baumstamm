@@ -38,6 +38,10 @@ export function addRelationshipWithPartner(pid: PersonId, partnerPid: PersonId) 
     return invoke()<RelationshipId>("add_relationship_with_partner", { pid,partnerPid })
 }
 
+export function removePerson(pid: PersonId) {
+    return invoke()<null>("remove_person", { pid })
+}
+
 export function insertInfo(pid: PersonId, key: string, value: string) {
     return invoke()<null>("insert_info", { pid,key,value })
 }
@@ -48,12 +52,24 @@ export function removeInfo(pid: PersonId, key: string) {
 
 export type Passing = { connection: number; color: [number, number, number] }
 export type Crossing = { connection: number; color: [number, number, number]; origin: Origin }
-export type Relationship = { id: RelationshipId; parents: (PersonId | null)[]; children: PersonId[] }
-export type RelationshipId = string
-export type GridItem = { Person: PersonId } | { Connections: Connections }
+/**
+ * UUID for a `Person`, stored as u128.
+ */
 export type PersonId = string
-export type Ending = { connection: number; color: [number, number, number]; origin: Origin }
+/**
+ * UUID for a `Relationship`, stored as u128.
+ */
+export type RelationshipId = string
+/**
+ * A person with a unique identifier and arbitrary attached information
+ */
 export type Person = { id: PersonId; info: { [key: string]: string } | null }
+export type GridItem = { Person: PersonId } | { Connections: Connections }
+export type Ending = { connection: number; color: [number, number, number]; origin: Origin }
+/**
+ * A relationship referencing two optional parents and the resulting children.
+ */
+export type Relationship = { id: RelationshipId; parents: (PersonId | null)[]; children: PersonId[] }
 export type Origin = "Left" | "Right" | "None"
 export type Connections = { orientation: Orientation; total: number; passing: Passing[]; ending: Ending[]; crossing: Crossing[] }
 export type Orientation = "Up" | "Down"

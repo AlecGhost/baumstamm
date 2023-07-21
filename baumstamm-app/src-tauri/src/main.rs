@@ -81,6 +81,7 @@ fn main() {
             commands::add_child,
             commands::add_new_relationship,
             commands::add_relationship_with_partner,
+            commands::remove_person,
             commands::insert_info,
             commands::remove_info,
         ])
@@ -105,6 +106,7 @@ fn export() {
             commands::add_child,
             commands::add_new_relationship,
             commands::add_relationship_with_partner,
+            commands::remove_person,
             commands::insert_info,
             commands::remove_info,
         ]
