@@ -29,12 +29,13 @@ export async function update() {
 
 	// update selectedStore when necessary and possible
 	const currentSelected = get(selected);
-	if (
-		mappedPersons.length > 0 &&
-		currentSelected !== null &&
-		!mappedPersons.map((person) => person.id).includes(currentSelected.id)
-	) {
-		selected.update(() => mappedPersons[0]);
+	if (mappedPersons.length > 0 && currentSelected !== null) {
+		let person = mappedPersons.find((person) => person.id == currentSelected.id);
+		if (person !== undefined) {
+			selected.update(() => person!);
+		} else {
+			selected.update(() => mappedPersons[0]);
+		}
 	}
 
 	// update relationships
