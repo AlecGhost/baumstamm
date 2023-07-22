@@ -154,11 +154,11 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
             let item = match layer_index % 3 {
                 0 => {
                     // sibling row
+                    let rel_indices = &rel_indices[layer_index / 3];
                     let total = rel_indices
                         .len()
                         .try_into()
                         .expect("Too many relationships");
-                    let rel_indices = &rel_indices[layer_index / 3];
                     let mut connections = Connections {
                         orientation: Orientation::Down,
                         total,
@@ -268,11 +268,11 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                 }
                 2 => {
                     // relationship row
+                    let rel_indices = &rel_indices[(layer_index - 2) / 3 + 1];
                     let total = rel_indices
                         .len()
                         .try_into()
                         .expect("Too many relationships");
-                    let rel_indices = &rel_indices[(layer_index - 2) / 3 + 1];
                     let mut connections = Connections {
                         orientation: Orientation::Up,
                         total,
