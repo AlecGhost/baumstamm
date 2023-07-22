@@ -115,12 +115,12 @@ pub(crate) fn add_relationship_with_partner(
 #[specta]
 pub(crate) fn remove_person(pid: Pid, state: State) -> Result<(), Error> {
     let mut lock = state.0.lock().unwrap();
-    let result = lock.tree.remove_person(pid)?;
+    lock.tree.remove_person(pid)?;
     if let Some(path) = lock.path.clone() {
         drop(lock);
         save_file(path, state)?;
     }
-    Ok(result)
+    Ok(())
 }
 
 // info

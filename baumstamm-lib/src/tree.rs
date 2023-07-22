@@ -89,7 +89,7 @@ impl FamilyTree {
         {
             Ok(())
         } else {
-            Err(InputError::InvalidPersonId.into())
+            Err(InputError::InvalidPersonId)
         }
     }
 

@@ -509,16 +509,16 @@ pub fn person_layers(layers: &Vec<Vec<Rid>>, relationships: &[Relationship]) -> 
         let mut offset = 0;
         let mut last_index = 0;
         let mut acc = Vec::new();
-        while let Some((index, missing_parent)) = missing_partners.pop() {
+        while let Some((index, missing_partner)) = missing_partners.pop() {
             if index == last_index {
-                acc.push(*missing_parent);
+                acc.push(*missing_partner);
                 continue;
             }
             let acc_len = acc.len();
             add_to_layer(&mut person_layers[i], last_index + offset, acc);
             offset += acc_len;
             last_index = index;
-            acc = vec![*missing_parent];
+            acc = vec![*missing_partner];
         }
         add_to_layer(&mut person_layers[i], last_index, acc);
 
@@ -541,6 +541,33 @@ pub fn person_layers(layers: &Vec<Vec<Rid>>, relationships: &[Relationship]) -> 
         .is_empty()
     {
         person_layers.pop();
+    }
+
+    // move partners together, if they do not both have parents
+    for layer in person_layers.iter_mut().skip(1) {
+        let leaves = layer
+            .iter()
+            .cloned()
+            .enumerate()
+            .filter(|(_, pid)| {
+                let child_rel = relationships
+                    .iter()
+                    .find(|rel| rel.children.contains(pid))
+                    .expect("Inconsistent relationships");
+                child_rel.persons().len() == 1
+            })
+            .collect_vec();
+        for (index, pid) in leaves {
+            if let Some(partner_index) = layer.iter().position(|partner| {
+                relationships.iter().any(|rel| {
+                    let parents = rel.parents();
+                    parents.contains(partner) && parents.contains(&pid)
+                })
+            }) {
+                let leaf = layer.remove(index);
+                layer.insert(partner_index + 1, leaf);
+            }
+        }
     }
 
     let nr_persons: usize = person_layers.iter().flatten().unique().count();
