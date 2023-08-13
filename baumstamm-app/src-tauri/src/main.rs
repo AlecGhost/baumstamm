@@ -4,6 +4,7 @@
 )]
 
 use baumstamm_lib::FamilyTree;
+use color_eyre::eyre::Result;
 use specta::{
     collect_types,
     ts::{BigIntExportBehavior, ExportConfiguration},
@@ -25,7 +26,8 @@ struct AppState {
     path: Option<PathBuf>,
 }
 
-fn main() {
+fn main() -> Result<()> {
+    color_eyre::install()?;
     #[cfg(debug_assertions)]
     export();
 
@@ -87,6 +89,7 @@ fn main() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+    Ok(())
 }
 
 #[test]
