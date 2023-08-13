@@ -497,6 +497,7 @@ pub fn person_layers(layers: &Vec<Vec<Rid>>, relationships: &[Relationship]) -> 
             };
             let mut offset = 0;
             acc.into_iter().enumerate().for_each(|(i, pid)| {
+                assert!(layer.len() >= offset + index + 1);
                 if i < middle {
                     layer.insert(offset + index, pid);
                     offset += 1;
@@ -561,11 +562,17 @@ pub fn person_layers(layers: &Vec<Vec<Rid>>, relationships: &[Relationship]) -> 
             if let Some(partner_index) = layer.iter().position(|partner| {
                 relationships.iter().any(|rel| {
                     let parents = rel.parents();
-                    parents.contains(partner) && parents.contains(&pid)
+                    *partner != pid && parents.contains(partner) && parents.contains(&pid)
                 })
             }) {
                 let leaf = layer.remove(index);
-                layer.insert(partner_index + 1, leaf);
+                let insertion_index = if index <= partner_index {
+                    partner_index
+                } else {
+                    partner_index + 1
+                };
+                assert!(insertion_index <= layer.len());
+                layer.insert(insertion_index, leaf);
             }
         }
     }
