@@ -5,12 +5,14 @@
 
 use baumstamm_lib::FamilyTree;
 use color_eyre::eyre::Result;
+#[cfg(debug_assertions)]
 use specta::{
     collect_types,
     ts::{BigIntExportBehavior, ExportConfiguration},
 };
 use std::{path::PathBuf, sync::Mutex};
 use tauri::{api::dialog::FileDialogBuilder, CustomMenuItem, Manager, Menu, Submenu};
+#[cfg(debug_assertions)]
 use tauri_specta::ts;
 
 mod commands;

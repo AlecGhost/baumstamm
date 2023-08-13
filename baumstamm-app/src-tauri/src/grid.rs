@@ -1,6 +1,6 @@
 use baumstamm_lib::{
     graph::{person_layers, Graph},
-    FamilyTree,
+    FamilyTree, PersonId,
 };
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -24,7 +24,8 @@ impl Default for GridItem {
 #[derive(Clone, Debug, Default, Serialize, Deserialize, Type)]
 pub struct Connections {
     orientation: Orientation,
-    total: u32,
+    total_x: u32,
+    total_y: u32,
     passing: Vec<Passing>,
     ending: Vec<Ending>,
     crossing: Vec<Crossing>,
@@ -48,6 +49,7 @@ pub struct Ending {
     connection: u32,
     color: Color,
     origin: Origin,
+    x_index: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
@@ -55,6 +57,7 @@ pub struct Crossing {
     connection: u32,
     color: Color,
     origin: Origin,
+    x_index: u32,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
@@ -148,200 +151,283 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
         })
         .collect_vec();
     rel_indices.push(Vec::new());
-    let mut grid = vec![Vec::new(); person_layers.len() * 3];
-    for (layer_index, layer) in grid.iter_mut().enumerate() {
+
+    // populate grid
+    let mut grid: Vec<Vec<GridItem>> = Vec::new();
+    for layer_index in 0..(person_layers.len() * 3) {
+        let mut layer = Vec::new();
         for item_index in 0..length {
             let item = match layer_index % 3 {
-                0 => {
-                    // sibling row
-                    let rel_indices = &rel_indices[layer_index / 3];
-                    let total = rel_indices
-                        .len()
-                        .try_into()
-                        .expect("Too many relationships");
-                    let mut connections = Connections {
-                        orientation: Orientation::Down,
-                        total,
-                        ..Default::default()
-                    };
-                    rel_indices
-                        .iter()
-                        .enumerate()
-                        .filter(|(_, rel_indices)| match rel_indices.children.len() {
-                            0 => false,
-                            1 if rel_indices.crossing_point.is_none() => false,
-                            _ => true,
-                        })
-                        .for_each(|(connection, rel_indices)| {
-                            let first = *rel_indices
-                                .children
-                                .first()
-                                .expect("Must contain first child");
-                            let last = *rel_indices
-                                .children
-                                .last()
-                                .expect("Must contain last child");
-                            assert!(first <= last, "Unsorted children");
-                            let start = rel_indices
-                                .crossing_point
-                                .map(|point| point.min(first))
-                                .unwrap_or(first);
-                            let end = rel_indices
-                                .crossing_point
-                                .map(|point| point.max(last))
-                                .unwrap_or(last);
-                            if let Some(crossing_point) = rel_indices.crossing_point {
-                                if item_index == crossing_point {
-                                    let origin = if crossing_point < first {
-                                        Origin::Right
-                                    } else if crossing_point > last {
-                                        Origin::Left
-                                    } else {
-                                        Origin::None
-                                    };
-                                    connections.crossing.push(Crossing {
-                                        connection: connection
-                                            .try_into()
-                                            .expect("Too many relationships"),
-                                        color: color(connection, total),
-                                        origin,
-                                    });
-                                    if rel_indices.children.len() == 1 && item_index == first {
-                                        connections.ending.push(Ending {
-                                            connection: connection
-                                                .try_into()
-                                                .expect("Too many relationships"),
-                                            color: color(connection, total),
-                                            origin: Origin::None,
-                                        });
-                                        return;
-                                    }
-                                }
-                            }
-                            if item_index == start && item_index == first {
-                                connections.ending.push(Ending {
-                                    connection: connection
-                                        .try_into()
-                                        .expect("Too many relationships"),
-                                    color: color(connection, total),
-                                    origin: Origin::Right,
-                                });
-                            } else if item_index == end && item_index == last {
-                                connections.ending.push(Ending {
-                                    connection: connection
-                                        .try_into()
-                                        .expect("Too many relationships"),
-                                    color: color(connection, total),
-                                    origin: Origin::Left,
-                                });
-                            } else if start < item_index && item_index < end {
-                                if rel_indices
-                                    .children
-                                    .iter()
-                                    .any(|index| *index == item_index)
-                                {
-                                    connections.ending.push(Ending {
-                                        connection: connection
-                                            .try_into()
-                                            .expect("Too many relationships"),
-                                        color: color(connection, total),
-                                        origin: Origin::None,
-                                    });
-                                }
-                                connections.passing.push(Passing {
-                                    connection: connection
-                                        .try_into()
-                                        .expect("Too many relationships"),
-                                    color: color(connection, total),
-                                })
-                            }
-                        });
-                    GridItem::Connections(connections)
-                }
-                1 => {
-                    // person row
-                    person_indices[(layer_index - 1) / 3]
-                        .iter()
-                        .find(|(i, _)| *i == item_index)
-                        .map(|(_, pid)| GridItem::Person(**pid))
-                        .unwrap_or_default()
-                }
-                2 => {
-                    // relationship row
-                    let rel_indices = &rel_indices[(layer_index - 2) / 3 + 1];
-                    let total = rel_indices
-                        .len()
-                        .try_into()
-                        .expect("Too many relationships");
-                    let mut connections = Connections {
-                        orientation: Orientation::Up,
-                        total,
-                        ..Default::default()
-                    };
-                    rel_indices
-                        .iter()
-                        .enumerate()
-                        .filter(|(_, rel_indices)| !matches!(rel_indices.parents, [None, None]))
-                        .for_each(|(connection, rel_indices)| {
-                            let first = rel_indices.parents[0];
-                            let last = rel_indices.parents[1];
-                            assert!(first <= last, "Unsorted parents");
-                            if let Some(crossing_point) = rel_indices.crossing_point {
-                                if item_index == crossing_point {
-                                    connections.crossing.push(Crossing {
-                                        connection: connection
-                                            .try_into()
-                                            .expect("Too many relationships"),
-                                        color: color(connection, total),
-                                        origin: Origin::None,
-                                    });
-                                }
-                            }
-                            if matches!(first, Some(index) if index == item_index) {
-                                let origin = if last.is_some() {
-                                    Origin::Right
-                                } else {
-                                    Origin::None
-                                };
-                                connections.ending.push(Ending {
-                                    connection: connection
-                                        .try_into()
-                                        .expect("Too many relationships"),
-                                    color: color(connection, total),
-                                    origin,
-                                });
-                            } else if matches!(last, Some(index) if index == item_index) {
-                                let origin = if first.is_some() {
-                                    Origin::Left
-                                } else {
-                                    Origin::None
-                                };
-                                connections.ending.push(Ending {
-                                    connection: connection
-                                        .try_into()
-                                        .expect("Too many relationships"),
-                                    color: color(connection, total),
-                                    origin,
-                                });
-                            } else if matches!((first, last),
-                                (Some(start), Some(end)) if start < item_index && item_index < end)
-                            {
-                                connections.passing.push(Passing {
-                                    connection: connection
-                                        .try_into()
-                                        .expect("Too many relationships"),
-                                    color: color(connection, total),
-                                })
-                            }
-                        });
-                    GridItem::Connections(connections)
-                }
+                0 => new_sibling_item(
+                    rel_indices[layer_index / 3].as_slice(),
+                    item_index,
+                    get_rel_connections(&mut grid, layer_index, item_index),
+                ),
+                1 => new_person_item(person_indices[(layer_index - 1) / 3].as_slice(), item_index),
+                2 => new_relationship_item(
+                    rel_indices[(layer_index - 2) / 3 + 1].as_slice(),
+                    item_index,
+                ),
                 _ => panic!("Math broken"),
             };
             layer.push(item);
         }
+        grid.push(layer);
     }
     grid
+}
+
+/// Relationship `Connections` above new sibling item
+fn get_rel_connections(
+    grid: &mut [Vec<GridItem>],
+    layer_index: usize,
+    item_index: usize,
+) -> Option<&mut Connections> {
+    if layer_index == 0 {
+        None
+    } else if let GridItem::Connections(connections) = &mut grid[layer_index - 1][item_index] {
+        Some(connections)
+    } else {
+        None
+    }
+}
+
+fn new_sibling_item(
+    rel_indices: &[RelIndices],
+    item_index: usize,
+    mut rel_connections: Option<&mut Connections>,
+) -> GridItem {
+    fn get_x_index(
+        connection: u32,
+        is_crossing: bool,
+        sibling_connections: &mut Connections,
+        rel_connections: Option<&mut Connections>,
+    ) -> u32 {
+        if let Some(rel_connections) = rel_connections {
+            if is_crossing {
+                rel_connections
+                    .crossing
+                    .iter()
+                    .find(|crossing| crossing.connection == connection)
+                    .expect("Must contain crossing")
+                    .x_index
+            } else {
+                rel_connections.total_x += 1;
+                ppp(&mut sibling_connections.total_x)
+            }
+        } else {
+            ppp(&mut sibling_connections.total_x)
+        }
+    }
+
+    let total_y = rel_indices
+        .len()
+        .try_into()
+        .expect("Too many relationships");
+    let mut connections = Connections {
+        orientation: Orientation::Down,
+        total_y,
+        total_x: rel_connections
+            .as_ref()
+            .map_or(0, |connections| connections.total_x),
+        ..Default::default()
+    };
+    rel_indices
+        .iter()
+        .enumerate()
+        .filter(|(_, rel_indices)| match rel_indices.children.len() {
+            0 => false,
+            1 if rel_indices.crossing_point.is_none() => false,
+            _ => true,
+        })
+        .for_each(|(connection, rel_indices)| {
+            let connection = connection.try_into().expect("Too many relationships");
+            let first = *rel_indices
+                .children
+                .first()
+                .expect("Must contain first child");
+            let last = *rel_indices
+                .children
+                .last()
+                .expect("Must contain last child");
+            assert!(first <= last, "Unsorted children");
+            let start = rel_indices
+                .crossing_point
+                .map(|point| point.min(first))
+                .unwrap_or(first);
+            let end = rel_indices
+                .crossing_point
+                .map(|point| point.max(last))
+                .unwrap_or(last);
+            if let Some(crossing_point) = rel_indices.crossing_point {
+                if item_index == crossing_point {
+                    let origin = if crossing_point < first
+                        || crossing_point == first && rel_indices.children.len() > 1
+                    {
+                        Origin::Right
+                    } else if crossing_point > last {
+                        Origin::Left
+                    } else {
+                        Origin::None
+                    };
+                    let x_index = get_x_index(
+                        connection,
+                        true,
+                        &mut connections,
+                        rel_connections.as_deref_mut(),
+                    );
+                    connections.crossing.push(Crossing {
+                        connection,
+                        color: color(connection, total_y),
+                        origin,
+                        x_index,
+                    });
+                    if rel_indices.children.len() == 1 && item_index == first {
+                        // if it's a single child, connect crossing directly to ending
+                        connections.ending.push(Ending {
+                            connection,
+                            color: color(connection, total_y),
+                            origin: Origin::None,
+                            x_index,
+                        });
+                        return;
+                    }
+                }
+            }
+            if item_index == start && item_index == first {
+                let x_index = get_x_index(
+                    connection,
+                    false,
+                    &mut connections,
+                    rel_connections.as_deref_mut(),
+                );
+                connections.ending.push(Ending {
+                    connection,
+                    color: color(connection, total_y),
+                    origin: Origin::Right,
+                    x_index,
+                });
+            } else if item_index == end && item_index == last {
+                let x_index = get_x_index(
+                    connection,
+                    false,
+                    &mut connections,
+                    rel_connections.as_deref_mut(),
+                );
+                connections.ending.push(Ending {
+                    connection,
+                    color: color(connection, total_y),
+                    origin: Origin::Left,
+                    x_index,
+                });
+            } else if start < item_index && item_index < end {
+                if rel_indices
+                    .children
+                    .iter()
+                    .any(|index| *index == item_index)
+                {
+                    let x_index = get_x_index(
+                        connection,
+                        false,
+                        &mut connections,
+                        rel_connections.as_deref_mut(),
+                    );
+                    connections.ending.push(Ending {
+                        connection,
+                        color: color(connection, total_y),
+                        origin: Origin::None,
+                        x_index,
+                    });
+                }
+                connections.passing.push(Passing {
+                    connection,
+                    color: color(connection, total_y),
+                })
+            }
+        });
+    GridItem::Connections(connections)
+}
+
+fn new_person_item(person_indices: &[(usize, &PersonId)], item_index: usize) -> GridItem {
+    person_indices
+        .iter()
+        .find(|(i, _)| *i == item_index)
+        .map(|(_, pid)| GridItem::Person(**pid))
+        .unwrap_or_default()
+}
+
+fn new_relationship_item(rel_indices: &[RelIndices], item_index: usize) -> GridItem {
+    let total_y = rel_indices
+        .len()
+        .try_into()
+        .expect("Too many relationships");
+    let mut connections = Connections {
+        orientation: Orientation::Up,
+        total_y,
+        ..Default::default()
+    };
+    rel_indices
+        .iter()
+        .enumerate()
+        .filter(|(_, rel_indices)| !matches!(rel_indices.parents, [None, None]))
+        .for_each(|(connection, rel_indices)| {
+            let connection = connection.try_into().expect("Too many relationships");
+            let first = rel_indices.parents[0];
+            let last = rel_indices.parents[1];
+            assert!(first <= last, "Unsorted parents");
+            if matches!(first, Some(index) if index == item_index) {
+                let origin = if last.is_some() {
+                    Origin::Right
+                } else {
+                    Origin::None
+                };
+                connections.ending.push(Ending {
+                    connection,
+                    color: color(connection, total_y),
+                    origin,
+                    x_index: ppp(&mut connections.total_x),
+                });
+            } else if matches!(last, Some(index) if index == item_index) {
+                let origin = if first.is_some() {
+                    Origin::Left
+                } else {
+                    Origin::None
+                };
+                connections.ending.push(Ending {
+                    connection,
+                    color: color(connection, total_y),
+                    origin,
+                    x_index: ppp(&mut connections.total_x),
+                });
+            } else if matches!((first, last),
+                                (Some(start), Some(end)) if start < item_index && item_index < end)
+            {
+                connections.passing.push(Passing {
+                    connection,
+                    color: color(connection, total_y),
+                })
+            }
+            if let Some(crossing_point) = rel_indices.crossing_point {
+                let x_index = if let Some(ending) = connections.ending.iter().find(|ending| {
+                    ending.connection == connection
+                        && matches!((first, last), (Some(_), None) | (None, Some(_)))
+                }) {
+                    // if it's a single parent, connect crossing directly to ending
+                    ending.x_index
+                } else {
+                    ppp(&mut connections.total_x)
+                };
+                if item_index == crossing_point {
+                    connections.crossing.push(Crossing {
+                        connection,
+                        color: color(connection, total_y),
+                        origin: Origin::None,
+                        x_index,
+                    });
+                }
+            }
+        });
+    GridItem::Connections(connections)
 }
 
 fn middle(a: usize, b: usize) -> usize {
@@ -353,7 +439,15 @@ fn middle(a: usize, b: usize) -> usize {
     }
 }
 
-fn color(connection: usize, total: u32) -> Color {
-    let fraction = connection as f32 / (total + 1) as f32;
+/// Postfix plus plus
+/// E.g. i++
+fn ppp(i: &mut u32) -> u32 {
+    let result = *i;
+    *i += 1;
+    result
+}
+
+fn color(connection: u32, total_y: u32) -> Color {
+    let fraction = connection as f32 / (total_y + 1) as f32;
     ((360.0 * fraction), 70.0, 50.0)
 }

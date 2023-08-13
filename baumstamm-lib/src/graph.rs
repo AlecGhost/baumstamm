@@ -497,12 +497,13 @@ pub fn person_layers(layers: &Vec<Vec<Rid>>, relationships: &[Relationship]) -> 
             };
             let mut offset = 0;
             acc.into_iter().enumerate().for_each(|(i, pid)| {
-                assert!(layer.len() >= offset + index + 1);
+                let insertion_index = offset + index;
+                assert!(insertion_index < layer.len());
                 if i < middle {
-                    layer.insert(offset + index, pid);
+                    layer.insert(insertion_index, pid);
                     offset += 1;
                 } else {
-                    layer.insert(offset + index + 1, pid)
+                    layer.insert(insertion_index + 1, pid)
                 }
             });
         }

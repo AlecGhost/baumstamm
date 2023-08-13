@@ -50,8 +50,6 @@ export function removeInfo(pid: PersonId, key: string) {
     return invoke()<string>("remove_info", { pid,key })
 }
 
-export type Passing = { connection: number; color: [number, number, number] }
-export type Crossing = { connection: number; color: [number, number, number]; origin: Origin }
 /**
  * UUID for a `Person`, stored as u128.
  */
@@ -65,11 +63,13 @@ export type RelationshipId = string
  */
 export type Person = { id: PersonId; info: { [key: string]: string } | null }
 export type GridItem = { Person: PersonId } | { Connections: Connections }
-export type Ending = { connection: number; color: [number, number, number]; origin: Origin }
+export type Crossing = { connection: number; color: [number, number, number]; origin: Origin; x_index: number }
+export type Orientation = "Up" | "Down"
+export type Origin = "Left" | "Right" | "None"
 /**
  * A relationship referencing two optional parents and the resulting children.
  */
 export type Relationship = { id: RelationshipId; parents: (PersonId | null)[]; children: PersonId[] }
-export type Origin = "Left" | "Right" | "None"
-export type Connections = { orientation: Orientation; total: number; passing: Passing[]; ending: Ending[]; crossing: Crossing[] }
-export type Orientation = "Up" | "Down"
+export type Passing = { connection: number; color: [number, number, number] }
+export type Connections = { orientation: Orientation; total_x: number; total_y: number; passing: Passing[]; ending: Ending[]; crossing: Crossing[] }
+export type Ending = { connection: number; color: [number, number, number]; origin: Origin; x_index: number }
