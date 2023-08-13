@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { persons, update, updateSelected } from '$lib/store';
+	import { persons, selected, update, updateSelected } from '$lib/store';
 	import {
 		addNewRelationship,
 		addParent,
@@ -34,9 +34,9 @@
 				{#each ownRelationships
 					.flatMap((rel) => rel.parents)
 					.filter((parent) => parent !== null && parent !== pid)
-					.map((parent) => $persons.find((person) => person.id == parent)) as child}
-					<tr>
-						<td class="table-cell-fit">{child?.name()}</td>
+					.map((parent) => $persons.find((person) => person.id == parent)) as partner}
+					<tr on:click={() => $selected = partner ?? null} class="cursor-pointer">
+						<td class="table-cell-fit">{partner?.name()}</td>
 					</tr>
 				{/each}
 			</tbody>

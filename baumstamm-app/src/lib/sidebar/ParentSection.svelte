@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { type Relationship, addParent } from '../../bindings';
-	import { persons, update, updateSelected } from '$lib/store';
+	import { persons, selected, update, updateSelected } from '$lib/store';
 
 	export let parentRel: Relationship;
 
@@ -19,7 +19,7 @@
 				{#each parentRel.parents
 					.filter((parent) => parent !== null)
 					.map((pid) => $persons.find((person) => person.id == pid)) as parent}
-					<tr>
+					<tr on:click={() => $selected = parent ?? null} class="cursor-pointer">
 						<td class="table-cell-fit">{parent?.name()}</td>
 					</tr>
 				{/each}

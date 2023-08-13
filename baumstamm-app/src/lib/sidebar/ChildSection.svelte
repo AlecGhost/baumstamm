@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { addChild, type PersonId, type Relationship, type RelationshipId } from '../../bindings';
-	import { persons, update, updateSelected } from '$lib/store';
+	import { persons, selected, update, updateSelected } from '$lib/store';
 	import { onDestroy, onMount } from 'svelte';
 	import type { Unsubscriber } from 'svelte/motion';
 	import type { Person } from '$lib/Person';
@@ -45,7 +45,7 @@
 					{#each ownRelationships
 						.flatMap((rel) => rel.children)
 						.map((pid) => $persons.find((person) => person.id == pid)) as child}
-						<tr>
+						<tr on:click={() => $selected = child ?? null} class="cursor-pointer">
 							<td class="table-cell-fit">{child?.name()}</td>
 						</tr>
 					{/each}
