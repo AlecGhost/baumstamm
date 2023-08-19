@@ -665,6 +665,7 @@ mod test {
         double_inheritance_and_xs,
         sort_long_chain,
         siblings,
-        indirect_di
+        indirect_di,
+        indirect_di2
     );
 }

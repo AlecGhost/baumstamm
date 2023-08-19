@@ -1,0 +1,26 @@
+---
+source: baumstamm-lib/src/graph.rs
+expression: person_layers
+---
+[
+    [
+        0,
+        1,
+    ],
+    [
+        2,
+        3,
+    ],
+    [
+        6,
+        7,
+        4,
+        A,
+        5,
+        8,
+        9,
+    ],
+    [
+        A,
+    ],
+]

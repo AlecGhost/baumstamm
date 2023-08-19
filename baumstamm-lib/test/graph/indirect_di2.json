@@ -1,0 +1,105 @@
+{
+  "relationships": [
+    {
+      "id": "0",
+      "parents": [null, null],
+      "children": ["0", "1"]
+    },
+    {
+      "id": "1",
+      "parents": ["0", null],
+      "children": ["2"]
+    },
+    {
+      "id": "2",
+      "parents": ["1", null],
+      "children": ["3"]
+    },
+    {
+      "id": "3",
+      "parents": [null, null],
+      "children": ["4", "5"]
+    },
+    {
+      "id": "4",
+      "parents": ["2", null],
+      "children": ["6"]
+    },
+    {
+      "id": "5",
+      "parents": ["3", null],
+      "children": ["7"]
+    },
+    {
+      "id": "6",
+      "parents": [null, null],
+      "children": ["8", "9"]
+    },
+    {
+      "id": "7",
+      "parents": ["5", "6"],
+      "children": []
+    },
+    {
+      "id": "8",
+      "parents": ["7", "8"],
+      "children": []
+    },
+    {
+      "id": "9",
+      "parents": ["9", null],
+      "children": ["A"]
+    },
+    {
+      "id": "A",
+      "parents": ["4", "A"],
+      "children": []
+    }
+  ],
+  "persons": [
+    {
+      "id": "0",
+      "info": null
+    },
+    {
+      "id": "1",
+      "info": null
+    },
+    {
+      "id": "2",
+      "info": null
+    },
+    {
+      "id": "3",
+      "info": null
+    },
+    {
+      "id": "4",
+      "info": null
+    },
+    {
+      "id": "5",
+      "info": null
+    },
+    {
+      "id": "6",
+      "info": null
+    },
+    {
+      "id": "7",
+      "info": null
+    },
+    {
+      "id": "8",
+      "info": null
+    },
+    {
+      "id": "9",
+      "info": null
+    },
+    {
+      "id": "A",
+      "info": null
+    }
+  ]
+}
