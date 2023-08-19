@@ -1,4 +1,4 @@
-use crate::{extract_persons, Relationship};
+use crate::Relationship;
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -436,16 +436,43 @@ impl Graph {
                     layers.remove(0);
                 }
             }
-            assert_eq!(
-                added.len(),
-                graph.nodes.len(),
-                "Number of nodes in layers and graph must be equal"
-            );
-            let parents_in_top_row: usize = layers[0]
-                .iter()
-                .map(|rid| graph.parents_of(rid).len())
-                .sum();
-            assert_eq!(parents_in_top_row, 0, "No parents in top row");
+            #[cfg(debug_assertions)]
+            {
+                assert_eq!(
+                    added.len(),
+                    graph.nodes.len(),
+                    "Number of nodes in layers and graph must be equal"
+                );
+                let parents_in_top_row: usize = layers[0]
+                    .iter()
+                    .map(|rid| graph.parents_of(rid).len())
+                    .sum();
+                assert_eq!(parents_in_top_row, 0, "No parents in top row");
+                for (i, layer) in layers.iter().enumerate().skip(1) {
+                    for rid in layer {
+                        let node = graph.get_node(rid);
+                        for parent in node.parents.iter().flatten() {
+                            assert!(layers[i - 1].contains(parent), "Must contain parent");
+                        }
+                    }
+                }
+                for (i, layer) in layers.iter().enumerate() {
+                    if i == layers.len() - 1 {
+                        continue;
+                    }
+                    for rid in layer {
+                        let node = graph.get_node(rid);
+                        for child in node.children.iter() {
+                            assert!(layers[i + 1].contains(child), "Must contain child");
+                        }
+                    }
+                }
+                assert_eq!(
+                    layers.iter().flatten().collect_vec(),
+                    layers.iter().flatten().unique().collect_vec(),
+                    "Relationships must be unique"
+                );
+            }
             layers
         }
 
@@ -459,6 +486,7 @@ impl Graph {
         cut_double_inheritance(&mut self);
         // layering, cutting indirect double inheritance
         let layers = layers(&mut self);
+        update_sources(&mut self);
         CutGraph {
             graph: self,
             layers,
@@ -507,6 +535,22 @@ impl CutGraph {
                         .parents
                 })
                 .collect_vec();
+
+            let both_missing = parents
+                .iter()
+                .filter_map(|parents| match parents {
+                    [Some(parent_a), Some(parent_b)] => Some((parent_a, parent_b)),
+                    _ => None,
+                })
+                .filter(|(parent_a, parent_b)| {
+                    !person_layers[i].contains(parent_a) && !person_layers[i].contains(parent_b)
+                })
+                .map(|(parent_a, parent_b)| (*parent_a, *parent_b))
+                .collect_vec();
+            for (parent_a, parent_b) in both_missing {
+                person_layers[i].push(parent_a);
+                person_layers[i].push(parent_b);
+            }
 
             let mut missing_partners = parents
                 .iter()
@@ -620,12 +664,37 @@ impl CutGraph {
             }
         }
 
-        let nr_persons: usize = person_layers.iter().flatten().unique().count();
-        assert_eq!(
-            nr_persons,
-            extract_persons(relationships).len(),
-            "Number of persons in layer inconsistent"
-        );
+        #[cfg(debug_assertions)]
+        {
+            let nr_persons: usize = person_layers.iter().flatten().unique().count();
+            assert_eq!(
+                nr_persons,
+                crate::extract_persons(relationships).len(),
+                "Number of persons in layer inconsistent"
+            );
+            for rel in relationships {
+                let mut padded_layers = person_layers.clone();
+                padded_layers.insert(0, Vec::new());
+                padded_layers.insert(padded_layers.len(), Vec::new());
+                assert!(
+                    padded_layers.windows(2).any(|window| {
+                        let parent_row = &window[0];
+                        let children_row = &window[1];
+                        let parents_present = rel
+                            .parents()
+                            .iter()
+                            .all(|parent| parent_row.contains(parent));
+                        let children_present = rel
+                            .children
+                            .iter()
+                            .all(|child| children_row.contains(child));
+                        parents_present && children_present
+                    }),
+                    "Rel {} not united",
+                    rel.id
+                );
+            }
+        }
         person_layers
     }
 }
@@ -649,9 +718,9 @@ mod test {
                     crate::consistency::check(&tree_data).expect("Test data inconsistent");
                     let graph = super::Graph::new(&tree_data.relationships);
                     let cut_graph = graph.cut();
+                    let person_layers = cut_graph.person_layers(&tree_data.relationships);
                     insta::assert_debug_snapshot!(&cut_graph.graph);
                     insta::assert_debug_snapshot!(&cut_graph.layers);
-                    let person_layers = cut_graph.person_layers(&tree_data.relationships);
                     insta::assert_debug_snapshot!(person_layers);
                 }
             )*
