@@ -1,7 +1,4 @@
-use baumstamm_lib::{
-    graph::{person_layers, Graph},
-    FamilyTree, PersonId,
-};
+use baumstamm_lib::{graph::Graph, FamilyTree, PersonId};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -76,8 +73,9 @@ struct RelIndices {
 
 pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
     let rels = tree.get_relationships();
-    let layers = Graph::new(rels).cut().layers();
-    let person_layers = person_layers(&layers, rels);
+    let graph = Graph::new(rels).cut();
+    let layers = graph.layers();
+    let person_layers = graph.person_layers(rels);
     let length = person_layers
         .iter()
         .map(|layer| layer.len())

@@ -1,7 +1,4 @@
-use baumstamm_lib::{
-    graph::{person_layers, Graph},
-    FamilyTree, PersonId, RelationshipId,
-};
+use baumstamm_lib::{graph::Graph, FamilyTree, PersonId, RelationshipId};
 use clap::{Args, Parser, Subcommand};
 use std::{error::Error, fs, path::Path};
 
@@ -169,7 +166,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let graph = Graph::new(tree.get_relationships()).cut();
                     println!(
                         "Person Layers: {:#?}",
-                        person_layers(&graph.layers(), tree.get_relationships())
+                        graph.person_layers(tree.get_relationships())
                     )
                 }
             },

@@ -5,27 +5,46 @@ expression: "&cut_graph.graph"
 Graph {
     sources: [
         0,
+        1,
+        2,
     ],
     nodes: [
         Node {
             value: 0,
             children: [
-                1,
+                3,
+                4,
             ],
         },
         Node {
             value: 1,
             children: [
-                2,
-                3,
+                4,
+                5,
             ],
         },
         Node {
             value: 2,
-            children: [],
+            children: [
+                5,
+            ],
         },
         Node {
             value: 3,
+            children: [
+                6,
+            ],
+        },
+        Node {
+            value: 4,
+            children: [],
+        },
+        Node {
+            value: 5,
+            children: [],
+        },
+        Node {
+            value: 6,
             children: [],
         },
     ],
