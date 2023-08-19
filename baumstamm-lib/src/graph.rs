@@ -113,7 +113,7 @@ impl Graph {
                 .iter()
                 .find(|rel| rel.id == *rid)
                 .expect("Inconsistent data");
-            current.parents.map(|opt| {
+            let mut parents_rids = current.parents.map(|opt| {
                 opt.as_ref()
                     .and_then(|parent_id| {
                         relationships
@@ -121,7 +121,12 @@ impl Graph {
                             .find(|rel| rel.children.contains(parent_id))
                     })
                     .map(|rel| rel.id)
-            })
+            });
+            // enforce unique parent rels (happens with sibling rels)
+            if parents_rids[0] == parents_rids[1] {
+                parents_rids[1] = None;
+            }
+            parents_rids
         }
 
         let mut nodes: Vec<Node> = relationships.iter().map(|rel| Node::new(rel.id)).collect();
@@ -200,13 +205,12 @@ impl Graph {
 
         fn cut_parent(graph: &mut Graph, child: &Rid, parent: &Rid) {
             let node = graph.get_node_mut(child);
-            if let Some(cuttable_parent) = node
-                .parents
+            node.parents
                 .iter_mut()
-                .find(|cuttable_parent| matches!(cuttable_parent, Some(p) if p == parent))
-            {
-                *cuttable_parent = None;
-            };
+                .filter(|cuttable_parent| matches!(cuttable_parent, Some(p) if p == parent))
+                .for_each(|cuttable_parent| {
+                    *cuttable_parent = None;
+                });
         }
 
         fn cut_child(graph: &mut Graph, child: &Rid, parent: &Rid) {
@@ -393,12 +397,11 @@ impl Graph {
                 }
 
                 // sweep up
-                let mut new_layers = Vec::new();
+                let mut new_layers: Vec<Vec<Rid>> = Vec::new();
                 for (layer_index, layer) in layers.iter().enumerate() {
                     let mut parents: Vec<Rid> = Vec::new();
                     for rid in layer.iter() {
-                        let current_parents =
-                            graph.parents_of(rid).into_iter().unique().collect_vec();
+                        let current_parents = graph.parents_of(rid);
                         let (added_parents, unadded_parents): (Vec<_>, Vec<_>) = current_parents
                             .into_iter()
                             .partition(|parent| added.contains(parent));
