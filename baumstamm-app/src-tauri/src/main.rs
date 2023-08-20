@@ -86,6 +86,7 @@ fn main() -> Result<()> {
             commands::add_new_relationship,
             commands::add_relationship_with_partner,
             commands::remove_person,
+            commands::merge_person,
             commands::insert_info,
             commands::remove_info,
         ])
@@ -112,6 +113,7 @@ fn export() {
             commands::add_new_relationship,
             commands::add_relationship_with_partner,
             commands::remove_person,
+            commands::merge_person,
             commands::insert_info,
             commands::remove_info,
         ]

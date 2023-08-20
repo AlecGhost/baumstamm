@@ -12,6 +12,8 @@ pub enum Error {
     Input(#[from] InputError),
     #[error("Display error: {0}")]
     Display(#[from] DisplayError),
+    #[error("Merge conflict: {0}")]
+    MergeConflict(#[from] MergeConflict),
 }
 
 fn serialize_serde_error<S>(error: &serde_json::Error, serializer: S) -> Result<S::Ok, S::Error>
@@ -61,6 +63,18 @@ pub enum InputError {
     AlreadyTwoParents,
     #[error("Cannot remove person")]
     CannotRemovePerson,
+    #[error("Cannot merge with oneself")]
+    SelfMerge,
+}
+
+#[derive(Debug, Error, Serialize)]
+pub enum MergeConflict {
+    #[error("Person info differs")]
+    DifferentInfo,
+    #[error("More than two parents")]
+    TooManyParents,
+    #[error("Inconsistent tree: {0}")]
+    InconsistentTree(ConsistencyError),
 }
 
 #[derive(Debug, Error, Serialize)]

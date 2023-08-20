@@ -123,6 +123,18 @@ pub(crate) fn remove_person(pid: Pid, state: State) -> Result<(), Error> {
     Ok(())
 }
 
+#[tauri::command]
+#[specta]
+pub(crate) fn merge_person(pid1: Pid, pid2: Pid, state: State) -> Result<(), Error> {
+    let mut lock = state.0.lock().unwrap();
+    lock.tree.merge_person(pid1, pid2)?;
+    if let Some(path) = lock.path.clone() {
+        drop(lock);
+        save_file(path, state)?;
+    }
+    Ok(())
+}
+
 // info
 #[tauri::command]
 #[specta]

@@ -42,6 +42,10 @@ export function removePerson(pid: PersonId) {
     return invoke()<null>("remove_person", { pid })
 }
 
+export function mergePerson(pid1: PersonId, pid2: PersonId) {
+    return invoke()<null>("merge_person", { pid1,pid2 })
+}
+
 export function insertInfo(pid: PersonId, key: string, value: string) {
     return invoke()<null>("insert_info", { pid,key,value })
 }

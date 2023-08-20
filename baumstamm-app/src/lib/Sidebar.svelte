@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { Avatar, toastStore, type ToastSettings } from '@skeletonlabs/skeleton';
+	import { Avatar } from '@skeletonlabs/skeleton';
 	import type { Person } from './Person';
-	import { removePerson, type Relationship } from '../bindings';
-	import { relationships, update } from './store';
+	import type { Relationship } from '../bindings';
+	import { relationships } from './store';
 	import { onDestroy, onMount } from 'svelte';
 	import type { Unsubscriber } from 'svelte/store';
 	import InfoSection from './sidebar/InfoSection.svelte';
@@ -10,6 +10,7 @@
 	import ChildSection from './sidebar/ChildSection.svelte';
 	import PartnerSection from './sidebar/PartnerSection.svelte';
 	import NameSection from './sidebar/NameSection.svelte';
+	import EditSection from './sidebar/EditSection.svelte';
 
 	export let person: Person | null;
 
@@ -37,17 +38,6 @@
 			parentRel = relationshipStore.find((rel) => rel.children.includes(person!.id))!;
 		}
 	}
-
-	function deletePerson() {
-		removePerson(person!.id)
-			.then(update)
-			.catch((err: string) => {
-				const toast: ToastSettings = {
-					message: err
-				};
-				toastStore.trigger(toast);
-			});
-	}
 </script>
 
 <section>
@@ -66,9 +56,7 @@
 		<hr />
 		<PartnerSection {ownRelationships} pid={person.id} />
 		<hr />
-		<section class="p-4">
-			<button on:click={deletePerson} class="btn variant-filled-error m-1">Delete Person</button>
-		</section>
+		<EditSection {person} />
 	{:else}
 		<section class="flex justify-center">
 			<div class="placeholder-circle animate-pulse w-60" />
