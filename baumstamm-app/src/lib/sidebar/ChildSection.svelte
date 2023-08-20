@@ -1,12 +1,19 @@
 <script lang="ts">
-	import { addChild, type PersonId, type Relationship, type RelationshipId } from '../../bindings';
-	import { persons, selected, update, updateSelected } from '$lib/store';
+	import { addChild, type PersonId, type Relationship } from '$lib/../bindings';
+	import { persons, selected, update, updateSelected, updateTarget } from '$lib/store';
 	import { onDestroy, onMount } from 'svelte';
 	import type { Unsubscriber } from 'svelte/motion';
 	import type { Person } from '$lib/Person';
 
 	export let ownRelationships: Relationship[];
 	export let pid: PersonId;
+
+	// clear when active person changes
+	let lastPid = pid;
+	$: if (pid !== lastPid) {
+		relIndex = null;
+		lastPid = pid;
+	}
 
 	let personStore: Person[] = [];
 	let unsubscribe: Unsubscriber;
@@ -28,11 +35,25 @@
 		return 'Unknown';
 	}
 
-	let childPartner: RelationshipId;
+	let relIndex: number | null = null;
+
+	$: {
+		if (relIndex == null) {
+			updateTarget(null);
+		} else if (ownRelationships !== undefined && ownRelationships.length > 0) {
+			const partnerId = ownRelationships[relIndex].parents.find((parent) => parent !== pid);
+			if (partnerId !== null && partnerId !== undefined) {
+				updateTarget(partnerId);
+			}
+		}
+	}
+
 	async function newChild() {
-		let pid = await addChild(childPartner);
-		await update();
-		updateSelected(pid);
+		if (relIndex !== null) {
+			let pid = await addChild(ownRelationships[relIndex].id);
+			await update();
+			updateSelected(pid);
+		}
 	}
 </script>
 
@@ -45,7 +66,7 @@
 					{#each ownRelationships
 						.flatMap((rel) => rel.children)
 						.map((pid) => $persons.find((person) => person.id == pid)) as child}
-						<tr on:click={() => $selected = child ?? null} class="cursor-pointer">
+						<tr on:click={() => ($selected = child ?? null)} class="cursor-pointer">
 							<td class="table-cell-fit">{child?.name()}</td>
 						</tr>
 					{/each}
@@ -53,9 +74,9 @@
 			</table>
 		</div>
 		<button on:click={newChild} type="button" class="btn variant-filled m-1">Add Child with</button>
-		<select bind:value={childPartner} class="select m-1">
-			{#each ownRelationships as rel}
-				<option value={rel.id}>{calculateLabel(rel)}</option>
+		<select bind:value={relIndex} class="select m-1">
+			{#each ownRelationships as rel, i}
+				<option value={i}>{calculateLabel(rel)}</option>
 			{/each}
 		</select>
 	{/if}

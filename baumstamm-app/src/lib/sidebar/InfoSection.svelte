@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Person } from '$lib/Person';
 	import { update } from '$lib/store';
-	import { insertInfo, removeInfo } from '../../bindings';
+	import { insertInfo, removeInfo } from '$lib/../bindings';
 	import { focusTrap } from '@skeletonlabs/skeleton';
 
 	export let person: Person;
@@ -10,7 +10,7 @@
 	let infoKey = '';
 	let infoValue = '';
 
-	// clear fields if person changes
+	// clear when active person changes
 	let pid = person.id;
 	$: if (person.id !== pid) {
 		infoKey = '';

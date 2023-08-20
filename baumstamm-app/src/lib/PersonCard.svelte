@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Avatar } from '@skeletonlabs/skeleton';
 	import type { Person } from '$lib/Person';
-	import { selected } from './store';
+	import { selected, target } from '$lib/store';
 
 	export let person: Person;
 
@@ -11,7 +11,12 @@
 </script>
 
 <div class="person-card m-0">
-	<div class="card p-4 mx-4 h-full" class:border={$selected == person} on:click={select}>
+	<div
+		class="card p-4 mx-4 h-full"
+		class:variant-filled-primary={$selected == person}
+		class:variant-filled-tertiary={$target == person && $selected != person}
+		on:click={select}
+	>
 		<header class="card-header justify-center flex">
 			<Avatar src={person.avatar()} initials={person.initials()} />
 		</header>

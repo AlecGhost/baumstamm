@@ -1,10 +1,17 @@
 <script lang="ts">
 	import { toastStore, type ToastSettings } from '@skeletonlabs/skeleton';
 	import { removePerson, mergePerson, type PersonId } from '$lib/../bindings';
-	import { update, persons } from '$lib/store';
+	import { update, persons, updateTarget } from '$lib/store';
 	import type { Person } from '$lib/Person';
 
 	export let person: Person;
+
+	// clear when active person changes
+	let lastPid = person.id;
+	$: if (person.id !== lastPid) {
+		mergeTarget = null;
+		lastPid = person.id;
+	}
 
 	function deletePerson() {
 		removePerson(person!.id)
@@ -17,16 +24,23 @@
 			});
 	}
 
-	let mergeTarget: PersonId;
+	let mergeTarget: PersonId | null = null;
+
+	$: {
+		updateTarget(mergeTarget);
+	}
+
 	function mergeWithPerson() {
-		mergePerson(person!.id, mergeTarget)
-			.then(update)
-			.catch((err: string) => {
-				const toast: ToastSettings = {
-					message: err
-				};
-				toastStore.trigger(toast);
-			});
+		if (mergeTarget !== null) {
+			mergePerson(person!.id, mergeTarget)
+				.then(update)
+				.catch((err: string) => {
+					const toast: ToastSettings = {
+						message: err
+					};
+					toastStore.trigger(toast);
+				});
+		}
 	}
 </script>
 

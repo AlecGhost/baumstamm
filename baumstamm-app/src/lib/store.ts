@@ -12,12 +12,24 @@ import {
 export const persons = writable<Person[]>([]);
 export const relationships = writable<Relationship[]>([]);
 export const selected = writable<Person | null>(null);
+export const target = writable<Person | null>(null);
 export const grid = writable<GridItem[][]>([]);
 
 export async function updateSelected(pid: PersonId) {
 	const person = get(persons).find((person) => person.id == pid);
 	if (person !== undefined) {
 		selected.update(() => person);
+	}
+}
+
+export async function updateTarget(pid: PersonId | null) {
+	if (pid == null) {
+		target.update(() => null);
+	} else {
+		const person = get(persons).find((person) => person.id == pid);
+		if (person !== undefined) {
+			target.update(() => person);
+		}
 	}
 }
 

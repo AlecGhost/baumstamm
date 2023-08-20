@@ -1,15 +1,22 @@
 <script lang="ts">
-	import { persons, selected, update, updateSelected } from '$lib/store';
+	import { persons, selected, update, updateSelected, updateTarget } from '$lib/store';
 	import {
 		addNewRelationship,
 		addParent,
 		addRelationshipWithPartner,
 		type PersonId,
 		type Relationship
-	} from '../../bindings';
+	} from '$lib/../bindings';
 
 	export let ownRelationships: Relationship[];
 	export let pid: PersonId;
+
+	// clear when active person changes
+	let lastPid = pid;
+	$: if (pid !== lastPid) {
+		existingPartner = null;
+		lastPid = pid;
+	}
 
 	async function newPartner() {
 		let rid = await addNewRelationship(pid);
@@ -18,11 +25,18 @@
 		updateSelected(partner);
 	}
 
-	let existingPartner: PersonId;
+	let existingPartner: PersonId | null = null;
+
+	$: {
+		updateTarget(existingPartner);
+	}
+
 	async function newRelationshipWithPartner() {
-		let partner = await addRelationshipWithPartner(pid, existingPartner);
-		await update();
-		updateSelected(partner);
+		if (existingPartner !== null) {
+			let partner = await addRelationshipWithPartner(pid, existingPartner);
+			await update();
+			updateSelected(partner);
+		}
 	}
 </script>
 
@@ -35,7 +49,7 @@
 					.flatMap((rel) => rel.parents)
 					.filter((parent) => parent !== null && parent !== pid)
 					.map((parent) => $persons.find((person) => person.id == parent)) as partner}
-					<tr on:click={() => $selected = partner ?? null} class="cursor-pointer">
+					<tr on:click={() => ($selected = partner ?? null)} class="cursor-pointer">
 						<td class="table-cell-fit">{partner?.name()}</td>
 					</tr>
 				{/each}
