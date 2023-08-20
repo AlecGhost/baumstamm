@@ -149,8 +149,11 @@ impl FamilyTree {
                 }
             });
             rel.children.retain(|child| *child != person_id);
-            // delete rel if it is empty now
-            rel.parents.iter().flatten().count() != 0 || !rel.children.is_empty()
+            let children_empty = rel.children.is_empty();
+            let parent_count = rel.parents.iter().flatten().count();
+            let empty = parent_count <= 1 && children_empty;
+            // delete rel if it is now empty (even if the partner is still there)
+            !empty
         });
         if consistency::check(&self.tree_data).is_err() {
             self.tree_data.persons.push(backup_person);
