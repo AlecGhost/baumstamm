@@ -514,17 +514,21 @@ impl CutGraph {
 
         // add all children
         for (i, layer) in layers.iter().enumerate() {
+            let person_layer = &mut person_layers[i];
+
             for rid in layer {
                 let rel = relationships
                     .iter()
                     .find(|rel| rel.id == *rid)
                     .expect("Relationship must exist");
-                person_layers[i].extend(rel.children.clone());
+                person_layer.extend(rel.children.clone());
             }
         }
 
         // add missing parents
         for (i, layer) in layers.iter().skip(1).enumerate() {
+            let person_layer = &mut person_layers[i];
+
             let parents = layer
                 .iter()
                 .map(|rid| {
@@ -539,18 +543,17 @@ impl CutGraph {
             let both_missing = parents
                 .iter()
                 .filter_map(|parents| match parents {
-                    [Some(parent_a), Some(parent_b)] => Some((parent_a, parent_b)),
+                    [Some(parent_a), Some(parent_b)] => Some([parent_a, parent_b]),
                     _ => None,
                 })
-                .filter(|(parent_a, parent_b)| {
-                    !person_layers[i].contains(parent_a) && !person_layers[i].contains(parent_b)
+                .filter(|[parent_a, parent_b]| {
+                    !person_layer.contains(parent_a) && !person_layer.contains(parent_b)
                 })
-                .map(|(parent_a, parent_b)| (*parent_a, *parent_b))
+                .flatten()
+                .unique()
+                .copied()
                 .collect_vec();
-            for (parent_a, parent_b) in both_missing {
-                person_layers[i].push(parent_a);
-                person_layers[i].push(parent_b);
-            }
+            person_layer.extend(both_missing);
 
             let mut missing_partners = parents
                 .iter()
@@ -560,8 +563,8 @@ impl CutGraph {
                 })
                 .filter_map(|(parent_a, parent_b)| {
                     match (
-                        person_layers[i].iter().position(|pid| pid == parent_a),
-                        person_layers[i].iter().position(|pid| pid == parent_b),
+                        person_layer.iter().position(|pid| pid == parent_a),
+                        person_layer.iter().position(|pid| pid == parent_b),
                     ) {
                         (Some(_), Some(_)) => None,
                         (Some(pos_a), None) => Some((pos_a, parent_b)),
@@ -570,6 +573,7 @@ impl CutGraph {
                     }
                 })
                 .sorted_by(|(pos_a, _), (pos_b, _)| Ord::cmp(pos_a, pos_b))
+                .unique_by(|(_, pid)| *pid)
                 .collect_vec();
 
             fn add_to_layer(layer: &mut Vec<Pid>, index: usize, acc: Vec<Pid>) {
@@ -603,12 +607,12 @@ impl CutGraph {
                     continue;
                 }
                 let acc_len = acc.len();
-                add_to_layer(&mut person_layers[i], last_index + offset, acc);
+                add_to_layer(person_layer, last_index + offset, acc);
                 offset += acc_len;
                 last_index = index;
                 acc = vec![*missing_partner];
             }
-            add_to_layer(&mut person_layers[i], last_index, acc);
+            add_to_layer(person_layer, last_index, acc);
 
             let missing_singles = parents
                 .iter()
@@ -617,9 +621,10 @@ impl CutGraph {
                     [None, Some(parent)] => Some(parent),
                     _ => None,
                 })
-                .filter(|pid| !person_layers[i].contains(pid))
+                .filter(|pid| !person_layer.contains(pid))
+                .unique()
                 .collect_vec();
-            person_layers[i].extend(missing_singles);
+            person_layer.extend(missing_singles);
         }
 
         // remove last layer if empty
