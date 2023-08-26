@@ -7,7 +7,7 @@ import {
 	type GridItem,
 	type PersonId,
 	type Relationship
-} from '../bindings';
+} from '$lib/api';
 
 export const persons = writable<Person[]>([]);
 export const relationships = writable<Relationship[]>([]);

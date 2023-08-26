@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Person } from '$lib/Person';
 	import { update } from '$lib/store';
-	import { insertInfo, removeInfo } from '$lib/../bindings';
+	import { insertInfo, removeInfo } from '$lib/api';
 	import { focusTrap } from '@skeletonlabs/skeleton';
 
 	export let person: Person;

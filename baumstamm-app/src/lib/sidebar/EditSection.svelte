@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { toastStore, type ToastSettings } from '@skeletonlabs/skeleton';
-	import { removePerson, mergePerson, type PersonId } from '$lib/../bindings';
+	import { removePerson, mergePerson, type PersonId } from '$lib/api';
 	import { update, persons, updateTarget } from '$lib/store';
 	import type { Person } from '$lib/Person';
 

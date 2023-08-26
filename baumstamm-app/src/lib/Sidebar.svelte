@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Avatar } from '@skeletonlabs/skeleton';
 	import type { Person } from './Person';
-	import type { Relationship } from '../bindings';
+	import type { Relationship } from '$lib/api';
 	import { relationships } from './store';
 	import { onDestroy, onMount } from 'svelte';
 	import type { Unsubscriber } from 'svelte/store';

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { addChild, type PersonId, type Relationship } from '$lib/../bindings';
+	import { addChild, type PersonId, type Relationship } from '$lib/api';
 	import { persons, selected, update, updateSelected, updateTarget } from '$lib/store';
 	import { onDestroy, onMount } from 'svelte';
 	import type { Unsubscriber } from 'svelte/motion';

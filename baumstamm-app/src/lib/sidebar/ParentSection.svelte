@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { type Relationship, addParent } from '../../bindings';
+	import { type Relationship, addParent } from '$lib/api';
 	import { persons, selected, update, updateSelected } from '$lib/store';
 
 	export let parentRel: Relationship;

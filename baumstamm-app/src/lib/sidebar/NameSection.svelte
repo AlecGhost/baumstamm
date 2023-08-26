@@ -2,7 +2,7 @@
 	import type { Person } from '$lib/Person';
 	import { update } from '$lib/store';
 	import { focusTrap } from '@skeletonlabs/skeleton';
-	import { insertInfo } from '../../bindings';
+	import { insertInfo } from '$lib/api';
 
 	export let person: Person;
 

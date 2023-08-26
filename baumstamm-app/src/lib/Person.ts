@@ -1,4 +1,4 @@
-import type { Person as RPerson } from '../bindings';
+import type { Person as RPerson } from '$lib/api';
 
 export class Person {
 	id: string;
