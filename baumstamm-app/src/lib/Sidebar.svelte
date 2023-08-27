@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { Avatar } from '@skeletonlabs/skeleton';
+	import { toastStore, type ToastSettings } from '@skeletonlabs/skeleton';
 	import type { Person } from './Person';
-	import type { Relationship } from '../bindings';
-	import { relationships } from './store';
+	import { insertInfo, getPathRelativeToWorkspace, type Relationship } from '../bindings';
+	import { relationships, update } from './store';
 	import { onDestroy, onMount } from 'svelte';
 	import type { Unsubscriber } from 'svelte/store';
 	import InfoSection from './sidebar/InfoSection.svelte';
@@ -11,6 +12,7 @@
 	import PartnerSection from './sidebar/PartnerSection.svelte';
 	import NameSection from './sidebar/NameSection.svelte';
 	import EditSection from './sidebar/EditSection.svelte';
+	import { openImage, imageSrc } from '$lib/image';
 
 	export let person: Person | null;
 
@@ -38,12 +40,34 @@
 			parentRel = relationshipStore.find((rel) => rel.children.includes(person!.id))!;
 		}
 	}
+
+	async function selectAvatar() {
+		if (person !== null) {
+			const path = await openImage();
+			if (path !== null) {
+				try {
+					const relativePath = await getPathRelativeToWorkspace(path);
+					insertInfo(person.id, '@image', relativePath);
+					update();
+					person.image = relativePath;
+					person = person;
+				} catch {
+					const toast: ToastSettings = {
+						message: 'You need to save the tree before adding images.'
+					};
+					toastStore.trigger(toast);
+				}
+			}
+		}
+	}
 </script>
 
 <section>
 	{#if person !== null}
 		<section class="flex justify-center">
-			<Avatar src={person.avatar()} initials={person.initials()} width="w-60" />
+			{#await imageSrc(person.image) then src}
+				<Avatar {src} initials={person.initials()} width="w-60" on:click={selectAvatar} />
+			{/await}
 		</section>
 		<NameSection {person} />
 		<InfoSection {person} />

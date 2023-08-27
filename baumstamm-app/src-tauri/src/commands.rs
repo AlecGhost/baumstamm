@@ -1,5 +1,5 @@
 use crate::{
-    error::Error,
+    error::{CommandError, Error},
     grid::{self, GridItem},
 };
 use baumstamm_lib::{FamilyTree, Person, Relationship};
@@ -33,6 +33,58 @@ pub(crate) fn save_file(path: PathBuf, state: State) -> Result<(), Error> {
     std::fs::write(&path, data)?;
     lock.path = Some(path);
     Ok(())
+}
+
+#[tauri::command]
+#[specta]
+pub(crate) fn get_workspace_path(state: State) -> Result<PathBuf, Error> {
+    let path = state
+        .0
+        .lock()
+        .unwrap()
+        .path
+        .as_ref()
+        .and_then(|path| path.parent())
+        .ok_or(CommandError::NoWorkspace)?
+        .canonicalize()?;
+    Ok(path)
+}
+
+#[tauri::command]
+#[specta]
+pub(crate) fn get_canonical_path(path: PathBuf) -> Result<PathBuf, Error> {
+    let path = path.canonicalize()?;
+    Ok(path)
+}
+
+#[tauri::command]
+#[specta]
+pub(crate) fn get_path_relative_to_workspace(
+    path: PathBuf,
+    state: State,
+) -> Result<PathBuf, Error> {
+    let path = path.canonicalize()?;
+    let file_name = path.file_name().ok_or(CommandError::NoWorkspace)?;
+    let parent = path.parent().ok_or(CommandError::NoWorkspace)?;
+    let workspace = get_workspace_path(state)?;
+    let mut path_iter = parent.iter();
+    let mut workspace_iter = workspace.iter();
+    let mut relative_path = PathBuf::new();
+    loop {
+        match (path_iter.next(), workspace_iter.next()) {
+            (Some(path_dir), Some(workspace_dir)) => {
+                if path_dir != workspace_dir {
+                    relative_path = PathBuf::from("..").join(relative_path);
+                    relative_path.push(path_dir);
+                }
+            }
+            (Some(path_dir), None) => relative_path.push(path_dir),
+            (None, Some(_)) => relative_path = PathBuf::from("..").join(relative_path),
+            (None, None) => break,
+        }
+    }
+    relative_path.push(file_name);
+    Ok(relative_path)
 }
 
 // get datastructures

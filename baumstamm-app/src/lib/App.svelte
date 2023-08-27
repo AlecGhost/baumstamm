@@ -12,6 +12,7 @@
 	import TreeView from '$lib/TreeView.svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { onDestroy, onMount } from 'svelte';
+	import { imageSrc } from './image';
 
 	// tauri events
 	let unlisten: UnlistenFn[] = [];
@@ -59,7 +60,9 @@
 				>
 					{#if !showSidebar}
 						{#if $selected !== null}
-							<Avatar initials={$selected.initials()} />
+							{#await imageSrc($selected.image) then src}
+								<Avatar {src} initials={$selected.initials()} />
+							{/await}
 						{:else}
 							<div class="placeholder-circle animate-pulse w-20" />
 						{/if}

@@ -22,6 +22,18 @@ export function getGrid() {
     return invoke()<GridItem[][]>("get_grid")
 }
 
+export function getWorkspacePath() {
+    return invoke()<string>("get_workspace_path")
+}
+
+export function getCanonicalPath(path: string) {
+    return invoke()<string>("get_canonical_path", { path })
+}
+
+export function getPathRelativeToWorkspace(path: string) {
+    return invoke()<string>("get_path_relative_to_workspace", { path })
+}
+
 export function addParent(rid: RelationshipId) {
     return invoke()<[PersonId, RelationshipId]>("add_parent", { rid })
 }

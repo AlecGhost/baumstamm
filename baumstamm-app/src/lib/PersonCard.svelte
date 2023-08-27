@@ -2,6 +2,7 @@
 	import { Avatar } from '@skeletonlabs/skeleton';
 	import type { Person } from '$lib/Person';
 	import { selected, target } from '$lib/store';
+	import { imageSrc } from '$lib/image';
 
 	export let person: Person;
 
@@ -18,7 +19,9 @@
 		on:click={select}
 	>
 		<header class="card-header justify-center flex">
-			<Avatar src={person.avatar()} initials={person.initials()} />
+			{#await imageSrc(person.image) then src}
+				<Avatar {src} initials={person.initials()} />
+			{/await}
 		</header>
 		<section class="p-4">
 			<p class="font-bold text-center">{person.name()}</p>

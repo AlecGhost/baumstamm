@@ -10,6 +10,14 @@ pub enum Error {
     #[serde(serialize_with = "serialize_to_string")]
     #[error(transparent)]
     Io(#[from] std::io::Error),
+    #[error(transparent)]
+    Command(#[from] CommandError),
+}
+
+#[derive(Debug, Error, Serialize)]
+pub enum CommandError {
+    #[error("Not in a workspace")]
+    NoWorkspace,
 }
 
 fn serialize_to_string<E: ToString, S>(error: &E, serializer: S) -> Result<S::Ok, S::Error>

@@ -57,8 +57,4 @@ export class Person {
 			return (firstLetter ?? '') + (secondLetter ?? '');
 		}
 	}
-
-	public avatar(): string {
-		return this.image ?? '';
-	}
 }
