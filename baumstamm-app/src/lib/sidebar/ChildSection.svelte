@@ -29,8 +29,10 @@
 	function calculateLabel(rel: Relationship): string {
 		const partnerId = rel.parents.find((parent) => parent !== pid);
 		if (partnerId !== null && partnerId !== undefined) {
-			const partner = personStore.find((person) => person.id == partnerId)!;
-			return partner.name();
+			const partner = personStore.find((person) => person.id == partnerId);
+			if (partner !== undefined) {
+				return partner.name();
+			}
 		}
 		return 'Unknown';
 	}
