@@ -10,14 +10,14 @@
 
 	let firstName = person.firstName ?? '';
 	let lastName = person.lastName ?? '';
-	let showForm = !person.firstName || !person.lastName;
+	let showForm = !person.firstName && !person.lastName;
 
 	// reevaluate if person changes
 	let pid = person.id;
 	$: if (person.id !== pid) {
 		firstName = person.firstName ?? '';
 		lastName = person.lastName ?? '';
-		showForm = !person.firstName || !person.lastName;
+		showForm = !person.firstName && !person.lastName;
 		pid = person.id;
 	}
 
