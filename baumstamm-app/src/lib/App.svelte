@@ -15,6 +15,7 @@
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { onDestroy, onMount } from 'svelte';
 	import DataView from './DataView.svelte';
+	import SettingsView from './SettingsView.svelte';
 
 	// tauri events
 	let unlisten: UnlistenFn[] = [];
@@ -93,12 +94,16 @@
 			<AppRailTile bind:group={currentTile} name="data-view" value={1} title="Data">
 				<i class="fa-solid fa-table fa-2xl" />
 			</AppRailTile>
+			<AppRailTile bind:group={currentTile} name="settings-view" value={2} title="Settings">
+				<i class="fa-solid fa-gear fa-2xl" />
+			</AppRailTile>
 		</AppRail>
 
 		<!-- body -->
 		<div class="overflow-hidden">
 			<TreeView show={currentTile == 0} />
 			<DataView show={currentTile == 1} />
+			<SettingsView show={currentTile == 2} />
 		</div>
 	</div>
 </AppShell>
