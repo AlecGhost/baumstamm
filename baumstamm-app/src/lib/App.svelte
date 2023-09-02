@@ -5,13 +5,16 @@
 		Avatar,
 		Toast,
 		toastStore,
-		type ToastSettings
+		type ToastSettings,
+		AppRail,
+		AppRailTile
 	} from '@skeletonlabs/skeleton';
 	import { update, selected } from '$lib/store';
 	import Sidebar from '$lib/Sidebar.svelte';
 	import TreeView from '$lib/TreeView.svelte';
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 	import { onDestroy, onMount } from 'svelte';
+	import DataView from './DataView.svelte';
 
 	// tauri events
 	let unlisten: UnlistenFn[] = [];
@@ -37,6 +40,9 @@
 	onDestroy(() => {
 		unlisten.forEach((unlisten) => unlisten());
 	});
+
+	// app rail
+	let currentTile: number = 0;
 
 	// sidebar
 	let showSidebar = false;
@@ -79,8 +85,22 @@
 		{/if}
 	</svelte:fragment>
 
-	<!-- body -->
-	<TreeView />
+	<div class="grid grid-cols-[auto_1fr] h-full w-full">
+		<AppRail>
+			<AppRailTile bind:group={currentTile} name="tree-view" value={0} title="Tree">
+				<i class="fa-solid fa-tree fa-2xl" />
+			</AppRailTile>
+			<AppRailTile bind:group={currentTile} name="data-view" value={1} title="Data">
+				<i class="fa-solid fa-table fa-2xl" />
+			</AppRailTile>
+		</AppRail>
+
+		<!-- body -->
+		<div class="overflow-hidden">
+			<TreeView show={currentTile == 0} />
+			<DataView show={currentTile == 1} />
+		</div>
+	</div>
 </AppShell>
 
 <Toast />

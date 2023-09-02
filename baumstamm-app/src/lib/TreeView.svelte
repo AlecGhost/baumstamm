@@ -8,6 +8,8 @@
 	import type { Person } from './Person';
 	import type { Unsubscriber } from 'svelte/store';
 
+	export let show: boolean;
+
 	// panzoom
 	function initPanzoom(node: HTMLElement) {
 		panzoom(node);
@@ -47,21 +49,23 @@
 	}
 </script>
 
-<div
-	class="tree-view"
-	style="grid-template-columns: repeat({gridColumns}, 200px); grid-template-rows: repeat({gridRows}, 200px)"
-	use:initPanzoom
->
-	{#each $grid as layer}
-		{#each layer as item}
-			{#if isPerson(item)}
-				<PersonCard person={getPerson(item)} />
-			{:else}
-				<Connector connections={item.Connections} />
-			{/if}
+{#if show}
+	<div
+		class="tree-view"
+		style="grid-template-columns: repeat({gridColumns}, 200px); grid-template-rows: repeat({gridRows}, 200px)"
+		use:initPanzoom
+	>
+		{#each $grid as layer}
+			{#each layer as item}
+				{#if isPerson(item)}
+					<PersonCard person={getPerson(item)} />
+				{:else}
+					<Connector connections={item.Connections} />
+				{/if}
+			{/each}
 		{/each}
-	{/each}
-</div>
+	</div>
+{/if}
 
 <style>
 	.tree-view {
