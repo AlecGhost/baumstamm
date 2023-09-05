@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Avatar } from '@skeletonlabs/skeleton';
 	import type { Person } from '$lib/Person';
-	import { selected, target } from '$lib/store';
+	import { selected, target, settings } from '$lib/store';
 
 	export let person: Person;
 
@@ -17,12 +17,16 @@
 		class:variant-filled-tertiary={$target == person && $selected != person}
 		on:click={select}
 	>
-		<header class="card-header justify-center flex">
-			<Avatar src={person.avatar()} initials={person.initials()} />
-		</header>
-		<section class="p-4">
-			<p class="font-bold text-center">{person.name()}</p>
-		</section>
+		{#if $settings.showAvatar}
+			<header class="card-header justify-center flex">
+				<Avatar src={person.avatar()} initials={person.initials()} />
+			</header>
+		{/if}
+		{#if $settings.showNames}
+			<section class="p-4">
+				<p class="font-bold text-center">{person.name()}</p>
+			</section>
+		{/if}
 	</div>
 </div>
 

@@ -14,6 +14,10 @@ export const relationships = writable<Relationship[]>([]);
 export const selected = writable<Person | null>(null);
 export const target = writable<Person | null>(null);
 export const grid = writable<GridItem[][]>([]);
+export const settings = writable({
+	showAvatar: true,
+	showNames: true
+});
 
 export async function updateSelected(pid: PersonId) {
 	const person = get(persons).find((person) => person.id == pid);
