@@ -16,7 +16,9 @@ export const target = writable<Person | null>(null);
 export const grid = writable<GridItem[][]>([]);
 export const settings = writable({
 	showAvatar: true,
-	showNames: true
+	showNames: true,
+	showMiddleNames: true,
+	showDates: true
 });
 
 export async function updateSelected(pid: PersonId) {

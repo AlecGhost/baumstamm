@@ -20,7 +20,7 @@
 					.filter((parent) => parent !== null)
 					.map((pid) => $persons.find((person) => person.id == pid)) as parent}
 					<tr on:click={() => $selected = parent ?? null} class="cursor-pointer">
-						<td class="table-cell-fit">{parent?.name()}</td>
+						<td class="table-cell-fit">{parent?.fullName()}</td>
 					</tr>
 				{/each}
 			</tbody>

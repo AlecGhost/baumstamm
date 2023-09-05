@@ -4,7 +4,10 @@ export class Person {
 	id: string;
 	info: Map<string, string>;
 	firstName: string | null = null;
+	middleName: string | null = null;
 	lastName: string | null = null;
+	birthDate: string | null = null;
+	deathDate: string | null = null;
 	image: string | null = null;
 
 	constructor(id: string, info: Map<string, string>) {
@@ -14,10 +17,25 @@ export class Person {
 			this.firstName = firstName;
 			info.delete('@firstName');
 		}
+		const middleName = info.get('@middleName');
+		if (middleName !== undefined) {
+			this.middleName = middleName;
+			info.delete('@middleName');
+		}
 		const lastName = info.get('@lastName');
 		if (lastName !== undefined) {
 			this.lastName = lastName;
 			info.delete('@lastName');
+		}
+		const birthDate = info.get('@birthDate');
+		if (birthDate !== undefined) {
+			this.birthDate = birthDate;
+			info.delete('@birthDate');
+		}
+		const deathDate = info.get('@deathDate');
+		if (deathDate !== undefined) {
+			this.deathDate = deathDate;
+			info.delete('@deathDate');
 		}
 		const image = info.get('@image');
 		if (image !== undefined) {
@@ -34,16 +52,44 @@ export class Person {
 		);
 	}
 
-	public name(): string {
-		if (this.firstName != null && this.lastName != null) {
-			return this.firstName + ' ' + this.lastName;
-		} else if (this.firstName != null && this.lastName == null) {
-			return this.firstName;
-		} else if (this.firstName == null && this.lastName != null) {
-			return this.lastName;
-		} else {
+	public fullName(): string {
+		if (this.firstName == null && this.middleName == null && this.lastName == null) {
 			return 'Unknown';
 		}
+		let name = '';
+		if (this.firstName !== null) {
+			name += this.firstName;
+		}
+		if (this.middleName !== null) {
+			if (name.length !== 0) {
+				name += ' ';
+			}
+			name += this.middleName;
+		}
+		if (this.lastName !== null) {
+			if (name.length !== 0) {
+				name += ' ';
+			}
+			name += this.lastName;
+		}
+		return name;
+	}
+
+	public nameWithoutMiddle(): string {
+		if (this.firstName == null && this.middleName == null && this.lastName == null) {
+			return 'Unknown';
+		}
+		let name = '';
+		if (this.firstName !== null) {
+			name += this.firstName;
+		}
+		if (this.lastName !== null) {
+			if (name.length !== 0) {
+				name += ' ';
+			}
+			name += this.lastName;
+		}
+		return name;
 	}
 
 	public initials(): string {

@@ -50,7 +50,7 @@
 					.filter((parent) => parent !== null && parent !== pid)
 					.map((parent) => $persons.find((person) => person.id == parent)) as partner}
 					<tr on:click={() => ($selected = partner ?? null)} class="cursor-pointer">
-						<td class="table-cell-fit">{partner?.name()}</td>
+						<td class="table-cell-fit">{partner?.fullName()}</td>
 					</tr>
 				{/each}
 			</tbody>
@@ -63,7 +63,7 @@
 	>
 	<select bind:value={existingPartner} class="select m-1">
 		{#each $persons.filter((p) => p.id !== pid && !ownRelationships.some( (rel) => rel.parents.includes(p.id) )) as partner}
-			<option value={partner.id}>{partner.name()}</option>
+			<option value={partner.id}>{partner.fullName()}</option>
 		{/each}
 	</select>
 </section>

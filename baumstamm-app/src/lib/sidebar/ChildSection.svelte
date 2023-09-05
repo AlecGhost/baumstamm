@@ -31,7 +31,7 @@
 		if (partnerId !== null && partnerId !== undefined) {
 			const partner = personStore.find((person) => person.id == partnerId);
 			if (partner !== undefined) {
-				return partner.name();
+				return partner.fullName();
 			}
 		}
 		return 'Unknown';
@@ -69,7 +69,7 @@
 						.flatMap((rel) => rel.children)
 						.map((pid) => $persons.find((person) => person.id == pid)) as child}
 						<tr on:click={() => ($selected = child ?? null)} class="cursor-pointer">
-							<td class="table-cell-fit">{child?.name()}</td>
+							<td class="table-cell-fit">{child?.fullName()}</td>
 						</tr>
 					{/each}
 				</tbody>

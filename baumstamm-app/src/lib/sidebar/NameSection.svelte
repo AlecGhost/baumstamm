@@ -39,7 +39,7 @@
 			<button type="submit" class="btn variant-filled-primary m-1">Add</button>
 		</form>
 	{:else}
-		<p on:click={() => (showForm = true)} class="font-bold text-center">{person.name()}</p>
+		<p on:click={() => (showForm = true)} class="font-bold text-center">{person.fullName()}</p>
 	{/if}
 </section>
 {#if showForm}

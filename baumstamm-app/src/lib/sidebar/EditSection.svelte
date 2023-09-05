@@ -45,13 +45,13 @@
 </script>
 
 <section class="p-4">
-	{#if $persons.filter((p) => p.id !== person.id && p.name() == person.name()).length != 0}
+	{#if $persons.filter((p) => p.id !== person.id && p.fullName() == person.fullName()).length != 0}
 		<button on:click={mergeWithPerson} class="btn variant-filled-warning m-1"
 			>Merge with Person</button
 		>
 		<select bind:value={mergeTarget} class="select m-1">
-			{#each $persons.filter((p) => p.id !== person.id && p.name() == person.name()) as other}
-				<option value={other.id}>{other.name()}</option>
+			{#each $persons.filter((p) => p.id !== person.id && p.fullName() == person.fullName()) as other}
+				<option value={other.id}>{other.fullName()}</option>
 			{/each}
 		</select>
 	{/if}

@@ -24,7 +24,21 @@
 		{/if}
 		{#if $settings.showNames}
 			<section class="p-4">
-				<p class="font-bold text-center">{person.name()}</p>
+				{#if $settings.showMiddleNames}
+					<p class="font-bold text-center">{person.fullName()}</p>
+				{:else}
+					<p class="font-bold text-center">{person.nameWithoutMiddle()}</p>
+				{/if}
+			</section>
+		{/if}
+		{#if $settings.showDates}
+			<section class="p-4">
+				{#if person.birthDate}
+					<p class="font-bold text-center">*{person.birthDate}</p>
+				{/if}
+				{#if person.deathDate}
+					<p class="font-bold text-center">#{person.deathDate}</p>
+				{/if}
 			</section>
 		{/if}
 	</div>

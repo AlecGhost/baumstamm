@@ -17,6 +17,14 @@
 			<div>
 				<SlideToggle name="names" bind:checked={$settings.showNames}>Names</SlideToggle>
 			</div>
+			<div>
+				<SlideToggle name="middle-names" bind:checked={$settings.showMiddleNames}
+					>Middle names</SlideToggle
+				>
+			</div>
+			<div>
+				<SlideToggle name="dates" bind:checked={$settings.showDates}>Dates</SlideToggle>
+			</div>
 		</section>
 	</div>
 {/if}
