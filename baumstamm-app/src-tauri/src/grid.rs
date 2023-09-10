@@ -1,10 +1,12 @@
-use baumstamm_lib::{graph::Graph, FamilyTree, PersonId};
+use baumstamm_lib::{graph::Graph, FamilyTree, Relationship};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
 type Pid = baumstamm_lib::PersonId;
+type Rid = baumstamm_lib::RelationshipId;
 type Color = (f32, f32, f32);
+type Grid<T> = Vec<Vec<T>>;
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub enum GridItem {
@@ -71,23 +73,23 @@ struct RelIndices {
     crossing_point: Option<usize>,
 }
 
-pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
+pub fn generate(tree: &FamilyTree) -> Grid<GridItem> {
     let rels = tree.get_relationships();
     let graph = Graph::new(rels).cut();
     let layers = graph.layers();
     let person_layers = graph.person_layers(rels);
-    let length = person_layers
+    let row_length = person_layers
         .iter()
         .map(|layer| layer.len())
         .max()
         .unwrap_or_default();
-    if length == 0 {
+    if row_length == 0 {
         return Vec::new();
     }
     let person_indices = person_layers
         .iter()
         .map(|layer| {
-            let start_index = middle(layer.len(), length);
+            let start_index = middle(layer.len(), row_length);
             layer
                 .iter()
                 .enumerate()
@@ -95,6 +97,47 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
                 .collect_vec()
         })
         .collect_vec();
+    let rel_indices = get_rel_indices(&layers, rels, &person_indices);
+
+    let grid = fill_grid(&person_indices, &rel_indices, row_length);
+    grid
+}
+
+/// Fill grid with `GridItem`s
+fn fill_grid(
+    person_indices: &Grid<(usize, &Pid)>,
+    rel_indices: &Grid<RelIndices>,
+    row_length: usize,
+) -> Grid<GridItem> {
+    let mut grid: Grid<GridItem> = Vec::new();
+    for layer_index in 0..(person_indices.len() * 3) {
+        let mut layer = Vec::new();
+        for item_index in 0..row_length {
+            let item = match layer_index % 3 {
+                0 => new_sibling_item(
+                    rel_indices[layer_index / 3].as_slice(),
+                    item_index,
+                    get_rel_connections(&mut grid, layer_index, item_index),
+                ),
+                1 => new_person_item(person_indices[(layer_index - 1) / 3].as_slice(), item_index),
+                2 => new_relationship_item(
+                    rel_indices[(layer_index - 2) / 3 + 1].as_slice(),
+                    item_index,
+                ),
+                _ => panic!("Math broken"),
+            };
+            layer.push(item);
+        }
+        grid.push(layer);
+    }
+    grid
+}
+
+fn get_rel_indices(
+    layers: &Grid<Rid>,
+    rels: &[Relationship],
+    person_indices: &Grid<(usize, &Pid)>,
+) -> Grid<RelIndices> {
     let mut rel_indices = layers
         .iter()
         .enumerate()
@@ -149,35 +192,12 @@ pub fn generate(tree: &FamilyTree) -> Vec<Vec<GridItem>> {
         })
         .collect_vec();
     rel_indices.push(Vec::new());
-
-    // populate grid
-    let mut grid: Vec<Vec<GridItem>> = Vec::new();
-    for layer_index in 0..(person_layers.len() * 3) {
-        let mut layer = Vec::new();
-        for item_index in 0..length {
-            let item = match layer_index % 3 {
-                0 => new_sibling_item(
-                    rel_indices[layer_index / 3].as_slice(),
-                    item_index,
-                    get_rel_connections(&mut grid, layer_index, item_index),
-                ),
-                1 => new_person_item(person_indices[(layer_index - 1) / 3].as_slice(), item_index),
-                2 => new_relationship_item(
-                    rel_indices[(layer_index - 2) / 3 + 1].as_slice(),
-                    item_index,
-                ),
-                _ => panic!("Math broken"),
-            };
-            layer.push(item);
-        }
-        grid.push(layer);
-    }
-    grid
+    rel_indices
 }
 
 /// Relationship `Connections` above new sibling item
 fn get_rel_connections(
-    grid: &mut [Vec<GridItem>],
+    grid: &mut Grid<GridItem>,
     layer_index: usize,
     item_index: usize,
 ) -> Option<&mut Connections> {
@@ -346,7 +366,7 @@ fn new_sibling_item(
     GridItem::Connections(connections)
 }
 
-fn new_person_item(person_indices: &[(usize, &PersonId)], item_index: usize) -> GridItem {
+fn new_person_item(person_indices: &[(usize, &Pid)], item_index: usize) -> GridItem {
     person_indices
         .iter()
         .find(|(i, _)| *i == item_index)
