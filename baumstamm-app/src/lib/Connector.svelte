@@ -17,9 +17,9 @@
 		<!-- horizontal line -->
 		<line
 			x1="0%"
-			y1="{y(passing.connection)}%"
+			y1="{y(passing.y_index)}%"
 			x2="100%"
-			y2="{y(passing.connection)}%"
+			y2="{y(passing.y_index)}%"
 			class={passing.connection.toString()}
 			style="--color: {passing.color[0]}, {passing.color[1]}%, {passing.color[2]}%"
 		/>
@@ -29,18 +29,18 @@
 		{#if ending.origin == 'Left'}
 			<line
 				x1="0%"
-				y1="{y(ending.connection)}%"
+				y1="{y(ending.y_index)}%"
 				x2="{x(ending.x_index)}%"
-				y2="{y(ending.connection)}%"
+				y2="{y(ending.y_index)}%"
 				class={ending.connection.toString()}
 				style="--color: {ending.color[0]}, {ending.color[1]}%, {ending.color[2]}%"
 			/>
 		{:else if ending.origin == 'Right'}
 			<line
 				x1="100%"
-				y1="{y(ending.connection)}%"
+				y1="{y(ending.y_index)}%"
 				x2="{x(ending.x_index)}%"
-				y2="{y(ending.connection)}%"
+				y2="{y(ending.y_index)}%"
 				class={ending.connection.toString()}
 				style="--color: {ending.color[0]}, {ending.color[1]}%, {ending.color[2]}%"
 			/>
@@ -50,7 +50,7 @@
 			x1="{x(ending.x_index)}%"
 			y1="{connections.orientation == 'Up' ? 0 : 100}%"
 			x2="{x(ending.x_index)}%"
-			y2="{y(ending.connection)}%"
+			y2="{y(ending.y_index)}%"
 			class={ending.connection.toString()}
 			style="--color: {ending.color[0]}, {ending.color[1]}%, {ending.color[2]}%"
 		/>
@@ -60,18 +60,18 @@
 		{#if crossing.origin == 'Left'}
 			<line
 				x1="0%"
-				y1="{y(crossing.connection)}%"
+				y1="{y(crossing.y_index)}%"
 				x2="{x(crossing.x_index)}%"
-				y2="{y(crossing.connection)}%"
+				y2="{y(crossing.y_index)}%"
 				class={crossing.connection.toString()}
 				style="--color: {crossing.color[0]}, {crossing.color[1]}%, {crossing.color[2]}%"
 			/>
 		{:else if crossing.origin == 'Right'}
 			<line
 				x1="100%"
-				y1="{y(crossing.connection)}%"
+				y1="{y(crossing.y_index)}%"
 				x2="{x(crossing.x_index)}%"
-				y2="{y(crossing.connection)}%"
+				y2="{y(crossing.y_index)}%"
 				class={crossing.connection.toString()}
 				style="--color: {crossing.color[0]}, {crossing.color[1]}%, {crossing.color[2]}%"
 			/>
@@ -81,7 +81,7 @@
 			x1="{x(crossing.x_index)}%"
 			y1="{connections.orientation == 'Up' ? 100 : 0}%"
 			x2="{x(crossing.x_index)}%"
-			y2="{y(crossing.connection)}%"
+			y2="{y(crossing.y_index)}%"
 			class={crossing.connection.toString()}
 			style="--color: {crossing.color[0]}, {crossing.color[1]}%, {crossing.color[2]}%"
 		/>

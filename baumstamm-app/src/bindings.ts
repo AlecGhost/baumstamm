@@ -54,8 +54,7 @@ export function removeInfo(pid: PersonId, key: string) {
     return invoke()<string>("remove_info", { pid,key })
 }
 
-export type Crossing = { connection: number; color: [number, number, number]; origin: Origin; x_index: number }
-export type Orientation = "Up" | "Down"
+export type Origin = "Left" | "Right" | "None"
 /**
  * UUID for a `Person`, stored as u128.
  */
@@ -64,16 +63,17 @@ export type PersonId = string
  * UUID for a `Relationship`, stored as u128.
  */
 export type RelationshipId = string
-export type Passing = { connection: number; color: [number, number, number] }
-export type Connections = { orientation: Orientation; total_x: number; total_y: number; passing: Passing[]; ending: Ending[]; crossing: Crossing[] }
+export type Ending = { connection: number; color: [number, number, number]; origin: Origin; x_index: number; y_index: number }
+export type Passing = { connection: number; color: [number, number, number]; y_index: number }
+export type Orientation = "Up" | "Down"
 /**
  * A person with a unique identifier and arbitrary attached information
  */
 export type Person = { id: PersonId; info: { [key: string]: string } | null }
+export type Connections = { orientation: Orientation; total_x: number; total_y: number; passing: Passing[]; ending: Ending[]; crossing: Crossing[] }
+export type GridItem = { Person: PersonId } | { Connections: Connections }
 /**
  * A relationship referencing two optional parents and the resulting children.
  */
 export type Relationship = { id: RelationshipId; parents: (PersonId | null)[]; children: PersonId[] }
-export type Ending = { connection: number; color: [number, number, number]; origin: Origin; x_index: number }
-export type GridItem = { Person: PersonId } | { Connections: Connections }
-export type Origin = "Left" | "Right" | "None"
+export type Crossing = { connection: number; color: [number, number, number]; origin: Origin; x_index: number; y_index: number }
