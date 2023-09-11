@@ -73,6 +73,12 @@ struct RelIndices {
     crossing_point: Option<usize>,
 }
 
+#[derive(Clone, Debug)]
+struct PersonIndex {
+    index: usize,
+    pid: Pid,
+}
+
 pub fn generate(tree: &FamilyTree) -> Grid<GridItem> {
     let rels = tree.get_relationships();
     let graph = Graph::new(rels).cut();
@@ -93,7 +99,10 @@ pub fn generate(tree: &FamilyTree) -> Grid<GridItem> {
             layer
                 .iter()
                 .enumerate()
-                .map(|(i, pid)| (start_index + i, pid))
+                .map(|(i, pid)| PersonIndex {
+                    index: start_index + i,
+                    pid: *pid,
+                })
                 .collect_vec()
         })
         .collect_vec();
@@ -105,7 +114,7 @@ pub fn generate(tree: &FamilyTree) -> Grid<GridItem> {
 
 /// Fill grid with `GridItem`s
 fn fill_grid(
-    person_indices: &Grid<(usize, &Pid)>,
+    person_indices: &Grid<PersonIndex>,
     rel_indices: &Grid<RelIndices>,
     row_length: usize,
 ) -> Grid<GridItem> {
@@ -136,7 +145,7 @@ fn fill_grid(
 fn get_rel_indices(
     layers: &Grid<Rid>,
     rels: &[Relationship],
-    person_indices: &Grid<(usize, &Pid)>,
+    person_indices: &Grid<PersonIndex>,
 ) -> Grid<RelIndices> {
     let mut rel_indices = layers
         .iter()
@@ -156,8 +165,8 @@ fn get_rel_indices(
                                 opt_parent.and_then(|parent| {
                                     parent_indices
                                         .iter()
-                                        .find(|(_, pid)| **pid == parent)
-                                        .map(|(i, _)| *i)
+                                        .find(|pi| pi.pid == parent)
+                                        .map(|pi| pi.index)
                                 })
                             });
                             parent_indices.sort();
@@ -178,8 +187,8 @@ fn get_rel_indices(
                         let children_indices = rel
                             .children
                             .iter()
-                            .filter_map(|child| child_indices.iter().find(|(_, pid)| *pid == child))
-                            .map(|(i, _)| *i)
+                            .filter_map(|child| child_indices.iter().find(|pi| pi.pid == *child))
+                            .map(|pi| pi.index)
                             .sorted()
                             .collect_vec();
                         if children_indices.len() == rel.children.len() {
@@ -366,11 +375,11 @@ fn new_sibling_item(
     GridItem::Connections(connections)
 }
 
-fn new_person_item(person_indices: &[(usize, &Pid)], item_index: usize) -> GridItem {
+fn new_person_item(person_indices: &[PersonIndex], item_index: usize) -> GridItem {
     person_indices
         .iter()
-        .find(|(i, _)| *i == item_index)
-        .map(|(_, pid)| GridItem::Person(**pid))
+        .find(|pi| pi.index == item_index)
+        .map(|pi| GridItem::Person(pi.pid))
         .unwrap_or_default()
 }
 
