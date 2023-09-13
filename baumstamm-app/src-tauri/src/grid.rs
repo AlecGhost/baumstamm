@@ -1,6 +1,7 @@
 use baumstamm_lib::{graph::Graph, FamilyTree};
 use indices::{PersonIndex, RelIndices};
 use items::Connections;
+use itertools::Itertools;
 use std::collections::HashMap;
 
 pub use items::GridItem;
@@ -69,39 +70,46 @@ fn fill_grid(
 ) -> Grid<GridItem> {
     let mut grid: Grid<GridItem> = Vec::new();
     for layer_index in 0..(person_indices.len() * 3) {
-        let mut layer = Vec::new();
         let mut line_allocator = LineAllocator::default();
-        for item_index in 0..row_length {
-            let item = match layer_index % 3 {
-                0 => items::new_sibling_item(
-                    rel_indices[layer_index / 3].as_slice(),
-                    item_index,
-                    get_rel_connections(&mut grid, layer_index, item_index),
-                    |connection, start, end| {
-                        line_allocator
-                            .alloc(connection, start, end)
-                            .try_into()
-                            .expect("Too many relationships")
-                    },
-                ),
-                1 => items::new_person_item(
-                    person_indices[(layer_index - 1) / 3].as_slice(),
-                    item_index,
-                ),
-                2 => items::new_relationship_item(
-                    rel_indices[(layer_index - 2) / 3 + 1].as_slice(),
-                    item_index,
-                    |connection, start, end| {
-                        line_allocator
-                            .alloc(connection, start, end)
-                            .try_into()
-                            .expect("Too many relationships")
-                    },
-                ),
-                _ => panic!("Math broken"),
-            };
-            layer.push(item);
-        }
+        let mut alloc = |connection, start, end| {
+            line_allocator
+                .alloc(connection, start, end)
+                .try_into()
+                .expect("Too many relationships")
+        };
+        let mut layer = match layer_index % 3 {
+            0 => {
+                // sibling layer
+                row(row_length, |item_index| {
+                    items::new_sibling_item(
+                        rel_indices[layer_index / 3].as_slice(),
+                        item_index,
+                        get_rel_connections(&mut grid, layer_index, item_index),
+                        &mut alloc,
+                    )
+                })
+            }
+            1 => {
+                // person layer
+                row(row_length, |item_index| {
+                    items::new_person_item(
+                        person_indices[(layer_index - 1) / 3].as_slice(),
+                        item_index,
+                    )
+                })
+            }
+            2 => {
+                // relationship layer
+                row(row_length, |item_index| {
+                    items::new_relationship_item(
+                        rel_indices[(layer_index - 2) / 3 + 1].as_slice(),
+                        item_index,
+                        &mut alloc,
+                    )
+                })
+            }
+            _ => panic!("Math broken"),
+        };
         let total_y = line_allocator
             .total()
             .try_into()
@@ -118,6 +126,10 @@ fn fill_grid(
         grid.push(layer);
     }
     grid
+}
+
+fn row<F: FnMut(usize) -> GridItem>(row_length: usize, item_fn: F) -> Vec<GridItem> {
+    (0..row_length).map(item_fn).collect_vec()
 }
 
 /// Relationship `Connections` above new sibling item
