@@ -1,5 +1,6 @@
+use std::collections::HashMap;
+
 use super::indices::{PersonIndex, RelIndices};
-use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
@@ -67,14 +68,12 @@ pub enum Origin {
     None,
 }
 
-pub fn new_sibling_item<F>(
+pub fn new_sibling_item(
     rel_indices: &[RelIndices],
     item_index: usize,
     mut rel_connections: Option<&mut Connections>,
-    mut alloc: F,
+    y_indices: &HashMap<u32, usize>,
 ) -> GridItem
-where
-    F: FnMut(u32, usize, usize) -> u32,
 {
     fn get_x_index(
         connection: u32,
@@ -114,7 +113,6 @@ where
             1 if rel_indices.crossing_point.is_none() => false,
             _ => true,
         })
-        .sorted_by(|a, b| a.1.children.first().cmp(&b.1.children.first()))
         .for_each(|(connection, rel_indices)| {
             let first = *rel_indices
                 .children
@@ -134,25 +132,12 @@ where
                 .crossing_point
                 .map(|point| point.max(last))
                 .unwrap_or(last);
-            let starting_point = if let Some(crossing_point) = rel_indices.crossing_point {
-                if crossing_point < start {
-                    crossing_point
-                } else {
-                    start
-                }
-            } else {
-                start
-            };
-            let ending_point = if let Some(crossing_point) = rel_indices.crossing_point {
-                if crossing_point > end {
-                    crossing_point
-                } else {
-                    end
-                }
-            } else {
-                end
-            };
-            let y_index = alloc(connection, starting_point, ending_point);
+            let y_index = y_indices
+                .get(&connection)
+                .cloned()
+                .expect("Must be allocated")
+                .try_into()
+                .expect("Too many relationships");
             if let Some(crossing_point) = rel_indices.crossing_point {
                 if item_index == crossing_point {
                     let origin = if crossing_point < first
@@ -256,14 +241,11 @@ pub fn new_person_item(person_indices: &[PersonIndex], item_index: usize) -> Gri
         .unwrap_or_default()
 }
 
-pub fn new_relationship_item<F>(
+pub fn new_relationship_item(
     rel_indices: &[RelIndices],
     item_index: usize,
-    mut alloc: F,
-) -> GridItem
-where
-    F: FnMut(u32, usize, usize) -> u32,
-{
+    y_indices: &HashMap<u32, usize>,
+) -> GridItem {
     let mut connections = Connections {
         orientation: Orientation::Up,
         ..Default::default()
@@ -272,45 +254,17 @@ where
         .iter()
         .enumerate()
         .filter(|(_, rel_indices)| !matches!(rel_indices.parents, [None, None]))
-        .sorted_by(|a, b| a.1.parents.first().cmp(&b.1.parents.first()))
         .for_each(|(connection, rel_indices)| {
             let first = rel_indices.parents[0];
             let last = rel_indices.parents[1];
             assert!(first <= last, "Unsorted parents");
             let connection = connection.try_into().expect("Too many relationships");
-            let y_index = {
-                let start = if let Some(crossing_point) = rel_indices.crossing_point {
-                    if let Some(start) = first {
-                        if crossing_point < start {
-                            Some(crossing_point)
-                        } else {
-                            first
-                        }
-                    } else {
-                        Some(crossing_point)
-                    }
-                } else {
-                    first
-                };
-                let end = if let Some(crossing_point) = rel_indices.crossing_point {
-                    if let Some(end) = last {
-                        if crossing_point > end {
-                            Some(crossing_point)
-                        } else {
-                            last
-                        }
-                    } else {
-                        Some(crossing_point)
-                    }
-                } else {
-                    last
-                };
-                match (start, end) {
-                    (Some(start), Some(end)) => alloc(connection, start, end),
-                    (Some(point), None) | (None, Some(point)) => alloc(connection, point, point),
-                    (None, None) => panic!("Must contain at least one parent"),
-                }
-            };
+            let y_index = y_indices
+                .get(&connection)
+                .cloned()
+                .expect("Must be allocated")
+                .try_into()
+                .expect("Too many relationships");
             if matches!(first, Some(index) if index == item_index) {
                 let origin = if last.is_some() {
                     Origin::Right

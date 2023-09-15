@@ -41,6 +41,10 @@ impl LineAllocator {
     fn total(&self) -> usize {
         self.ending_points.len()
     }
+
+    fn get_allocated(&self) -> &HashMap<u32, usize> {
+        &self.allocated
+    }
 }
 
 pub fn generate(tree: &FamilyTree) -> Grid<GridItem> {
@@ -71,7 +75,7 @@ fn fill_grid(
     let mut grid: Grid<GridItem> = Vec::new();
     for layer_index in 0..(person_indices.len() * 3) {
         let mut line_allocator = LineAllocator::default();
-        let mut alloc = |connection, start, end| {
+        let mut alloc = |connection, start, end| -> usize {
             line_allocator
                 .alloc(connection, start, end)
                 .try_into()
@@ -80,31 +84,87 @@ fn fill_grid(
         let mut layer = match layer_index % 3 {
             0 => {
                 // sibling layer
+                let rel_indices = rel_indices[layer_index / 3].as_slice();
+                rel_indices
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, rel_indices)| match rel_indices.children.len() {
+                        0 => false,
+                        1 if rel_indices.crossing_point.is_none() => false,
+                        _ => true,
+                    })
+                    .sorted_by(|a, b| a.1.children.first().cmp(&b.1.children.first()))
+                    .for_each(|(connection, rel_indices)| {
+                        let first = *rel_indices
+                            .children
+                            .first()
+                            .expect("Must contain first child");
+                        let last = *rel_indices
+                            .children
+                            .last()
+                            .expect("Must contain last child");
+                        assert!(first <= last, "Unsorted children");
+                        let connection = connection.try_into().expect("Too many relationships");
+                        let start = rel_indices
+                            .crossing_point
+                            .map(|point| point.min(first))
+                            .unwrap_or(first);
+                        let end = rel_indices
+                            .crossing_point
+                            .map(|point| point.max(last))
+                            .unwrap_or(last);
+                        alloc(connection, start, end);
+                    });
                 row(row_length, |item_index| {
                     items::new_sibling_item(
-                        rel_indices[layer_index / 3].as_slice(),
+                        rel_indices,
                         item_index,
                         get_rel_connections(&mut grid, layer_index, item_index),
-                        &mut alloc,
+                        line_allocator.get_allocated(),
                     )
                 })
             }
             1 => {
                 // person layer
+                let person_indices = person_indices[(layer_index - 1) / 3].as_slice();
                 row(row_length, |item_index| {
-                    items::new_person_item(
-                        person_indices[(layer_index - 1) / 3].as_slice(),
-                        item_index,
-                    )
+                    items::new_person_item(person_indices, item_index)
                 })
             }
             2 => {
                 // relationship layer
+                let rel_indices = rel_indices[(layer_index - 2) / 3 + 1].as_slice();
+                rel_indices
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, rel_indices)| !matches!(rel_indices.parents, [None, None]))
+                    .sorted_by(|a, b| a.1.parents.first().cmp(&b.1.parents.first()))
+                    .for_each(|(connection, rel_indices)| {
+                        let first = rel_indices.parents[0];
+                        let last = rel_indices.parents[1];
+                        assert!(first <= last, "Unsorted parents");
+                        let connection = connection.try_into().expect("Too many relationships");
+                        let start = match (rel_indices.crossing_point, first) {
+                            (Some(crossing_point), Some(first)) if crossing_point < first => {
+                                Some(crossing_point)
+                            }
+                            (Some(crossing_point), None) => Some(crossing_point),
+                            _ => first,
+                        };
+                        let end = last.max(rel_indices.crossing_point);
+                        match (start, end) {
+                            (Some(start), Some(end)) => alloc(connection, start, end),
+                            (Some(point), None) | (None, Some(point)) => {
+                                alloc(connection, point, point)
+                            }
+                            (None, None) => panic!("Must contain at least one parent"),
+                        };
+                    });
                 row(row_length, |item_index| {
                     items::new_relationship_item(
-                        rel_indices[(layer_index - 2) / 3 + 1].as_slice(),
+                        rel_indices,
                         item_index,
-                        &mut alloc,
+                        line_allocator.get_allocated(),
                     )
                 })
             }
