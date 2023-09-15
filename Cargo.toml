@@ -2,10 +2,10 @@
 members = ["baumstamm-lib", "baumstamm-app/src-tauri", "baumstamm-cli"]
 
 [workspace.package]
-description = "Baumstamm - Stammbäume erstellen"
+description = "Baumstamm - Create family trees"
 authors = ["Alec Ghost"]
-license = ""
-repository = ""
+license = "GPL-3.0-or-later"
+repository = "https://github.com/AlecGhost/baumstamm"
 edition = "2021"
 rust-version = "1.70"
 
