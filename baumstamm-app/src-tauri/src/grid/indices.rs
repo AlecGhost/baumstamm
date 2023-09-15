@@ -73,6 +73,9 @@ pub fn get_rel_indices(
                     }
                     rel_indices
                 })
+                // sort by first parent reversed, because None < Some(x)
+                // this way colors are sorted from left to right
+                .sorted_by(|a, b| b.parents[0].cmp(&a.parents[0]))
                 .collect_vec()
         })
         .collect_vec();
