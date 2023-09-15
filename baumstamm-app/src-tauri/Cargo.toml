@@ -3,7 +3,7 @@ name = "baumstamm-app"
 version = "0.1.0"
 description = "Baumstamm App"
 authors = ["you"]
-license = ""
+license = "GPL-3.0-or-later"
 repository = ""
 edition = "2021"
 
