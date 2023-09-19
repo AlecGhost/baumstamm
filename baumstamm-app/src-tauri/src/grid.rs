@@ -60,7 +60,7 @@ pub fn generate(tree: &FamilyTree) -> Grid<GridItem> {
     if row_length == 0 {
         return Vec::new();
     }
-    let person_indices = indices::get_person_indices(&person_layers, row_length);
+    let person_indices = indices::get_person_indices(&person_layers, row_length, rels);
     let rel_indices = indices::get_rel_indices(&layers, rels, &person_indices);
 
     fill_grid(&person_indices, &rel_indices, row_length)
@@ -75,12 +75,7 @@ fn fill_grid(
     let mut grid: Grid<GridItem> = Vec::new();
     for layer_index in 0..(person_indices.len() * 3) {
         let mut line_allocator = LineAllocator::default();
-        let mut alloc = |connection, start, end| -> usize {
-            line_allocator
-                .alloc(connection, start, end)
-                .try_into()
-                .expect("Too many relationships")
-        };
+        let mut alloc = |connection, start, end| line_allocator.alloc(connection, start, end);
         let mut layer = match layer_index % 3 {
             0 => {
                 // sibling layer

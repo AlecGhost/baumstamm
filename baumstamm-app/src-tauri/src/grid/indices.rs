@@ -83,21 +83,66 @@ pub fn get_rel_indices(
     rel_indices
 }
 
-pub fn get_person_indices(person_layers: &Grid<Pid>, row_length: usize) -> Grid<PersonIndex> {
-    person_layers
+pub fn get_person_indices(
+    person_layers: &Grid<Pid>,
+    row_length: usize,
+    rels: &[Relationship],
+) -> Grid<PersonIndex> {
+    enum Dir {
+        Children,
+        Parents,
+    }
+
+    fn sort_to_ref(
+        pids: &[Pid],
+        _ref_row: &[PersonIndex],
+        _dir: Dir,
+        _rels: &[Relationship],
+    ) -> Vec<PersonIndex> {
+        pids.iter()
+            .enumerate()
+            .map(|(index, pid)| PersonIndex { index, pid: *pid })
+            .collect_vec()
+    }
+
+    let mut person_indices: Grid<PersonIndex> = Vec::new();
+    let (ref_index, ref_layer) = person_layers
         .iter()
-        .map(|layer| {
-            let start_index = middle(layer.len(), row_length);
-            layer
-                .iter()
-                .enumerate()
-                .map(|(i, pid)| PersonIndex {
-                    index: start_index + i,
-                    pid: *pid,
-                })
-                .collect_vec()
-        })
-        .collect_vec()
+        .find_position(|layer| layer.len() == row_length)
+        .expect("There must be a longest row");
+    let ref_row = ref_layer
+        .iter()
+        .enumerate()
+        .map(|(index, pid)| PersonIndex { index, pid: *pid })
+        .collect_vec();
+    let mut upper_rows = person_layers[..ref_index]
+        .iter()
+        .rev()
+        .fold(
+            (ref_row.clone(), Vec::new()),
+            |(ref_row, mut rows), layer| {
+                let row = sort_to_ref(layer, &ref_row, Dir::Parents, rels);
+                rows.push(row.clone());
+                (row, rows)
+            },
+        )
+        .1;
+    upper_rows.reverse();
+    let lower_rows = person_layers[(ref_index + 1)..]
+        .iter()
+        .fold(
+            (ref_row.clone(), Vec::new()),
+            |(ref_row, mut rows), layer| {
+                let row = sort_to_ref(layer, &ref_row, Dir::Children, rels);
+                rows.push(row.clone());
+                (row, rows)
+            },
+        )
+        .1;
+    person_indices.extend(upper_rows);
+    person_indices.push(ref_row);
+    person_indices.extend(lower_rows);
+    person_indices
 }
 
 fn middle(a: usize, b: usize) -> usize {
