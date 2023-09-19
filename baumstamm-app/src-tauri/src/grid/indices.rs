@@ -93,15 +93,58 @@ pub fn get_person_indices(
         Parents,
     }
 
+    fn parents(pid: &Pid, rels: &[Relationship], ref_row: &[PersonIndex]) -> Vec<PersonIndex> {
+        let rel = rels
+            .iter()
+            .find(|rel| rel.children.contains(pid))
+            .expect("Inconsistent data");
+        let parents = rel.parents.iter().flatten().cloned().collect_vec();
+        ref_row
+            .iter()
+            .filter(|pi| parents.contains(&pi.pid))
+            .cloned()
+            .collect_vec()
+    }
+
+    fn children(pid: &Pid, rels: &[Relationship], ref_row: &[PersonIndex]) -> Vec<PersonIndex> {
+        let children = rels
+            .iter()
+            .filter(|rel| rel.parents.iter().flatten().any(|parent| parent == pid))
+            .flat_map(|rel| &rel.children)
+            .cloned()
+            .collect_vec();
+        ref_row
+            .iter()
+            .filter(|pi| children.contains(&pi.pid))
+            .cloned()
+            .collect_vec()
+    }
+
     fn sort_to_ref(
         pids: &[Pid],
-        _ref_row: &[PersonIndex],
-        _dir: Dir,
-        _rels: &[Relationship],
+        ref_row: &[PersonIndex],
+        rels: &[Relationship],
+        row_length: usize,
+        dir: Dir,
     ) -> Vec<PersonIndex> {
+        let mut free_slots = row_length - pids.len();
+        let mut index = 0;
         pids.iter()
-            .enumerate()
-            .map(|(index, pid)| PersonIndex { index, pid: *pid })
+            .map(|pid| {
+                let ref_pis = match dir {
+                    Dir::Children => children(pid, rels, ref_row),
+                    Dir::Parents => parents(pid, rels, ref_row),
+                };
+                if let Some(first) = ref_pis.first() {
+                    while free_slots > 0 && index < first.index {
+                        index += 1;
+                        free_slots -= 1;
+                    }
+                }
+                let pi = PersonIndex { pid: *pid, index };
+                index += 1;
+                pi
+            })
             .collect_vec()
     }
 
@@ -121,7 +164,7 @@ pub fn get_person_indices(
         .fold(
             (ref_row.clone(), Vec::new()),
             |(ref_row, mut rows), layer| {
-                let row = sort_to_ref(layer, &ref_row, Dir::Parents, rels);
+                let row = sort_to_ref(layer, &ref_row, rels, row_length, Dir::Children);
                 rows.push(row.clone());
                 (row, rows)
             },
@@ -133,7 +176,7 @@ pub fn get_person_indices(
         .fold(
             (ref_row.clone(), Vec::new()),
             |(ref_row, mut rows), layer| {
-                let row = sort_to_ref(layer, &ref_row, Dir::Children, rels);
+                let row = sort_to_ref(layer, &ref_row, rels, row_length, Dir::Parents);
                 rows.push(row.clone());
                 (row, rows)
             },
