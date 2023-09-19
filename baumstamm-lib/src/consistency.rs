@@ -2,7 +2,7 @@ use crate::{error::ConsistencyError, extract_persons, Person, PersonId, Relation
 use itertools::Itertools;
 use std::{collections::HashMap, iter::FromIterator};
 
-pub(super) fn check(tree_data: &TreeData) -> Result<(), ConsistencyError> {
+pub fn check(tree_data: &TreeData) -> Result<(), ConsistencyError> {
     check_relationships(&tree_data.relationships)?;
     check_persons(&tree_data.persons)?;
 

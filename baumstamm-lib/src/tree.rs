@@ -194,7 +194,7 @@ impl FamilyTree {
             }
         }
 
-        fn merge_parents(
+        const fn merge_parents(
             rel1: &Relationship,
             rel2: &Relationship,
         ) -> Result<[Option<PersonId>; 2], MergeConflict> {

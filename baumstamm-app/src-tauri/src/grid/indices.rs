@@ -100,7 +100,7 @@ pub fn get_person_indices(person_layers: &Grid<Pid>, row_length: usize) -> Grid<
         .collect_vec()
 }
 
-fn middle(a: usize, b: usize) -> usize {
+const fn middle(a: usize, b: usize) -> usize {
     let diff = if a <= b { b - a } else { a - b };
     if diff % 2 == 0 {
         diff / 2

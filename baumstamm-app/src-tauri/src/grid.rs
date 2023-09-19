@@ -42,7 +42,7 @@ impl LineAllocator {
         self.ending_points.len()
     }
 
-    fn get_allocated(&self) -> &HashMap<u32, usize> {
+    const fn get_allocated(&self) -> &HashMap<u32, usize> {
         &self.allocated
     }
 }
@@ -75,12 +75,7 @@ fn fill_grid(
     let mut grid: Grid<GridItem> = Vec::new();
     for layer_index in 0..(person_indices.len() * 3) {
         let mut line_allocator = LineAllocator::default();
-        let mut alloc = |connection, start, end| -> usize {
-            line_allocator
-                .alloc(connection, start, end)
-                .try_into()
-                .expect("Too many relationships")
-        };
+        let mut alloc = |connection, start, end| line_allocator.alloc(connection, start, end);
         let mut layer = match layer_index % 3 {
             0 => {
                 // sibling layer

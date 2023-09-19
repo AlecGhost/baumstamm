@@ -1,11 +1,11 @@
 use crate::{error::Error, TreeData};
 
-pub(super) fn read(json_str: &str) -> Result<TreeData, Error> {
+pub fn read(json_str: &str) -> Result<TreeData, Error> {
     let tree_data = serde_json::from_str(json_str)?;
     Ok(tree_data)
 }
 
-pub(super) fn write(tree_data: &TreeData) -> Result<String, Error> {
+pub fn write(tree_data: &TreeData) -> Result<String, Error> {
     let json_str = serde_json::to_string_pretty(tree_data)?;
     Ok(json_str)
 }
