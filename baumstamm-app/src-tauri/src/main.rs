@@ -11,7 +11,7 @@ use specta::{
     ts::{BigIntExportBehavior, ExportConfiguration},
 };
 use std::{path::PathBuf, sync::Mutex};
-use tauri::{api::dialog::FileDialogBuilder, CustomMenuItem, Manager, Menu, Submenu};
+use tauri::{api::dialog::FileDialogBuilder, CustomMenuItem, Manager, Menu, MenuItem, Submenu};
 #[cfg(debug_assertions)]
 use tauri_specta::ts;
 
@@ -33,15 +33,9 @@ fn main() -> Result<()> {
     #[cfg(debug_assertions)]
     export();
 
-    let open = CustomMenuItem::new("open".to_string(), "Open");
-    let save_as = CustomMenuItem::new("save_as".to_string(), "Save As");
-    let submenu = Submenu::new("File", Menu::new().add_item(open).add_item(save_as));
-    let file = CustomMenuItem::new("file".to_string(), "File");
-    let menu = Menu::new().add_item(file).add_submenu(submenu);
-
     tauri::Builder::default()
         .manage(State::default())
-        .menu(menu)
+        .menu(build_menu())
         .on_menu_event(|event| {
             let window = event.window();
             let app = window.app_handle();
@@ -93,6 +87,53 @@ fn main() -> Result<()> {
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
     Ok(())
+}
+
+fn build_menu() -> Menu {
+    let about_menu = Submenu::new(
+        "App",
+        Menu::new()
+            .add_native_item(MenuItem::Hide)
+            .add_native_item(MenuItem::HideOthers)
+            .add_native_item(MenuItem::ShowAll)
+            .add_native_item(MenuItem::Separator)
+            .add_native_item(MenuItem::Quit),
+    );
+
+    let open = CustomMenuItem::new("open", "Open").accelerator("cmdOrControl+O");
+    let save_as = CustomMenuItem::new("save_as", "Save As").accelerator("cmdOrControl+Shift+S");
+    let file = Submenu::new("File", Menu::new().add_item(open).add_item(save_as));
+
+    let edit_menu = Submenu::new(
+        "Edit",
+        Menu::new()
+            .add_native_item(MenuItem::Undo)
+            .add_native_item(MenuItem::Redo)
+            .add_native_item(MenuItem::Separator)
+            .add_native_item(MenuItem::Cut)
+            .add_native_item(MenuItem::Copy)
+            .add_native_item(MenuItem::Paste)
+            .add_native_item(MenuItem::SelectAll),
+    );
+
+    let view_menu = Submenu::new(
+        "View",
+        Menu::new().add_native_item(MenuItem::EnterFullScreen),
+    );
+
+    let window_menu = Submenu::new(
+        "Window",
+        Menu::new()
+            .add_native_item(MenuItem::Minimize)
+            .add_native_item(MenuItem::Zoom),
+    );
+
+    Menu::new()
+        .add_submenu(about_menu)
+        .add_submenu(file)
+        .add_submenu(edit_menu)
+        .add_submenu(view_menu)
+        .add_submenu(window_menu)
 }
 
 #[test]
