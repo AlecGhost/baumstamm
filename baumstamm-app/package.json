@@ -1,8 +1,8 @@
 {
 	"name": "baumstamm-app",
 	"version": "0.1.0",
-    "author": "Alec Ghost",
-    "license": "GPL-3.0-or-later",
+	"author": "Alec Ghost",
+	"license": "GPL-3.0-or-later",
 	"private": true,
 	"scripts": {
 		"dev": "vite dev",
