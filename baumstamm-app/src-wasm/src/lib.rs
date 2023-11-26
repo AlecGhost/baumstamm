@@ -17,6 +17,19 @@ pub fn init_state() -> State {
     State::default()
 }
 
+#[wasm_bindgen]
+pub fn load_tree(input: &str, state: &mut State) -> JResult {
+    let tree = FamilyTree::try_from(input).map_err(|err| err.to_string())?;
+    state.tree = tree;
+    Ok(JsValue::NULL)
+}
+
+#[wasm_bindgen]
+pub fn save_tree(state: &State) -> JResult {
+    let string = state.tree.save().map_err(|err| err.to_string())?;
+    Ok(JsValue::from(string))
+}
+
 // get datastructures
 #[wasm_bindgen]
 pub fn get_persons(state: &State) -> JResult {

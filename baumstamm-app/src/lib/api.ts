@@ -27,7 +27,9 @@ import {
 	merge_person as wasmMergePersons,
 	remove_info as wasmRemoveInfo,
 	remove_person as wasmRemovePerson,
-	insert_info as wasmInsertInfo
+	insert_info as wasmInsertInfo,
+	load_tree as wasmLoadTree,
+	save_tree as wasmSaveTree
 } from '$lib/baumstamm-wasm/baumstamm_wasm';
 import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event';
 import { toastStore, type ToastSettings } from '@skeletonlabs/skeleton';
@@ -59,6 +61,42 @@ export async function listen() {
 		);
 	}
 	return unlisten;
+}
+
+export async function loadTree(input: string) {
+	if (!('__TAURI__' in window)) {
+		try {
+			await wasmLoadTree(input, window.state);
+		} catch (e) {
+			const toast: ToastSettings = {
+				message: e as string
+			};
+			toastStore.trigger(toast);
+		}
+		update();
+	}
+}
+
+export async function saveTree(name: string) {
+	if (!('__TAURI__' in window)) {
+		let tree: string;
+		try {
+			tree = wasmSaveTree(window.state);
+		} catch (e) {
+			const toast: ToastSettings = {
+				message: e as string
+			};
+			toastStore.trigger(toast);
+			return;
+		}
+		let blob = new Blob([tree]);
+		let link = document.createElement('a');
+		document.body.append(link);
+		link.download = name;
+		link.href = URL.createObjectURL(blob);
+		link.click();
+		link.remove();
+	}
 }
 
 export async function getPersons(): Promise<Person[]> {
