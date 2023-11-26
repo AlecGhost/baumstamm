@@ -14,7 +14,8 @@ In contrast to that, you can create arbitrarily complex family trees with Baumst
 
 Baumstamm is free and open source.
 You can run it locally on your computer
-and no data leaves your device.
+or use the static [website](https://alecghost.github.io/baumstamm/);
+no data leaves your device.
 The family tree is stored as plain text JSON,
 so you can easily use it with other software.
 
@@ -52,5 +53,5 @@ Now you're ready to go!
 
 ## Licensing
 
-The core library is available under the Apache 2.0 license,
-while the desktop and command line applications are under GPL 3.0.
+The core libraries are available under the Apache 2.0 license,
+while the GUI and CLI applications are under GPL 3.0.
