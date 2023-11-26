@@ -1,7 +1,5 @@
-use crate::{
-    error::Error,
-    grid::{self, GridItem},
-};
+use crate::error::Error;
+use baumstamm_grid::{self, GridItem};
 use baumstamm_lib::{FamilyTree, Person, Relationship};
 use specta::specta;
 use std::path::PathBuf;
@@ -54,7 +52,7 @@ pub(crate) fn get_relationships(state: State) -> Result<Vec<Relationship>, ()> {
 #[specta]
 pub(crate) fn get_grid(state: State) -> Result<Vec<Vec<GridItem>>, ()> {
     let tree = &state.0.lock().unwrap().tree;
-    let grid = grid::generate(tree);
+    let grid = baumstamm_grid::generate(tree);
     Ok(grid)
 }
 

@@ -28,7 +28,7 @@
 
 	function calculateLabel(rel: Relationship): string {
 		const partnerId = rel.parents.find((parent) => parent !== pid);
-		if (partnerId !== null && partnerId !== undefined) {
+		if (partnerId != null) {
 			const partner = personStore.find((person) => person.id == partnerId)!;
 			return partner.name();
 		}

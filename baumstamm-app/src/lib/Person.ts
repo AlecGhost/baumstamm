@@ -28,10 +28,18 @@ export class Person {
 	}
 
 	static from(person: RPerson): Person {
-		return new Person(
-			person.id,
-			person.info !== null ? new Map(Object.entries(person.info)) : new Map()
-		);
+		let info: Map<string, string>;
+		if (person.info != null) {
+			// wasm returns a map, tauri a dict
+			if (person.info instanceof Map) {
+				info = person.info;
+			} else {
+				info = new Map(Object.entries(person.info));
+			}
+		} else {
+			info = new Map();
+		}
+		return new Person(person.id, info);
 	}
 
 	public name(): string {

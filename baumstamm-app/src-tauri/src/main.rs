@@ -17,7 +17,6 @@ use tauri_specta::ts;
 
 mod commands;
 mod error;
-mod grid;
 
 #[derive(Debug, Default)]
 struct State(Mutex<AppState>);

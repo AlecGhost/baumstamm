@@ -1,4 +1,4 @@
-use baumstamm_lib::{graph::Graph, FamilyTree, PersonId};
+use baumstamm_lib::{graph::Graph, FamilyTree};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -346,7 +346,7 @@ fn new_sibling_item(
     GridItem::Connections(connections)
 }
 
-fn new_person_item(person_indices: &[(usize, &PersonId)], item_index: usize) -> GridItem {
+fn new_person_item(person_indices: &[(usize, &Pid)], item_index: usize) -> GridItem {
     person_indices
         .iter()
         .find(|(i, _)| *i == item_index)
