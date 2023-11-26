@@ -1,4 +1,3 @@
-use baumstamm_grid;
 use baumstamm_lib::FamilyTree;
 use serde_wasm_bindgen as bind;
 use wasm_bindgen::prelude::*;

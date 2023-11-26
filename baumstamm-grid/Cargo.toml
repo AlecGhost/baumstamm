@@ -1,14 +1,10 @@
 [package]
 name = "baumstamm-grid"
 version = "0.1.0"
-description.workspace = true
-authors.workspace = true
-license.workspace = true
-repository.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+authors = ["Alec Ghost"]
+license = "Apache-2.0"
+repository = "https://github.com/AlecGhost/baumstamm"
+edition = "2021"
 
 [dependencies]
 baumstamm-lib = { path = "../baumstamm-lib" }
