@@ -17,7 +17,6 @@ use tauri_specta::ts;
 
 mod commands;
 mod error;
-mod grid;
 
 #[derive(Debug, Default)]
 struct State(Mutex<AppState>);
@@ -160,7 +159,7 @@ fn export() {
         ]
         .expect("type collection failed"),
         ExportConfiguration::default().bigint(BigIntExportBehavior::String),
-        "../src/bindings.ts",
+        "../src/bindings-tauri.ts",
     )
     .expect("export failed");
 }

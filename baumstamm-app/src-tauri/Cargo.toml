@@ -1,5 +1,5 @@
 [package]
-name = "baumstamm-app"
+name = "baumstamm-tauri"
 version = "0.1.0"
 description = "Baumstamm App"
 authors = ["Alec Ghost"]
@@ -14,13 +14,13 @@ tauri-build = { version = "1.4.0", features = [] }
 
 [dependencies]
 baumstamm-lib = { path = "../../baumstamm-lib" }
+baumstamm-grid = { path = "../../baumstamm-grid" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 tauri = { version = "1.4.1", features = [ "dialog-save", "dialog-open"] }
 specta = "1.0.5"
 tauri-specta = { version = "1.0.2", features = ["javascript", "typescript"] }
 thiserror = "1.0.44"
-itertools = "0.11.0"
 color-eyre = "0.6.2"
 
 [features]

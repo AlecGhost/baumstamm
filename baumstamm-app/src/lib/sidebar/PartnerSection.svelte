@@ -6,7 +6,7 @@
 		addRelationshipWithPartner,
 		type PersonId,
 		type Relationship
-	} from '$lib/../bindings';
+	} from '$lib/api';
 
 	export let ownRelationships: Relationship[];
 	export let pid: PersonId;

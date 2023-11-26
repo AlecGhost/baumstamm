@@ -1,5 +1,11 @@
 [workspace]
-members = ["baumstamm-lib", "baumstamm-app/src-tauri", "baumstamm-cli"]
+members = [
+    "baumstamm-lib",
+    "baumstamm-grid",
+    "baumstamm-cli",
+    "baumstamm-app/src-tauri",
+    "baumstamm-app/src-wasm"
+]
 
 [workspace.package]
 description = "Baumstamm - Create family trees"

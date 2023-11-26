@@ -4,7 +4,7 @@
 	import { grid, persons } from './store';
 	import { onDestroy, onMount } from 'svelte';
 	import Connector from './Connector.svelte';
-	import type { GridItem, PersonId } from '../bindings';
+	import type { GridItem, PersonId } from '$lib/api';
 	import type { Person } from './Person';
 	import type { Unsubscriber } from 'svelte/store';
 

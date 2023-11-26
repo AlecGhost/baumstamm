@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { type Relationship, addParent } from '../../bindings';
+	import { type Relationship, addParent } from '$lib/api';
 	import { persons, selected, update, updateSelected } from '$lib/store';
 
 	export let parentRel: Relationship;
@@ -17,7 +17,7 @@
 		<table class="table table-hover">
 			<tbody>
 				{#each parentRel.parents
-					.filter((parent) => parent !== null)
+					.filter((parent) => parent != null)
 					.map((pid) => $persons.find((person) => person.id == pid)) as parent}
 					<tr on:click={() => $selected = parent ?? null} class="cursor-pointer">
 						<td class="table-cell-fit">{parent?.name()}</td>
@@ -26,7 +26,7 @@
 			</tbody>
 		</table>
 	</div>
-	{#if parentRel.parents.filter((parent) => parent !== null).length < 2}
+	{#if parentRel.parents.filter((parent) => parent != null).length < 2}
 		<button on:click={newParent} type="button" class="btn variant-filled m-1">Add Parent</button>
 	{/if}
 </section>

@@ -133,6 +133,13 @@ impl From<u128> for PersonId {
     }
 }
 
+impl TryFrom<&str> for PersonId {
+    type Error = std::num::ParseIntError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(Self(u128::from_str_radix(value, 16)?))
+    }
+}
+
 impl std::fmt::Debug for PersonId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:X}", self.0)
@@ -149,6 +156,13 @@ impl std::fmt::Display for PersonId {
 impl From<u128> for RelationshipId {
     fn from(value: u128) -> Self {
         Self(value)
+    }
+}
+
+impl TryFrom<&str> for RelationshipId {
+    type Error = std::num::ParseIntError;
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        Ok(Self(u128::from_str_radix(value, 16)?))
     }
 }
 

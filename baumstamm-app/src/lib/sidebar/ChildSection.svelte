@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { addChild, type PersonId, type Relationship } from '$lib/../bindings';
+	import { addChild, type PersonId, type Relationship } from '$lib/api';
 	import { persons, selected, update, updateSelected, updateTarget } from '$lib/store';
 	import { onDestroy, onMount } from 'svelte';
 	import type { Unsubscriber } from 'svelte/motion';
@@ -28,7 +28,7 @@
 
 	function calculateLabel(rel: Relationship): string {
 		const partnerId = rel.parents.find((parent) => parent !== pid);
-		if (partnerId !== null && partnerId !== undefined) {
+		if (partnerId != null) {
 			const partner = personStore.find((person) => person.id == partnerId);
 			if (partner !== undefined) {
 				return partner.name();
@@ -44,7 +44,7 @@
 			updateTarget(null);
 		} else if (ownRelationships !== undefined && ownRelationships.length > 0) {
 			const partnerId = ownRelationships[relIndex].parents.find((parent) => parent !== pid);
-			if (partnerId !== null && partnerId !== undefined) {
+			if (partnerId != null) {
 				updateTarget(partnerId);
 			}
 		}

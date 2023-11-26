@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Connections } from '../bindings';
+	import type { Connections } from '$lib/api';
 
 	export let connections: Connections;
 
