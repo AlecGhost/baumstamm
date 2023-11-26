@@ -10,7 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
-pkg
+baumstamm-app/src/lib/baumstamm-wasm
 *.local
 
 # Editor directories and files
