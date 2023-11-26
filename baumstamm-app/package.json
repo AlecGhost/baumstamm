@@ -8,7 +8,7 @@
         "dev": "npm run build-libs && npm run wasm-bindgen && vite dev",
         "build": "npm run build-libs && npm run wasm-bindgen && vite build",
         "build-libs": "cargo build --target wasm32-unknown-unknown --release -p baumstamm-lib && cargo build --target wasm32-unknown-unknown --release -p baumstamm-wasm",
-        "wasm-bindgen": "wasm-bindgen ../target/wasm32-unknown-unknown/release/baumstamm_wasm.wasm --out-dir src-wasm/pkg",
+        "wasm-bindgen": "wasm-bindgen ../target/wasm32-unknown-unknown/release/baumstamm_wasm.wasm --out-dir src/lib/baumstamm-wasm",
 		"preview": "vite preview",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",

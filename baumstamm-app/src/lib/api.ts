@@ -28,7 +28,7 @@ import {
 	remove_info as wasmRemoveInfo,
 	remove_person as wasmRemovePerson,
 	insert_info as wasmInsertInfo
-} from '$lib/pkg/baumstamm_wasm';
+} from '$lib/baumstamm-wasm/baumstamm_wasm';
 import { listen as tauriListen, type UnlistenFn } from '@tauri-apps/api/event';
 import { toastStore, type ToastSettings } from '@skeletonlabs/skeleton';
 import { update } from '$lib/store';
