@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            code-target: win32-x64
+          - os: macos-11
+            target: x86_64-apple-darwin
+            code-target: darwin-x64
+          - os: macos-11
+            target: aarch64-apple-darwin
+            code-target: darwin-arm64
+    name: dist (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    
+    env:
+      RA_TARGET: ${{ matrix.target }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Rust toolchain
+        run: |
+          rustup update --no-self-update stable
+          rustup target add ${{ matrix.target }}
+          rustup target add wasm32-unknown-unknown
+          cargo install tauri-cli
+          cargo install wasm-bindgen-cli
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: lts/*
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: ./baumstamm-app
+
+      - name: Build
+        run: cargo tauri build --target ${{ matrix.target }}
+
+      - name: Rename binary (unix)
+        if: matrix.os != 'windows-latest'
+        run: mv target/${{ matrix.target }}/release/baumstamm target/${{ matrix.target }}/release/baumstamm-${{ matrix.target }}
+
+      - name: Rename binary (windows)
+        if: matrix.os == 'windows-latest'
+        run: move target/${{ matrix.target }}/release/baumstamm.exe target/${{ matrix.target }}/release/baumstamm-${{ matrix.target }}.exe
+
+      - name: Attach to release (unix)
+        if: matrix.os != 'windows-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/${{ matrix.target }}/release/baumstamm-${{ matrix.target }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attach to release (windows)
+        if: matrix.os == 'windows-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            target/${{ matrix.target }}/release/baumstamm-${{ matrix.target }}.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
