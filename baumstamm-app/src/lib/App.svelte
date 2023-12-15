@@ -45,7 +45,7 @@
 	<svelte:fragment slot="header">
 		<AppBar>
 			<svelte:fragment slot="lead"><h1>Baumstamm</h1></svelte:fragment>
-			{#if !('__TAURI_' in window)}
+			{#if !('__TAURI__' in window)}
 				<section class="flex justify-center p-4">
 					<input type="file" class="input m-1 w-min" accept="application/json" bind:files />
 					<button type="button" class="btn variant-filled m-1" on:click={onExport}>Export</button>
