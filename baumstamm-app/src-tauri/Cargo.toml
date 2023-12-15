@@ -8,17 +8,17 @@ repository = "https://github.com/AlecGhost/baumstamm"
 edition = "2021"
 
 [build-dependencies]
-tauri-build = { version = "1.4.0", features = [] }
+tauri-build = { version = "1.5.0", features = [] }
 
 [dependencies]
 baumstamm-lib = { path = "../../baumstamm-lib" }
 baumstamm-grid = { path = "../../baumstamm-grid" }
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "1.4.1", features = [ "dialog-save", "dialog-open"] }
+tauri = { version = "1.5.3", features = [ "dialog-save", "dialog-open"] }
 specta = "1.0.5"
 tauri-specta = { version = "1.0.2", features = ["javascript", "typescript"] }
-thiserror = "1.0.44"
+thiserror = "1.0.50"
 color-eyre = "0.6.2"
 
 [features]

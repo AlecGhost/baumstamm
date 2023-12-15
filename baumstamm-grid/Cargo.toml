@@ -9,5 +9,5 @@ edition = "2021"
 [dependencies]
 baumstamm-lib = { path = "../baumstamm-lib" }
 serde = { version = "1.0", features = ["derive"] }
-specta = "1.0.4"
-itertools = "0.11.0"
+specta = "1.0.5"
+itertools = "0.12.0"
