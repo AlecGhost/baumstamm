@@ -4,7 +4,9 @@ import Browser
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Font as Font
 import Element.Input exposing (button)
+import FeatherIcons exposing (withSize)
 import File exposing (File)
 import File.Select as Select
 import Html exposing (Html)
@@ -148,8 +150,11 @@ navBar =
         [ el [] <| text "Baumstamm"
         , el [ alignBottom, centerX, Element.paddingXY 0 5 ] <|
             button
-                buttonStyles
-                { label = text "  ⚙  "
+                [ pointer
+                , Font.color palette.action
+                , mouseOver [ Font.color palette.marker ]
+                ]
+                { label = FeatherIcons.settings |> withSize 40 |> FeatherIcons.toHtml [] |> Element.html
                 , onPress = Just ToggleSettings
                 }
         ]
