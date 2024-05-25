@@ -1,17 +1,9 @@
 module Main exposing (..)
 
 import Browser
-import Element
-    exposing
-        ( Color
-        , Element
-        , column
-        , el
-        , row
-        , text
-        )
+import Element exposing (..)
 import Element.Background as Background
-import Element.Font as Font
+import Element.Border as Border
 import Element.Input exposing (button)
 import File exposing (File)
 import File.Select as Select
@@ -122,47 +114,64 @@ update msg model =
 -- VIEW
 
 
+palette : { bg : Color, fg : Color, action : Color, marker : Color }
+palette =
+    { bg = rgb255 48 56 65
+    , fg = rgb255 58 71 80
+    , action = rgb255 0 173 181
+    , marker = rgb255 238 238 238
+    }
+
+
 view : Model -> Html Msg
 view model =
-    Element.layout [ Background.color palette.bg ] <|
-        row [ Element.height Element.fill, Element.width Element.fill ]
+    Element.layoutWith
+        { options =
+            [ focusStyle
+                { backgroundColor = Nothing
+                , shadow = Nothing
+                , borderColor = Just palette.marker
+                }
+            ]
+        }
+        [ Background.color palette.bg ]
+    <|
+        row [ height fill, width fill ]
             [ navBar
             , body model.frame
             ]
 
 
-palette : { bg : Color, fg : Color, action : Color, marker : Color }
-palette =
-    { bg = Element.rgb255 48 56 65
-    , fg = Element.rgb255 58 71 80
-    , action = Element.rgb255 0 173 181
-    , marker = Element.rgb255 238 238 238
-    }
-
-
 navBar : Element Msg
 navBar =
-    column [ Background.color palette.fg, Element.height Element.fill, Element.alignLeft ]
-        [ el [ Element.alignTop ] <| text "Baumstamm"
-        , el [ Element.alignBottom, Element.centerX ] <|
-            button []
-                { label = icon "⚙"
+    column [ Background.color palette.fg, height fill, width (px 80) ]
+        [ el [] <| text "Baumstamm"
+        , el [ alignBottom, centerX, Element.paddingXY 0 5 ] <|
+            button
+                buttonStyles
+                { label = text "  ⚙  "
                 , onPress = Just ToggleSettings
                 }
         ]
 
 
+buttonStyles : List (Attribute msg)
+buttonStyles =
+    [ Border.rounded 15
+    , Border.width 2
+    , Border.color palette.action
+    , paddingXY 2 3
+    , pointer
+    , mouseOver [ Border.color palette.marker ]
+    ]
+
+
 body : Frame -> Element msg
 body frame =
-    el [ Element.centerX, Element.centerY ] <|
+    el [ centerX, centerY ] <|
         case frame of
             SettingsFrame ->
                 text "Settings"
 
             TreeFrame ->
                 text "Tree"
-
-
-icon : String -> Element msg
-icon txt =
-    el [ Font.size 50, Element.paddingXY 5 5 ] (text txt)
