@@ -55,7 +55,12 @@ type Frame
 
 
 type alias Model =
-    { flags : Flags, file : String, tree : String, frame : Frame }
+    { flags : Flags
+    , file : String
+    , tree : String
+    , frame : Frame
+    , modal : Maybe (Element Msg)
+    }
 
 
 init : Value -> ( Model, Cmd Msg )
@@ -65,6 +70,7 @@ init flags =
         ""
         "Empty"
         TreeFrame
+        (Just <| text "Hello")
     , Cmd.none
     )
 
@@ -79,6 +85,8 @@ type Msg
     | SelectFile
     | LoadFile File
     | ToggleSettings
+    | ShowModal (Element Msg)
+    | HideModal
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -111,6 +119,12 @@ update msg model =
             , Cmd.none
             )
 
+        ShowModal element ->
+            ( { model | modal = Just element }, Cmd.none )
+
+        HideModal ->
+            ( { model | modal = Nothing }, Cmd.none )
+
 
 
 -- VIEW
@@ -140,7 +154,7 @@ view model =
     <|
         row [ height fill, width fill ]
             [ navBar
-            , body model.frame
+            , body model
             ]
 
 
@@ -171,12 +185,77 @@ buttonStyles =
     ]
 
 
-body : Frame -> Element msg
-body frame =
-    el [ centerX, centerY ] <|
-        case frame of
+body : Model -> Element Msg
+body model =
+    el
+        (List.append
+            (case model.modal of
+                Just element ->
+                    [ modal <|
+                        el [ centerX, centerY, width fill, height fill ] <|
+                            element
+                    ]
+
+                Nothing ->
+                    []
+            )
+            [ width fill
+            , height fill
+            ]
+        )
+    <|
+        case model.frame of
             SettingsFrame ->
-                text "Settings"
+                el [ centerX, centerY ] <| text "Settings"
 
             TreeFrame ->
-                text "Tree"
+                el [ centerX, centerY ] <| text "Tree"
+
+
+modal : Element Msg -> Attribute Msg
+modal element =
+    margin 0.8
+        0.8
+        (el
+            [ Background.color palette.fg
+            , width fill
+            , height fill
+            , paddingXY 30 30
+            , Border.rounded 15
+            , inFront <|
+                button [ alignTop, alignRight, Font.color palette.action ]
+                    { label = FeatherIcons.x |> withSize 40 |> FeatherIcons.toHtml [] |> Element.html
+                    , onPress = Just HideModal
+                    }
+            ]
+            element
+        )
+
+
+margin : Float -> Float -> Element msg -> Attribute msg
+margin percentileX percentileY element =
+    let
+        portionX =
+            round (2 / ((1 / percentileX) - 1))
+
+        portionY =
+            round (2 / ((1 / percentileY) - 1))
+    in
+    inFront
+        (row
+            [ width fill
+            , height fill
+            ]
+            [ el [ width (fillPortion 1) ] none
+            , column [ width (fillPortion portionX), height fill ]
+                [ el [ height (fillPortion 1) ] none
+                , el
+                    [ width fill
+                    , height (fillPortion portionY)
+                    ]
+                    element
+                , el [ height (fillPortion 1) ] none
+                ]
+            , el [ width (fillPortion 1) ] none
+            ]
+        )
