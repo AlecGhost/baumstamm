@@ -6,6 +6,7 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button)
+import Element.Region as Region
 import FeatherIcons exposing (withSize)
 import File exposing (File)
 import File.Select as Select
@@ -54,12 +55,17 @@ type Frame
     | SettingsFrame
 
 
+type alias Canvas =
+    { width : Int, height : Int }
+
+
 type alias Model =
     { flags : Flags
     , file : String
     , tree : String
     , frame : Frame
     , modal : Maybe (Element Msg)
+    , canvas : Canvas
     }
 
 
@@ -70,7 +76,8 @@ init flags =
         ""
         "Empty"
         TreeFrame
-        (Just <| text "Hello")
+        Nothing
+        { width = 2000, height = 2000 }
     , Cmd.none
     )
 
@@ -150,9 +157,13 @@ view model =
                 }
             ]
         }
-        [ Background.color palette.bg ]
+        [ Background.color palette.bg, width fill, height fill ]
     <|
-        row [ height fill, width fill ]
+        row
+            [ height fill
+            , width fill
+            , scrollbars
+            ]
             [ navBar
             , body model
             ]
@@ -160,18 +171,33 @@ view model =
 
 navBar : Element Msg
 navBar =
-    column [ Background.color palette.fg, height fill, width (px 80) ]
-        [ el [] <| text "Baumstamm"
-        , el [ alignBottom, centerX, Element.paddingXY 0 5 ] <|
-            button
-                [ pointer
-                , Font.color palette.action
-                , mouseOver [ Font.color palette.marker ]
-                ]
-                { label = FeatherIcons.settings |> withSize 40 |> FeatherIcons.toHtml [] |> Element.html
-                , onPress = Just ToggleSettings
-                }
+    column [ Background.color palette.fg, height fill, width (px 80), Region.navigation ]
+        [ navIcon []
+            { icon = FeatherIcons.edit
+            , onPress = Just (ShowModal <| text "Modal")
+            }
+        , navIcon [ alignBottom ]
+            { icon = FeatherIcons.settings
+            , onPress = Just ToggleSettings
+            }
         ]
+
+
+navIcon : List (Attribute msg) -> { icon : FeatherIcons.Icon, onPress : Maybe msg } -> Element msg
+navIcon attributes { icon, onPress } =
+    el (List.append attributes [ centerX, Element.paddingXY 0 5 ]) <|
+        button
+            [ pointer
+            , Font.color palette.action
+            , mouseOver [ Font.color palette.marker ]
+            ]
+            { label =
+                icon
+                    |> withSize 40
+                    |> FeatherIcons.toHtml []
+                    |> Element.html
+            , onPress = onPress
+            }
 
 
 buttonStyles : List (Attribute msg)
@@ -201,38 +227,59 @@ body model =
             )
             [ width fill
             , height fill
+            , Region.mainContent
+            , scrollbars
             ]
         )
     <|
-        case model.frame of
-            SettingsFrame ->
-                el [ centerX, centerY ] <| text "Settings"
+        el [ width fill, height fill, scrollbars ] <|
+            case model.frame of
+                SettingsFrame ->
+                    el [ centerX, centerY ] <| text "Settings"
 
-            TreeFrame ->
-                el [ centerX, centerY ] <| text "Tree"
+                TreeFrame ->
+                    el
+                        [ centerX
+                        , centerY
+                        , width (px model.canvas.width)
+                        , height (px model.canvas.height)
+                        , Background.color (rgb255 255 0 0)
+                        ]
+                    <|
+                        text "Tree"
 
 
 modal : Element Msg -> Attribute Msg
 modal element =
-    margin 0.8
-        0.8
-        (el
-            [ Background.color palette.fg
-            , width fill
-            , height fill
-            , paddingXY 30 30
-            , Border.rounded 15
-            , inFront <|
-                button [ alignTop, alignRight, Font.color palette.action ]
-                    { label = FeatherIcons.x |> withSize 40 |> FeatherIcons.toHtml [] |> Element.html
-                    , onPress = Just HideModal
-                    }
-            ]
-            element
-        )
+    inFront <|
+        margin 0.8
+            0.8
+            (el
+                [ Background.color palette.fg
+                , width fill
+                , height fill
+                , paddingXY 30 30
+                , Border.rounded 15
+                , inFront <|
+                    button
+                        [ alignTop
+                        , alignRight
+                        , Font.color palette.action
+                        , mouseOver [ Font.color palette.marker ]
+                        ]
+                        { label =
+                            FeatherIcons.x
+                                |> withSize 40
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                        , onPress = Just HideModal
+                        }
+                ]
+                element
+            )
 
 
-margin : Float -> Float -> Element msg -> Attribute msg
+margin : Float -> Float -> Element msg -> Element msg
 margin percentileX percentileY element =
     let
         portionX =
@@ -241,21 +288,19 @@ margin percentileX percentileY element =
         portionY =
             round (2 / ((1 / percentileY) - 1))
     in
-    inFront
-        (row
-            [ width fill
-            , height fill
-            ]
-            [ el [ width (fillPortion 1) ] none
-            , column [ width (fillPortion portionX), height fill ]
-                [ el [ height (fillPortion 1) ] none
-                , el
-                    [ width fill
-                    , height (fillPortion portionY)
-                    ]
-                    element
-                , el [ height (fillPortion 1) ] none
+    row
+        [ width fill
+        , height fill
+        ]
+        [ el [ width (fillPortion 1) ] none
+        , column [ width (fillPortion portionX), height fill ]
+            [ el [ height (fillPortion 1) ] none
+            , el
+                [ width fill
+                , height (fillPortion portionY)
                 ]
-            , el [ width (fillPortion 1) ] none
+                element
+            , el [ height (fillPortion 1) ] none
             ]
-        )
+        , el [ width (fillPortion 1) ] none
+        ]
