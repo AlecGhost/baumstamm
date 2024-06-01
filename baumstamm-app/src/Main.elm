@@ -12,6 +12,7 @@ import File exposing (File)
 import File.Select as Select
 import Html exposing (Html)
 import Json.Decode as Decode exposing (Value)
+import PanZoom
 import Rpc
 import Task
 
@@ -65,19 +66,22 @@ type alias Model =
     , tree : String
     , frame : Frame
     , modal : Maybe (Element Msg)
-    , canvas : Canvas
+    , panzoom : PanZoom.Model Msg
     }
 
 
 init : Value -> ( Model, Cmd Msg )
 init flags =
-    ( Model
-        (decodeFlags flags)
-        ""
-        "Empty"
-        TreeFrame
-        Nothing
-        { width = 2000, height = 2000 }
+    ( { flags = decodeFlags flags
+      , file = ""
+      , tree = "Empty"
+      , frame = TreeFrame
+      , modal = Nothing
+      , panzoom =
+            PanZoom.init
+                (PanZoom.defaultConfig UpdatePanZoom)
+                { scale = 1, position = { x = 100, y = 100 } }
+      }
     , Cmd.none
     )
 
@@ -94,6 +98,8 @@ type Msg
     | ToggleSettings
     | ShowModal (Element Msg)
     | HideModal
+    | UpdatePanZoom PanZoom.MouseEvent
+    | NoOp
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -132,6 +138,12 @@ update msg model =
         HideModal ->
             ( { model | modal = Nothing }, Cmd.none )
 
+        UpdatePanZoom event ->
+            ( { model | panzoom = PanZoom.update event model.panzoom }, Cmd.none )
+
+        NoOp ->
+            ( model, Cmd.none )
+
 
 
 -- VIEW
@@ -162,10 +174,17 @@ view model =
         row
             [ height fill
             , width fill
-            , scrollbars
             ]
             [ navBar
-            , body model
+            , PanZoom.view model.panzoom
+                { viewportAttributes = [ width fill, height fill ], contentAttributes = [] }
+              <|
+                el
+                    [ height (px 20)
+                    , width (px 20)
+                    ]
+                <|
+                    body model
             ]
 
 
@@ -185,7 +204,7 @@ navBar =
 
 navIcon : List (Attribute msg) -> { icon : FeatherIcons.Icon, onPress : Maybe msg } -> Element msg
 navIcon attributes { icon, onPress } =
-    el (List.append attributes [ centerX, Element.paddingXY 0 5 ]) <|
+    el ([ centerX, Element.paddingXY 0 5 ] |> List.append attributes) <|
         button
             [ pointer
             , Font.color palette.action
@@ -214,37 +233,35 @@ buttonStyles =
 body : Model -> Element Msg
 body model =
     el
-        (List.append
-            (case model.modal of
-                Just element ->
-                    [ modal <|
-                        el [ centerX, centerY, width fill, height fill ] <|
-                            element
-                    ]
+        ([ width fill
+         , height fill
+         , Region.mainContent
+         ]
+            |> List.append
+                (case model.modal of
+                    Just element ->
+                        [ modal <|
+                            el [ centerX, centerY, width fill, height fill ] <|
+                                element
+                        ]
 
-                Nothing ->
-                    []
-            )
-            [ width fill
-            , height fill
-            , Region.mainContent
-            , scrollbars
-            ]
+                    Nothing ->
+                        []
+                )
         )
     <|
-        el [ width fill, height fill, scrollbars ] <|
+        el
+            [ width fill
+            , height fill
+            ]
+        <|
             case model.frame of
                 SettingsFrame ->
                     el [ centerX, centerY ] <| text "Settings"
 
                 TreeFrame ->
-                    el
-                        [ centerX
-                        , centerY
-                        , width (px model.canvas.width)
-                        , height (px model.canvas.height)
-                        , Background.color (rgb255 255 0 0)
-                        ]
+                    PanZoom.view model.panzoom
+                        { viewportAttributes = [ width fill, height fill ], contentAttributes = [] }
                     <|
                         text "Tree"
 
