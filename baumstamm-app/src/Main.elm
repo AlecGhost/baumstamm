@@ -1,6 +1,7 @@
 module Main exposing (..)
 
 import Browser
+import Common
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
@@ -55,7 +56,6 @@ decodeFlags value =
 type Frame
     = TreeFrame
     | SettingsFrame
-    | StartFrame
 
 
 type alias Canvas =
@@ -65,7 +65,7 @@ type alias Canvas =
 type alias Model =
     { flags : Flags
     , file : String
-    , persons : List ()
+    , treeData : Maybe Common.TreeData
     , frame : Frame
     , modal : Maybe (Element Msg)
     , panzoom : PanZoom.Model Msg
@@ -76,8 +76,8 @@ init : Value -> ( Model, Cmd Msg )
 init flags =
     ( { flags = decodeFlags flags
       , file = ""
-      , persons = []
-      , frame = StartFrame
+      , treeData = Nothing
+      , frame = TreeFrame
       , modal = Nothing
       , panzoom =
             PanZoom.init
@@ -111,8 +111,11 @@ update msg model =
         SendRpc data ->
             ( model, Rpc.encodeOutgoing data |> Rpc.send )
 
+        ReceiveRcp (Rpc.TreeData data) ->
+            ( { model | frame = TreeFrame, treeData = Just data }, Cmd.none )
+
         ReceiveRcp _ ->
-            ( { model | frame = TreeFrame }, Cmd.none )
+            ( model, Cmd.none )
 
         SelectFile ->
             ( model, Select.file [ "application/json" ] LoadFile )
@@ -126,18 +129,11 @@ update msg model =
             ( { model
                 | frame =
                     case model.frame of
-                        StartFrame ->
-                            SettingsFrame
-
                         TreeFrame ->
                             SettingsFrame
 
                         SettingsFrame ->
-                            if List.isEmpty model.persons then
-                                StartFrame
-
-                            else
-                                TreeFrame
+                            TreeFrame
               }
             , Cmd.none
             )
@@ -265,23 +261,27 @@ body model =
         )
     <|
         case model.frame of
-            StartFrame ->
-                column [ centerX, centerY, spacing 10 ]
-                    [ text "Start a new tree or upload an existing file."
-                    , row [ spacing 20, width fill ]
-                        [ navIcon [] { icon = FeatherIcons.filePlus, onPress = Just New }
-                        , navIcon [] { icon = FeatherIcons.upload, onPress = Just SelectFile }
-                        ]
-                    ]
-
             SettingsFrame ->
                 el [ centerX, centerY ] <| text "Settings"
 
             TreeFrame ->
-                PanZoom.view model.panzoom
-                    { viewportAttributes = [ width fill, height fill ], contentAttributes = [] }
-                <|
-                    text "Tree"
+                case model.treeData of
+                    -- draw tree
+                    Just treeData ->
+                        PanZoom.view model.panzoom
+                            { viewportAttributes = [ width fill, height fill ], contentAttributes = [] }
+                        <|
+                            text (Debug.toString treeData)
+
+                    Nothing ->
+                        -- draw start page
+                        column [ centerX, centerY, spacing 10 ]
+                            [ text "Start a new tree or upload an existing file."
+                            , row [ spacing 20, width fill ]
+                                [ navIcon [] { icon = FeatherIcons.filePlus, onPress = Just New }
+                                , navIcon [] { icon = FeatherIcons.upload, onPress = Just SelectFile }
+                                ]
+                            ]
 
 
 modal : Element Msg -> Attribute Msg
