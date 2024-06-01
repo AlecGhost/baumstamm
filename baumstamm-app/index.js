@@ -1,5 +1,7 @@
 import init, {
     get_persons,
+    get_relationships,
+    get_grid,
     init_state,
     load_tree,
 } from "./target/baumstamm-wasm/baumstamm_wasm.js";
@@ -16,30 +18,31 @@ var state = init_state();
 const incomingProcs = {
     new: "new",
     load: "load",
-    getPersons: "get_persons",
+    getTreeData: "get_tree_data",
 };
 const outgoingProcs = {
-    persons: "persons",
+    treeData: "tree_data",
 };
 app.ports.send.subscribe((rpc) => {
     switch (rpc.proc) {
         case incomingProcs.new:
             {
                 state = init_state();
-                let persons = get_persons(state);
-                send(outgoingProcs.persons, persons);
+                let treeData = getTreeData(state);
+                send(outgoingProcs.treeData, treeData);
             }
+            break;
         case incomingProcs.load:
             {
                 load_tree(rpc.payload, state);
-                let persons = get_persons(state);
-                send(outgoingProcs.persons, persons);
+                let treeData = getTreeData(state);
+                send(outgoingProcs.treeData, treeData);
             }
             break;
-        case incomingProcs.getPersons:
+        case incomingProcs.getTreeData:
             {
-                let persons = get_persons(state);
-                send(outgoingProcs.persons, persons);
+                let treeData = getTreeData(state);
+                send(outgoingProcs.treeData, treeData);
             }
             break;
         default:
@@ -52,4 +55,11 @@ function send(proc, payload) {
         proc,
         payload,
     });
+}
+
+function getTreeData(state) {
+    let persons = get_persons(state);
+    let relationships = get_relationships(state);
+    let grid = get_grid(state);
+    return { persons, relationships, grid }
 }
