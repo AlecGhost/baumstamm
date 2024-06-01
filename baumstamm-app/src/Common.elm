@@ -1,5 +1,6 @@
 module Common exposing (..)
 
+import Dict exposing (Dict)
 import Element exposing (..)
 import Element.Border as Border
 import Element.Font as Font
@@ -29,7 +30,90 @@ buttonStyles =
 
 
 type alias TreeData =
-    { persons : Value, relationships : Value, grid : Value }
+    { persons : List Person, relationships : List Relationship, grid : Grid }
+
+
+type alias Person =
+    { id : Pid
+    , firstName : Maybe String
+    , lastName : Maybe String
+    , image : Maybe String
+    , info : Dict String String
+    }
+
+
+type alias Relationship =
+    { id : Rid
+    , parents : ( Maybe Pid, Maybe Pid )
+    , children : List Pid
+    }
+
+
+type alias Grid =
+    List (List GridItem)
+
+
+type GridItem
+    = PersonItem Pid
+    | ConnectionsItem Connections
+
+
+type alias Connections =
+    { orientation : Orientation
+    , totalX : Int
+    , totalY : Int
+    , passing : List Passing
+    , ending : List Ending
+    , crossing : List Crossing
+    }
+
+
+type alias Passing =
+    { connection : Cid
+    , color : Color
+    , yIndex : Int
+    }
+
+
+type alias Ending =
+    { connection : Cid
+    , color : Color
+    , origin : Origin
+    , xIndex : Int
+    , yIndex : Int
+    }
+
+
+type alias Crossing =
+    { connection : Cid
+    , color : Color
+    , origin : Origin
+    , xIndex : Int
+    , yIndex : Int
+    }
+
+
+type Orientation
+    = Up
+    | Down
+
+
+type Origin
+    = Left
+    | Right
+    | None
+
+
+type alias Pid =
+    String
+
+
+type alias Rid =
+    String
+
+
+type alias Cid =
+    Int
 
 
 margin : Float -> Float -> Element msg -> Element msg
