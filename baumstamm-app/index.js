@@ -14,6 +14,7 @@ const app = Elm.Main.init({
 await init();
 var state = init_state();
 const incomingProcs = {
+    new: "new",
     load: "load",
     getPersons: "get_persons",
 };
@@ -22,6 +23,12 @@ const outgoingProcs = {
 };
 app.ports.send.subscribe((rpc) => {
     switch (rpc.proc) {
+        case incomingProcs.new:
+            {
+                state = init_state();
+                let persons = get_persons(state);
+                send(outgoingProcs.persons, persons);
+            }
         case incomingProcs.load:
             {
                 load_tree(rpc.payload, state);

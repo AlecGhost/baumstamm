@@ -11,13 +11,19 @@ port receive : (Value -> msg) -> Sub msg
 
 
 type Outgoing
-    = Load String
+    = New
+    | Load String
     | GetPersons
 
 
 encodeOutgoing : Outgoing -> Value
 encodeOutgoing rpc =
     case rpc of
+        New ->
+            Encode.object
+                [ ( "proc", Encode.string "new" )
+                ]
+
         Load file ->
             Encode.object
                 [ ( "proc", Encode.string "load" )
