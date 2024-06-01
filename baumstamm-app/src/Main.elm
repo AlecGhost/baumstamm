@@ -11,6 +11,7 @@ import FeatherIcons exposing (withSize)
 import File exposing (File)
 import File.Select as Select
 import Html exposing (Html)
+import Html.Attributes as HA
 import Json.Decode as Decode exposing (Value)
 import PanZoom
 import Rpc
@@ -54,6 +55,7 @@ decodeFlags value =
 type Frame
     = TreeFrame
     | SettingsFrame
+    | StartFrame
 
 
 type alias Canvas =
@@ -63,7 +65,7 @@ type alias Canvas =
 type alias Model =
     { flags : Flags
     , file : String
-    , tree : String
+    , persons : List ()
     , frame : Frame
     , modal : Maybe (Element Msg)
     , panzoom : PanZoom.Model Msg
@@ -74,8 +76,8 @@ init : Value -> ( Model, Cmd Msg )
 init flags =
     ( { flags = decodeFlags flags
       , file = ""
-      , tree = "Empty"
-      , frame = TreeFrame
+      , persons = []
+      , frame = StartFrame
       , modal = Nothing
       , panzoom =
             PanZoom.init
@@ -99,6 +101,7 @@ type Msg
     | ShowModal (Element Msg)
     | HideModal
     | UpdatePanZoom PanZoom.MouseEvent
+    | New
     | NoOp
 
 
@@ -108,8 +111,8 @@ update msg model =
         SendRpc data ->
             ( model, Rpc.encodeOutgoing data |> Rpc.send )
 
-        ReceiveRcp data ->
-            ( { model | tree = Debug.toString data }, Cmd.none )
+        ReceiveRcp _ ->
+            ( { model | frame = TreeFrame }, Cmd.none )
 
         SelectFile ->
             ( model, Select.file [ "application/json" ] LoadFile )
@@ -123,11 +126,18 @@ update msg model =
             ( { model
                 | frame =
                     case model.frame of
-                        SettingsFrame ->
-                            TreeFrame
+                        StartFrame ->
+                            SettingsFrame
 
                         TreeFrame ->
                             SettingsFrame
+
+                        SettingsFrame ->
+                            if List.isEmpty model.persons then
+                                StartFrame
+
+                            else
+                                TreeFrame
               }
             , Cmd.none
             )
@@ -140,6 +150,9 @@ update msg model =
 
         UpdatePanZoom event ->
             ( { model | panzoom = PanZoom.update event model.panzoom }, Cmd.none )
+
+        New ->
+            update (SendRpc Rpc.New) model
 
         NoOp ->
             ( model, Cmd.none )
@@ -176,22 +189,22 @@ view model =
             , width fill
             ]
             [ navBar
-            , PanZoom.view model.panzoom
-                { viewportAttributes = [ width fill, height fill ], contentAttributes = [] }
-              <|
-                el
-                    [ height (px 20)
-                    , width (px 20)
-                    ]
-                <|
-                    body model
+            , body model
             ]
 
 
 navBar : Element Msg
 navBar =
-    column [ Background.color palette.fg, height fill, width (px 80), Region.navigation ]
-        [ navIcon []
+    column
+        [ Region.navigation
+        , spacing 7
+        , Background.color palette.fg
+        , height fill
+        , width (px 80)
+        ]
+        [ navIcon [] { icon = FeatherIcons.filePlus, onPress = Just New }
+        , navIcon [] { icon = FeatherIcons.upload, onPress = Just SelectFile }
+        , navIcon []
             { icon = FeatherIcons.edit
             , onPress = Just (ShowModal <| text "Modal")
             }
@@ -233,9 +246,10 @@ buttonStyles =
 body : Model -> Element Msg
 body model =
     el
-        ([ width fill
+        ([ Region.mainContent
+         , width fill
          , height fill
-         , Region.mainContent
+         , HA.style "overflow" "hidden" |> htmlAttribute
          ]
             |> List.append
                 (case model.modal of
@@ -250,20 +264,24 @@ body model =
                 )
         )
     <|
-        el
-            [ width fill
-            , height fill
-            ]
-        <|
-            case model.frame of
-                SettingsFrame ->
-                    el [ centerX, centerY ] <| text "Settings"
+        case model.frame of
+            StartFrame ->
+                column [ centerX, centerY, spacing 10 ]
+                    [ text "Start a new tree or upload an existing file."
+                    , row [ spacing 20, width fill ]
+                        [ navIcon [] { icon = FeatherIcons.filePlus, onPress = Just New }
+                        , navIcon [] { icon = FeatherIcons.upload, onPress = Just SelectFile }
+                        ]
+                    ]
 
-                TreeFrame ->
-                    PanZoom.view model.panzoom
-                        { viewportAttributes = [ width fill, height fill ], contentAttributes = [] }
-                    <|
-                        text "Tree"
+            SettingsFrame ->
+                el [ centerX, centerY ] <| text "Settings"
+
+            TreeFrame ->
+                PanZoom.view model.panzoom
+                    { viewportAttributes = [ width fill, height fill ], contentAttributes = [] }
+                <|
+                    text "Tree"
 
 
 modal : Element Msg -> Attribute Msg
