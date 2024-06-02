@@ -59,7 +59,7 @@ decodeIncoming value =
             let
                 decodePersons =
                     Decode.list <|
-                        Decode.map2 (\id info -> Common.Person id Nothing Nothing Nothing info)
+                        Decode.map2 Common.Person
                             (Decode.field "id" Decode.string)
                             (Decode.field "info"
                                 (Decode.map (Maybe.withDefault Dict.empty)

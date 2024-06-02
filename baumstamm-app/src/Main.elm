@@ -91,7 +91,7 @@ init flags =
       , panzoom =
             PanZoom.init
                 (PanZoom.defaultConfig UpdatePanZoom)
-                { scale = 1, position = { x = 100, y = 100 } }
+                { scale = 1, position = { x = 600, y = 600 } }
       }
     , Cmd.none
     )
@@ -165,7 +165,7 @@ view model =
                 }
             ]
         }
-        [ Background.color palette.bg, width fill, height fill ]
+        [ Background.color palette.bg, width fill, height fill, Font.color (rgb 1 1 1) ]
     <|
         row
             [ height fill
@@ -230,7 +230,7 @@ body model =
                         PanZoom.view model.panzoom
                             { viewportAttributes = [ width fill, height fill ], contentAttributes = [] }
                         <|
-                            text (Debug.toString treeData)
+                            treeFrame treeData
 
                     Nothing ->
                         -- draw start page
@@ -271,3 +271,71 @@ modal element =
                 ]
                 element
             )
+
+
+treeFrame : TreeData -> Element Msg
+treeFrame treeData =
+    column []
+        (treeData.grid
+            |> List.map
+                (\c ->
+                    row
+                        [ spacing 10
+                        ]
+                        (c
+                            |> List.map
+                                (\item ->
+                                    el
+                                        [ width (px 200)
+                                        , height (px 200)
+                                        ]
+                                        (case item of
+                                            PersonItem pid ->
+                                                personCard pid treeData
+
+                                            ConnectionsItem _ ->
+                                                Element.none
+                                        )
+                                )
+                        )
+                )
+        )
+
+
+personCard : Pid -> TreeData -> Element Msg
+personCard pid treeData =
+    case getPerson pid treeData of
+        Just person ->
+            column
+                [ width fill
+                , height fill
+                , Background.color palette.fg
+                , Border.width 2
+                , Border.rounded 15
+                , Border.color palette.action
+                ]
+                (let
+                    firstName =
+                        getFirstName person
+
+                    middleNames =
+                        getMiddleNames person
+
+                    lastName =
+                        getLastName person
+
+                    names =
+                        [ firstName, middleNames, lastName ]
+                            |> List.filterMap identity
+                            |> select List.isEmpty ((::) "?") identity
+                 in
+                 names
+                    |> List.map text
+                    |> List.map
+                        (el
+                            [ centerX, centerY ]
+                        )
+                )
+
+        Nothing ->
+            el [ Background.color (rgb 1 0 0) ] <| text "Inconsistent data!"
