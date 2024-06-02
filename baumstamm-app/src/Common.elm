@@ -35,11 +35,33 @@ type alias TreeData =
 
 type alias Person =
     { id : Pid
-    , firstName : Maybe String
-    , lastName : Maybe String
-    , image : Maybe String
     , info : Dict String String
     }
+
+
+getFirstName : Person -> Maybe String
+getFirstName person =
+    person.info
+        |> Dict.get "@firstName"
+
+
+getMiddleNames : Person -> Maybe String
+getMiddleNames person =
+    person.info
+        |> Dict.get "@middleNames"
+
+
+getLastName : Person -> Maybe String
+getLastName person =
+    person.info
+        |> Dict.get "@lastName"
+
+
+getPerson : Pid -> TreeData -> Maybe Person
+getPerson pid treeData =
+    treeData.persons
+        |> List.filter (\person -> person.id == pid)
+        |> List.head
 
 
 type alias Relationship =
@@ -158,3 +180,12 @@ navIcon attributes { icon, onPress } =
                     |> Element.html
             , onPress = onPress
             }
+
+
+select : (a -> Bool) -> (a -> b) -> (a -> b) -> a -> b
+select condition f g x =
+    if condition x then
+        f x
+
+    else
+        g x
