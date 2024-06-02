@@ -5,6 +5,7 @@ import Common exposing (..)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
+import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input exposing (button)
 import Element.Region as Region
@@ -41,6 +42,7 @@ type alias Model =
     { flags : Flags
     , file : String
     , treeData : Maybe TreeData
+    , activePerson : Maybe Pid
     , frame : Frame
     , modal : Maybe (Element Msg)
     , panzoom : PanZoom.Model Msg
@@ -78,6 +80,7 @@ type Msg
     | HideModal
     | UpdatePanZoom PanZoom.MouseEvent
     | New
+    | SelectPerson Pid
     | NoOp
 
 
@@ -86,6 +89,7 @@ init flags =
     ( { flags = decodeFlags flags
       , file = ""
       , treeData = Nothing
+      , activePerson = Nothing
       , frame = TreeFrame
       , modal = Nothing
       , panzoom =
@@ -145,6 +149,9 @@ update msg model =
 
         New ->
             update (SendRpc Rpc.New) model
+
+        SelectPerson pid ->
+            ( { model | activePerson = Just pid }, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
@@ -230,7 +237,7 @@ body model =
                         PanZoom.view model.panzoom
                             { viewportAttributes = [ width fill, height fill ], contentAttributes = [] }
                         <|
-                            treeFrame treeData
+                            treeFrame treeData model.activePerson
 
                     Nothing ->
                         -- draw start page
@@ -273,8 +280,8 @@ modal element =
             )
 
 
-treeFrame : TreeData -> Element Msg
-treeFrame treeData =
+treeFrame : TreeData -> Maybe Pid -> Element Msg
+treeFrame treeData activePerson =
     column []
         (treeData.grid
             |> List.map
@@ -291,7 +298,11 @@ treeFrame treeData =
                                         ]
                                         (case item of
                                             PersonItem pid ->
-                                                personCard pid treeData
+                                                let
+                                                    isActive =
+                                                        activePerson == Just pid
+                                                in
+                                                personCard pid isActive treeData
 
                                             ConnectionsItem _ ->
                                                 Element.none
@@ -302,8 +313,8 @@ treeFrame treeData =
         )
 
 
-personCard : Pid -> TreeData -> Element Msg
-personCard pid treeData =
+personCard : Pid -> Bool -> TreeData -> Element Msg
+personCard pid isActive treeData =
     case getPerson pid treeData of
         Just person ->
             column
@@ -312,7 +323,15 @@ personCard pid treeData =
                 , Background.color palette.fg
                 , Border.width 2
                 , Border.rounded 15
-                , Border.color palette.action
+                , Border.color
+                    (if isActive then
+                        palette.marker
+
+                     else
+                        palette.action
+                    )
+                , mouseOver [ Border.color palette.marker ]
+                , onClick (SelectPerson pid)
                 ]
                 (let
                     firstName =
