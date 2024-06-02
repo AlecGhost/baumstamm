@@ -1,10 +1,11 @@
 port module Rpc exposing (Incoming(..), Outgoing(..), decodeIncoming, encodeOutgoing, receive, send)
 
 import Common
+import Connections
 import Dict
-import Element exposing (rgb255)
 import Json.Decode as Decode exposing (Value)
 import Json.Encode as Encode
+import Utils exposing (..)
 
 
 port send : Value -> Cmd msg
@@ -80,7 +81,7 @@ decodeIncoming value =
                             (Decode.field "children" (Decode.list Decode.string))
 
                 decodeColor =
-                    Decode.map3 Common.hsl
+                    Decode.map3 hsl
                         (Decode.index 0 Decode.float)
                         (Decode.index 1 Decode.float)
                         (Decode.index 2 Decode.float)
@@ -91,10 +92,10 @@ decodeIncoming value =
                             (\str ->
                                 case str of
                                     "Up" ->
-                                        Decode.succeed Common.Up
+                                        Decode.succeed Connections.Up
 
                                     "Down" ->
-                                        Decode.succeed Common.Down
+                                        Decode.succeed Connections.Down
 
                                     _ ->
                                         Decode.fail "Invalid orientation value"
@@ -106,26 +107,26 @@ decodeIncoming value =
                             (\str ->
                                 case str of
                                     "Left" ->
-                                        Decode.succeed Common.Left
+                                        Decode.succeed Connections.Left
 
                                     "Right" ->
-                                        Decode.succeed Common.Right
+                                        Decode.succeed Connections.Right
 
                                     "None" ->
-                                        Decode.succeed Common.None
+                                        Decode.succeed Connections.None
 
                                     _ ->
                                         Decode.fail "Invalid origin value"
                             )
 
                 decodePassing =
-                    Decode.map3 Common.Passing
+                    Decode.map3 Connections.Passing
                         (Decode.field "connection" Decode.int)
                         (Decode.field "color" decodeColor)
                         (Decode.field "y_index" Decode.int)
 
                 decodeEnding =
-                    Decode.map5 Common.Ending
+                    Decode.map5 Connections.Ending
                         (Decode.field "connection" Decode.int)
                         (Decode.field "color" decodeColor)
                         (Decode.field "origin" decodeOrigin)
@@ -133,7 +134,7 @@ decodeIncoming value =
                         (Decode.field "y_index" Decode.int)
 
                 decodeCrossing =
-                    Decode.map5 Common.Crossing
+                    Decode.map5 Connections.Crossing
                         (Decode.field "connection" Decode.int)
                         (Decode.field "color" decodeColor)
                         (Decode.field "origin" decodeOrigin)
@@ -148,7 +149,7 @@ decodeIncoming value =
                                 , Decode.map Common.ConnectionsItem
                                     (Decode.field "Connections"
                                         (Decode.map6
-                                            Common.Connections
+                                            Connections.Connections
                                             (Decode.field "orientation" decodeOrientation)
                                             (Decode.field "total_x" Decode.int)
                                             (Decode.field "total_y" Decode.int)
