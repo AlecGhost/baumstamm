@@ -1,63 +1,14 @@
 module Connections exposing (..)
 
-import Element exposing (Color, Element, html)
+import Data exposing (Connections, Crossing, Ending, Orientation(..), Origin(..), Passing)
+import Element exposing (Element, html)
 import Svg
 import Svg.Attributes as SAttr
 import Utils exposing (..)
 
 
-type alias Connections =
-    { orientation : Orientation
-    , totalX : Int
-    , totalY : Int
-    , passing : List Passing
-    , ending : List Ending
-    , crossing : List Crossing
-    }
-
-
-type alias Passing =
-    { connection : Cid
-    , color : Color
-    , yIndex : Int
-    }
-
-
-type alias Ending =
-    { connection : Cid
-    , color : Color
-    , origin : Origin
-    , xIndex : Int
-    , yIndex : Int
-    }
-
-
-type alias Crossing =
-    { connection : Cid
-    , color : Color
-    , origin : Origin
-    , xIndex : Int
-    , yIndex : Int
-    }
-
-
-type Orientation
-    = Up
-    | Down
-
-
-type Origin
-    = Left
-    | Right
-    | None
-
-
-type alias Cid =
-    Int
-
-
-connector : Connections -> Element msg
-connector connections =
+view : Connections -> Element msg
+view connections =
     let
         xOffset index =
             ((index + 1 |> toFloat) / (connections.totalX + 1 |> toFloat))
@@ -181,7 +132,7 @@ connector connections =
             in
             Svg.svg [] [ horizontalLine, verticalLine ]
     in
-    Svg.svg [ SAttr.width "100%", SAttr.height "100%" ]
+    Svg.svg [ SAttr.width "100%", SAttr.height "100%", SAttr.pointerEvents "none" ]
         ((connections.passing |> List.map passing)
             ++ (connections.ending |> List.map ending)
             ++ (connections.crossing |> List.map crossing)

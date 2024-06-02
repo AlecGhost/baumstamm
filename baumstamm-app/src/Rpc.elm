@@ -1,7 +1,6 @@
 port module Rpc exposing (Incoming(..), Outgoing(..), decodeIncoming, encodeOutgoing, receive, send)
 
-import Common
-import Connections
+import Data exposing (..)
 import Dict
 import Json.Decode as Decode exposing (Value)
 import Json.Encode as Encode
@@ -41,7 +40,7 @@ encodeOutgoing rpc =
 
 
 type Incoming
-    = TreeData Common.TreeData
+    = TreeData Data.TreeData
     | InvalidProc
     | InvalidPayload
 
@@ -60,7 +59,7 @@ decodeIncoming value =
             let
                 decodePersons =
                     Decode.list <|
-                        Decode.map2 Common.Person
+                        Decode.map2 Person
                             (Decode.field "id" Decode.string)
                             (Decode.field "info"
                                 (Decode.map (Maybe.withDefault Dict.empty)
@@ -70,7 +69,7 @@ decodeIncoming value =
 
                 decodeRelationships =
                     Decode.list <|
-                        Decode.map3 Common.Relationship
+                        Decode.map3 Relationship
                             (Decode.field "id" Decode.string)
                             (Decode.field "parents"
                                 (Decode.map2 Tuple.pair
@@ -92,10 +91,10 @@ decodeIncoming value =
                             (\str ->
                                 case str of
                                     "Up" ->
-                                        Decode.succeed Connections.Up
+                                        Decode.succeed Up
 
                                     "Down" ->
-                                        Decode.succeed Connections.Down
+                                        Decode.succeed Down
 
                                     _ ->
                                         Decode.fail "Invalid orientation value"
@@ -107,26 +106,26 @@ decodeIncoming value =
                             (\str ->
                                 case str of
                                     "Left" ->
-                                        Decode.succeed Connections.Left
+                                        Decode.succeed Left
 
                                     "Right" ->
-                                        Decode.succeed Connections.Right
+                                        Decode.succeed Right
 
                                     "None" ->
-                                        Decode.succeed Connections.None
+                                        Decode.succeed None
 
                                     _ ->
                                         Decode.fail "Invalid origin value"
                             )
 
                 decodePassing =
-                    Decode.map3 Connections.Passing
+                    Decode.map3 Passing
                         (Decode.field "connection" Decode.int)
                         (Decode.field "color" decodeColor)
                         (Decode.field "y_index" Decode.int)
 
                 decodeEnding =
-                    Decode.map5 Connections.Ending
+                    Decode.map5 Ending
                         (Decode.field "connection" Decode.int)
                         (Decode.field "color" decodeColor)
                         (Decode.field "origin" decodeOrigin)
@@ -134,7 +133,7 @@ decodeIncoming value =
                         (Decode.field "y_index" Decode.int)
 
                 decodeCrossing =
-                    Decode.map5 Connections.Crossing
+                    Decode.map5 Crossing
                         (Decode.field "connection" Decode.int)
                         (Decode.field "color" decodeColor)
                         (Decode.field "origin" decodeOrigin)
@@ -145,11 +144,11 @@ decodeIncoming value =
                     Decode.list <|
                         Decode.list <|
                             Decode.oneOf
-                                [ Decode.map Common.PersonItem (Decode.field "Person" Decode.string)
-                                , Decode.map Common.ConnectionsItem
+                                [ Decode.map PersonItem (Decode.field "Person" Decode.string)
+                                , Decode.map ConnectionsItem
                                     (Decode.field "Connections"
                                         (Decode.map6
-                                            Connections.Connections
+                                            Connections
                                             (Decode.field "orientation" decodeOrientation)
                                             (Decode.field "total_x" Decode.int)
                                             (Decode.field "total_y" Decode.int)
@@ -161,7 +160,7 @@ decodeIncoming value =
                                 ]
 
                 treeDataPayload =
-                    Decode.map3 Common.TreeData
+                    Decode.map3 Data.TreeData
                         (Decode.field "persons" decodePersons)
                         (Decode.field "relationships" decodeRelationships)
                         (Decode.field "grid" decodeGrid)

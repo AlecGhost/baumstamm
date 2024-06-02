@@ -1,8 +1,7 @@
 module Common exposing (..)
 
-import Connections exposing (Connections)
-import Dict exposing (Dict)
 import Element exposing (..)
+import Element.Background as Background
 import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button)
@@ -27,65 +26,6 @@ buttonStyles =
     , pointer
     , mouseOver [ Border.color palette.marker ]
     ]
-
-
-type alias TreeData =
-    { persons : List Person, relationships : List Relationship, grid : Grid }
-
-
-type alias Person =
-    { id : Pid
-    , info : Dict String String
-    }
-
-
-getFirstName : Person -> Maybe String
-getFirstName person =
-    person.info
-        |> Dict.get "@firstName"
-
-
-getMiddleNames : Person -> Maybe String
-getMiddleNames person =
-    person.info
-        |> Dict.get "@middleNames"
-
-
-getLastName : Person -> Maybe String
-getLastName person =
-    person.info
-        |> Dict.get "@lastName"
-
-
-getPerson : Pid -> TreeData -> Maybe Person
-getPerson pid treeData =
-    treeData.persons
-        |> List.filter (\person -> person.id == pid)
-        |> List.head
-
-
-type alias Relationship =
-    { id : Rid
-    , parents : ( Maybe Pid, Maybe Pid )
-    , children : List Pid
-    }
-
-
-type alias Grid =
-    List (List GridItem)
-
-
-type GridItem
-    = PersonItem Pid
-    | ConnectionsItem Connections
-
-
-type alias Pid =
-    String
-
-
-type alias Rid =
-    String
 
 
 margin : Float -> Float -> Element msg -> Element msg
@@ -123,19 +63,31 @@ margin percentileX percentileY element =
         ]
 
 
-navIcon : List (Attribute msg) -> { icon : FeatherIcons.Icon, onPress : Maybe msg } -> Element msg
-navIcon attributes { icon, onPress } =
-    el ([ centerX, Element.paddingXY 0 5 ] |> List.append attributes) <|
-        button
-            [ pointer
-            , Font.color palette.action
-            , mouseOver [ Font.color palette.marker ]
-            ]
-            { label =
-                icon
-                    |> withSize 40
-                    |> FeatherIcons.toHtml []
-                    |> Element.html
-            , onPress = onPress
-            }
-
+modal : msg -> Element msg -> Attribute msg
+modal onClose element =
+    inFront <|
+        margin 0.8
+            0.8
+            (el
+                [ Background.color palette.fg
+                , width fill
+                , height fill
+                , paddingXY 30 30
+                , Border.rounded 15
+                , inFront <|
+                    button
+                        [ alignTop
+                        , alignRight
+                        , Font.color palette.action
+                        , mouseOver [ Font.color palette.marker ]
+                        ]
+                        { label =
+                            FeatherIcons.x
+                                |> withSize 40
+                                |> FeatherIcons.toHtml []
+                                |> Element.html
+                        , onPress = Just onClose
+                        }
+                ]
+                element
+            )
