@@ -80,10 +80,10 @@ decodeIncoming value =
                             (Decode.field "children" (Decode.list Decode.string))
 
                 decodeColor =
-                    Decode.map3 rgb255
-                        (Decode.index 0 Decode.int)
-                        (Decode.index 1 Decode.int)
-                        (Decode.index 2 Decode.int)
+                    Decode.map3 Common.hsl
+                        (Decode.index 0 Decode.float)
+                        (Decode.index 1 Decode.float)
+                        (Decode.index 2 Decode.float)
 
                 decodeOrientation =
                     Decode.string
