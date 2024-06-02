@@ -181,10 +181,10 @@ view model =
             , width fill
             ]
             [ Nav.navBar
-                { onNew = New
-                , onSettings = ToggleSettings
-                , onUpload = SelectFile
-                , onEdit = ShowModal Element.none
+                { onNew = Just New
+                , onSettings = Just ToggleSettings
+                , onUpload = Just SelectFile
+                , onEdit = Just (ShowModal Element.none)
                 }
             , body model
             ]

@@ -10,10 +10,10 @@ import FeatherIcons exposing (withSize)
 
 
 navBar :
-    { onEdit : msg
-    , onSettings : msg
-    , onUpload : msg
-    , onNew : msg
+    { onEdit : Maybe msg
+    , onSettings : Maybe msg
+    , onUpload : Maybe msg
+    , onNew : Maybe msg
     }
     -> Element msg
 navBar { onEdit, onUpload, onSettings, onNew } =
@@ -24,27 +24,37 @@ navBar { onEdit, onUpload, onSettings, onNew } =
         , height fill
         , width (px 80)
         ]
-        [ navIcon [] { icon = FeatherIcons.filePlus, onPress = Just onNew }
-        , navIcon [] { icon = FeatherIcons.upload, onPress = Just onUpload }
-        , navIcon []
-            { icon = FeatherIcons.edit
-            , onPress = Just onEdit
-            }
-        , navIcon [ alignBottom ]
-            { icon = FeatherIcons.settings
-            , onPress = Just onSettings
-            }
+        [ navIcon [] { icon = FeatherIcons.filePlus, onPress = onNew }
+        , navIcon [] { icon = FeatherIcons.upload, onPress = onUpload }
+        , navIcon [] { icon = FeatherIcons.edit, onPress = onEdit }
+        , navIcon [ alignBottom ] { icon = FeatherIcons.settings, onPress = onSettings }
         ]
 
 
 navIcon : List (Attribute msg) -> { icon : FeatherIcons.Icon, onPress : Maybe msg } -> Element msg
 navIcon attributes { icon, onPress } =
+    let
+        active =
+            case onPress of
+                Just _ ->
+                    True
+
+                Nothing ->
+                    False
+
+        attrs =
+            if active then
+                [ pointer
+                , Font.color palette.action
+                , mouseOver [ Font.color palette.marker ]
+                ]
+
+            else
+                [ Font.color palette.bg ]
+    in
     el ([ centerX, Element.paddingXY 0 5 ] |> List.append attributes) <|
         button
-            [ pointer
-            , Font.color palette.action
-            , mouseOver [ Font.color palette.marker ]
-            ]
+            attrs
             { label =
                 icon
                     |> withSize 40
