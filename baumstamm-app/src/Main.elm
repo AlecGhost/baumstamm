@@ -1,24 +1,24 @@
 module Main exposing (..)
 
 import Browser
-import Common exposing (..)
-import Connections exposing (connector)
+import Common exposing (modal, palette)
+import Connections exposing (view)
+import Data exposing (GridItem(..), Pid, TreeData)
 import Element exposing (..)
 import Element.Background as Background
-import Element.Border as Border
-import Element.Events exposing (onClick)
 import Element.Font as Font
-import Element.Input exposing (button)
 import Element.Region as Region
-import FeatherIcons exposing (withSize)
+import FeatherIcons
 import File exposing (File)
 import File.Select as Select
 import Html exposing (Html)
 import Html.Attributes as HA
 import Json.Decode as Decode exposing (Value)
+import Nav exposing (navIcon)
 import PanZoom
 import Rpc
 import Task
+import Tree
 import Utils exposing (..)
 
 
@@ -180,31 +180,14 @@ view model =
             [ height fill
             , width fill
             ]
-            [ navBar
+            [ Nav.navBar
+                { onNew = New
+                , onSettings = ToggleSettings
+                , onUpload = SelectFile
+                , onEdit = ShowModal Element.none
+                }
             , body model
             ]
-
-
-navBar : Element Msg
-navBar =
-    column
-        [ Region.navigation
-        , spacing 7
-        , Background.color palette.fg
-        , height fill
-        , width (px 80)
-        ]
-        [ navIcon [] { icon = FeatherIcons.filePlus, onPress = Just New }
-        , navIcon [] { icon = FeatherIcons.upload, onPress = Just SelectFile }
-        , navIcon []
-            { icon = FeatherIcons.edit
-            , onPress = Just (ShowModal <| text "Modal")
-            }
-        , navIcon [ alignBottom ]
-            { icon = FeatherIcons.settings
-            , onPress = Just ToggleSettings
-            }
-        ]
 
 
 body : Model -> Element Msg
@@ -218,7 +201,7 @@ body model =
             |> List.append
                 (case model.modal of
                     Just element ->
-                        [ modal <|
+                        [ modal HideModal <|
                             el [ centerX, centerY, width fill, height fill ] <|
                                 element
                         ]
@@ -239,7 +222,11 @@ body model =
                         PanZoom.view model.panzoom
                             { viewportAttributes = [ width fill, height fill ], contentAttributes = [] }
                         <|
-                            treeFrame treeData model.activePerson
+                            Tree.view
+                                { treeData = treeData
+                                , activePerson = model.activePerson
+                                , onSelect = SelectPerson
+                                }
 
                     Nothing ->
                         -- draw start page
@@ -250,113 +237,3 @@ body model =
                                 , navIcon [] { icon = FeatherIcons.upload, onPress = Just SelectFile }
                                 ]
                             ]
-
-
-modal : Element Msg -> Attribute Msg
-modal element =
-    inFront <|
-        margin 0.8
-            0.8
-            (el
-                [ Background.color palette.fg
-                , width fill
-                , height fill
-                , paddingXY 30 30
-                , Border.rounded 15
-                , inFront <|
-                    button
-                        [ alignTop
-                        , alignRight
-                        , Font.color palette.action
-                        , mouseOver [ Font.color palette.marker ]
-                        ]
-                        { label =
-                            FeatherIcons.x
-                                |> withSize 40
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                        , onPress = Just HideModal
-                        }
-                ]
-                element
-            )
-
-
-treeFrame : TreeData -> Maybe Pid -> Element Msg
-treeFrame treeData activePerson =
-    column []
-        (treeData.grid
-            |> List.map
-                (\c ->
-                    row
-                        []
-                        (c
-                            |> List.map
-                                (\item ->
-                                    el
-                                        [ width (px 200)
-                                        , height (px 200)
-                                        ]
-                                        (case item of
-                                            PersonItem pid ->
-                                                let
-                                                    isActive =
-                                                        activePerson == Just pid
-                                                in
-                                                personCard pid isActive treeData
-
-                                            ConnectionsItem connections ->
-                                                connector connections
-                                        )
-                                )
-                        )
-                )
-        )
-
-
-personCard : Pid -> Bool -> TreeData -> Element Msg
-personCard pid isActive treeData =
-    case getPerson pid treeData of
-        Just person ->
-            margin 0.95 1 <|
-                column
-                    [ width fill
-                    , height fill
-                    , Background.color palette.fg
-                    , Border.width 2
-                    , Border.rounded 15
-                    , Border.color
-                        (if isActive then
-                            palette.marker
-
-                         else
-                            palette.action
-                        )
-                    , mouseOver [ Border.color palette.marker ]
-                    , onClick (SelectPerson pid)
-                    ]
-                    (let
-                        firstName =
-                            getFirstName person
-
-                        middleNames =
-                            getMiddleNames person
-
-                        lastName =
-                            getLastName person
-
-                        names =
-                            [ firstName, middleNames, lastName ]
-                                |> List.filterMap identity
-                                |> select List.isEmpty ((::) "?") identity
-                     in
-                     names
-                        |> List.map text
-                        |> List.map
-                            (el
-                                [ centerX, centerY ]
-                            )
-                    )
-
-        Nothing ->
-            el [ Background.color (rgb 1 0 0) ] <| text "Inconsistent data!"
