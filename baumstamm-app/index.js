@@ -58,8 +58,16 @@ function send(proc, payload) {
 }
 
 function getTreeData(state) {
-    let persons = get_persons(state);
-    let relationships = get_relationships(state);
-    let grid = get_grid(state);
+    const persons = get_persons(state).map(person => {
+        // convert Map to Object
+        const id = person.id;
+        let info = null;
+        if (person.info !== null && person.info !== undefined) {
+            info = Object.fromEntries(person.info);
+        }
+        return { id, info };
+    });
+    const relationships = get_relationships(state);
+    const grid = get_grid(state);
     return { persons, relationships, grid }
 }
