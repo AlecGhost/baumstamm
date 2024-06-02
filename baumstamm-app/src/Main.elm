@@ -16,6 +16,7 @@ import Html.Attributes as HA
 import Json.Decode as Decode exposing (Value)
 import Nav exposing (navIcon)
 import PanZoom
+import Person
 import Rpc
 import Task
 import Tree
@@ -83,6 +84,7 @@ type Msg
     | UpdatePanZoom PanZoom.MouseEvent
     | New
     | SelectPerson Pid
+    | Edit
     | NoOp
 
 
@@ -117,7 +119,7 @@ update msg model =
             ( { model | frame = TreeFrame, treeData = Just data }, Cmd.none )
 
         ReceiveRcp _ ->
-            ( model, Cmd.none )
+            update NoOp model
 
         SelectFile ->
             ( model, Select.file [ "application/json" ] LoadFile )
@@ -155,6 +157,23 @@ update msg model =
         SelectPerson pid ->
             ( { model | activePerson = Just pid }, Cmd.none )
 
+        Edit ->
+            case ( model.activePerson, model.treeData ) of
+                ( Just pid, Just treeData ) ->
+                    update
+                        (ShowModal <|
+                            Person.viewEdit
+                                { pid = pid
+                                , treeData = treeData
+                                , onSave = \_ -> HideModal
+                                , onCancel = HideModal
+                                }
+                        )
+                        model
+
+                _ ->
+                    update NoOp model
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -184,7 +203,7 @@ view model =
                 { onNew = Just New
                 , onSettings = Just ToggleSettings
                 , onUpload = Just SelectFile
-                , onEdit = Just (ShowModal Element.none)
+                , onEdit = model.activePerson |> Maybe.map (\_ -> Edit)
                 }
             , body model
             ]
@@ -201,7 +220,7 @@ body model =
             |> List.append
                 (case model.modal of
                     Just element ->
-                        [ modal HideModal <|
+                        [ modal <|
                             el [ centerX, centerY, width fill, height fill ] <|
                                 element
                         ]

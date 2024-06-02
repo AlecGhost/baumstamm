@@ -3,9 +3,6 @@ module Common exposing (..)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
-import Element.Font as Font
-import Element.Input exposing (button)
-import FeatherIcons exposing (withSize)
 
 
 palette : { bg : Color, fg : Color, action : Color, marker : Color }
@@ -63,8 +60,8 @@ margin percentileX percentileY element =
         ]
 
 
-modal : msg -> Element msg -> Attribute msg
-modal onClose element =
+modal : Element msg -> Attribute msg
+modal element =
     inFront <|
         margin 0.8
             0.8
@@ -74,20 +71,6 @@ modal onClose element =
                 , height fill
                 , paddingXY 30 30
                 , Border.rounded 15
-                , inFront <|
-                    button
-                        [ alignTop
-                        , alignRight
-                        , Font.color palette.action
-                        , mouseOver [ Font.color palette.marker ]
-                        ]
-                        { label =
-                            FeatherIcons.x
-                                |> withSize 40
-                                |> FeatherIcons.toHtml []
-                                |> Element.html
-                        , onPress = Just onClose
-                        }
                 ]
                 element
             )

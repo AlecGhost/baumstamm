@@ -1,12 +1,13 @@
 module Person exposing (..)
 
-import Common exposing (margin, palette)
+import Common exposing (buttonStyles, margin, palette)
 import Data exposing (Person, Pid, TreeData)
 import Dict
 import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (onClick)
+import Element.Input exposing (button)
 import Utils exposing (select)
 
 
@@ -33,6 +34,34 @@ getLastName : Person -> Maybe String
 getLastName person =
     person.info
         |> Dict.get "@lastName"
+
+
+getFullName : Person -> String
+getFullName person =
+    case ( getFirstName person, getMiddleNames person, getLastName person ) of
+        ( Just firstname, Just middleNames, Just lastName ) ->
+            firstname ++ " " ++ middleNames ++ " " ++ lastName
+
+        ( Just firstname, Nothing, Just lastName ) ->
+            firstname ++ " " ++ lastName
+
+        ( Nothing, Just middleNames, Just lastName ) ->
+            middleNames ++ " " ++ lastName
+
+        ( Just firstName, Just middleNames, Nothing ) ->
+            firstName ++ " " ++ middleNames
+
+        ( Just firstName, Nothing, Nothing ) ->
+            firstName
+
+        ( Nothing, Just middleNames, Nothing ) ->
+            middleNames
+
+        ( Nothing, Nothing, Just lastName ) ->
+            lastName
+
+        ( Nothing, Nothing, Nothing ) ->
+            "?"
 
 
 view :
@@ -84,6 +113,30 @@ view { pid, isActive, treeData, onSelect } =
                                 [ centerX, centerY ]
                             )
                     )
+
+        Nothing ->
+            el [ Background.color (rgb 1 0 0) ] <| text "Inconsistent data!"
+
+
+viewEdit :
+    { pid : Pid
+    , treeData : TreeData
+    , onSave : Person -> msg
+    , onCancel : msg
+    }
+    -> Element msg
+viewEdit { pid, treeData, onSave, onCancel } =
+    case getPerson pid treeData of
+        Just person ->
+            column [ width fill, height fill ] <|
+                [ text <| getFullName person
+                , row [ alignBottom, spaceEvenly, width fill, Element.explain Debug.todo ]
+                    [ el [ width fill ] <|
+                        button [ centerX ] { label = text "Save", onPress = Just (onSave person) }
+                    , el [ width fill ] <|
+                        button [ centerX ] { label = text "Cancel", onPress = Just onCancel }
+                    ]
+                ]
 
         Nothing ->
             el [ Background.color (rgb 1 0 0) ] <| text "Inconsistent data!"
