@@ -130,11 +130,17 @@ viewEdit { pid, treeData, onSave, onCancel } =
         Just person ->
             column [ width fill, height fill ] <|
                 [ text <| getFullName person
-                , row [ alignBottom, spaceEvenly, width fill, Element.explain Debug.todo ]
+                , row [ alignBottom, spaceEvenly, width fill ]
                     [ el [ width fill ] <|
-                        button [ centerX ] { label = text "Save", onPress = Just (onSave person) }
+                        button buttonStyles.primary
+                            { label = el [ centerX ] <| text "Save"
+                            , onPress = Just (onSave person)
+                            }
                     , el [ width fill ] <|
-                        button [ centerX ] { label = text "Cancel", onPress = Just onCancel }
+                        button buttonStyles.cancel
+                            { label = el [ centerX ] <| text "Cancel"
+                            , onPress = Just onCancel
+                            }
                     ]
                 ]
 
