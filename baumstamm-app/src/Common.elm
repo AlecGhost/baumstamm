@@ -14,15 +14,30 @@ palette =
     }
 
 
-buttonStyles : List (Attribute msg)
 buttonStyles =
-    [ Border.rounded 15
-    , Border.width 2
-    , Border.color palette.action
-    , paddingXY 2 3
-    , pointer
-    , mouseOver [ Border.color palette.marker ]
-    ]
+    { primary =
+        [ centerX
+        , width (px 100)
+        , Border.rounded 15
+        , paddingXY 2 3
+        , Border.width 2
+        , Border.color palette.action
+        , pointer
+        , mouseOver
+            [ Border.color palette.marker ]
+        ]
+    , cancel =
+        [ centerX
+        , width (px 100)
+        , Border.rounded 15
+        , paddingXY 2 3
+        , Border.width 2
+        , Border.color palette.fg
+        , pointer
+        , mouseOver
+            [ Border.color palette.marker ]
+        ]
+    }
 
 
 margin : Float -> Float -> Element msg -> Element msg
