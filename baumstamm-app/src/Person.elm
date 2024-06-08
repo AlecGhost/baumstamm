@@ -8,7 +8,25 @@ import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (onClick)
 import Element.Input exposing (button)
-import Utils exposing (select)
+import Utils exposing (flip, select)
+
+
+reservedKeys :
+    { firstName : String
+    , middleNames : String
+    , lastName : String
+    , dateOfBirth : String
+    , dateOfDeath : String
+    , image : String
+    }
+reservedKeys =
+    { firstName = "@firstName"
+    , middleNames = "@middleNames"
+    , lastName = "@lastName"
+    , dateOfBirth = "@dateOfBirth"
+    , dateOfDeath = "@dateOfDeath"
+    , image = "@image"
+    }
 
 
 getPerson : Pid -> TreeData -> Maybe Person
@@ -21,19 +39,19 @@ getPerson pid treeData =
 getFirstName : Person -> Maybe String
 getFirstName person =
     person.info
-        |> Dict.get "@firstName"
+        |> Dict.get reservedKeys.firstName
 
 
 getMiddleNames : Person -> Maybe String
 getMiddleNames person =
     person.info
-        |> Dict.get "@middleNames"
+        |> Dict.get reservedKeys.middleNames
 
 
 getLastName : Person -> Maybe String
 getLastName person =
     person.info
-        |> Dict.get "@lastName"
+        |> Dict.get reservedKeys.lastName
 
 
 getFullName : Person -> String
@@ -62,6 +80,29 @@ getFullName person =
 
         ( Nothing, Nothing, Nothing ) ->
             "?"
+
+
+getInfo : Person -> List ( String, String )
+getInfo person =
+    let
+        reserved =
+            [ reservedKeys.firstName
+            , reservedKeys.middleNames
+            , reservedKeys.lastName
+            , reservedKeys.dateOfBirth
+            , reservedKeys.dateOfDeath
+            , reservedKeys.image
+            ]
+    in
+    person.info
+        |> Dict.toList
+        |> List.filter (Tuple.first >> flip List.member reserved >> not)
+
+
+getImage : Person -> Maybe String
+getImage person =
+    person.info
+        |> Dict.get "@image"
 
 
 view :
@@ -130,6 +171,23 @@ viewEdit { pid, treeData, onSave, onCancel } =
         Just person ->
             column [ width fill, height fill ] <|
                 [ text <| getFullName person
+                , table [ explain Debug.todo ]
+                    { data = getInfo person
+                    , columns =
+                        [ { header = text "Key"
+                          , width = fill
+                          , view =
+                                \info ->
+                                    text <| Tuple.first info
+                          }
+                        , { header = text "Value"
+                          , width = fill
+                          , view =
+                                \info ->
+                                    text <| Tuple.second info
+                          }
+                        ]
+                    }
                 , row [ alignBottom, spaceEvenly, width fill ]
                     [ el [ width fill ] <|
                         button buttonStyles.primary
