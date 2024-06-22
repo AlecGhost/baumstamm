@@ -94,31 +94,28 @@ modal element =
             )
 
 
-toast : String -> msg -> Attribute msg
+toast : String -> msg -> Element msg
 toast message onDismiss =
-    inFront <|
-        el
-            [ alignBottom
-            , centerX
-            , Background.color palette.fg
-            , paddingXY 10 10
-            , Border.width 2
-            , Border.color palette.action
-            , Border.rounded 15
-            ]
-        <|
-            row []
-                [ el [ centerX, centerY ] <|
-                    text message
-                , button
-                    [ pointer
-                    , Font.color palette.action
-                    , mouseOver [ Font.color palette.marker ]
-                    ]
-                    { onPress = Just onDismiss
-                    , label =
-                        FeatherIcons.x
-                            |> FeatherIcons.toHtml []
-                            |> Element.html
-                    }
+    el
+        [ Background.color palette.fg
+        , paddingXY 10 10
+        , Border.width 2
+        , Border.color palette.action
+        , Border.rounded 15
+        ]
+    <|
+        row []
+            [ el [ centerX, centerY ] <|
+                text message
+            , button
+                [ pointer
+                , Font.color palette.action
+                , mouseOver [ Font.color palette.marker ]
                 ]
+                { onPress = Just onDismiss
+                , label =
+                    FeatherIcons.x
+                        |> FeatherIcons.toHtml []
+                        |> Element.html
+                }
+            ]
