@@ -122,8 +122,29 @@ update msg model =
         ReceiveRcp (Rpc.TreeData data) ->
             ( { model | frame = TreeFrame, treeData = Just data }, Cmd.none )
 
-        ReceiveRcp _ ->
-            update NoOp model
+        ReceiveRcp (Rpc.InvalidProc procName) ->
+            update
+                (ShowToast <|
+                    "Failed to decode RPC: The procedure '"
+                        ++ procName
+                        ++ "' is unknown.'"
+                )
+                model
+
+        ReceiveRcp Rpc.NoProc ->
+            update (ShowToast "Failed to decode RPC: No procedure name was specified.") model
+
+        ReceiveRcp (Rpc.NoPayload procName) ->
+            update
+                (ShowToast <|
+                    "Failed to decode RPC: No payload was specified for procedure '"
+                        ++ procName
+                        ++ "'."
+                )
+                model
+
+        ReceiveRcp (Rpc.Error message) ->
+            update (ShowToast message) model
 
         SelectFile ->
             ( model, Select.file [ "application/json" ] LoadFile )
