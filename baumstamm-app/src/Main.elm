@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Browser
-import Common exposing (modal, palette)
+import Common exposing (modal, palette, toast)
 import Connections exposing (view)
 import Data exposing (GridItem(..), Pid, TreeData)
 import Element exposing (..)
@@ -48,6 +48,7 @@ type alias Model =
     , activePerson : Maybe Pid
     , frame : Frame
     , modal : Maybe (Element Msg)
+    , toast : Maybe String
     , panzoom : PanZoom.Model Msg
     }
 
@@ -85,6 +86,8 @@ type Msg
     | New
     | SelectPerson Pid
     | Edit
+    | ShowToast String
+    | DismissToast
     | NoOp
 
 
@@ -96,6 +99,7 @@ init flags =
       , activePerson = Nothing
       , frame = TreeFrame
       , modal = Nothing
+      , toast = Nothing
       , panzoom =
             PanZoom.init
                 (PanZoom.defaultConfig UpdatePanZoom)
@@ -174,6 +178,12 @@ update msg model =
                 _ ->
                     update NoOp model
 
+        ShowToast message ->
+            ( { model | toast = Just message }, Cmd.none )
+
+        DismissToast ->
+            ( { model | toast = Nothing }, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -223,6 +233,15 @@ body model =
                         [ modal <|
                             el [ centerX, centerY, width fill, height fill ] <|
                                 element
+                        ]
+
+                    Nothing ->
+                        []
+                )
+            |> List.append
+                (case model.toast of
+                    Just message ->
+                        [ toast message DismissToast
                         ]
 
                     Nothing ->
