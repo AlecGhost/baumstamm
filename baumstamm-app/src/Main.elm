@@ -48,7 +48,7 @@ type alias Model =
     , activePerson : Maybe Pid
     , frame : Frame
     , modal : Maybe (Element Msg)
-    , toast : Maybe String
+    , toasts : List String
     , panzoom : PanZoom.Model Msg
     }
 
@@ -87,7 +87,7 @@ type Msg
     | SelectPerson Pid
     | Edit
     | ShowToast String
-    | DismissToast
+    | DismissToast Int
     | NoOp
 
 
@@ -99,7 +99,7 @@ init flags =
       , activePerson = Nothing
       , frame = TreeFrame
       , modal = Nothing
-      , toast = Nothing
+      , toasts = []
       , panzoom =
             PanZoom.init
                 (PanZoom.defaultConfig UpdatePanZoom)
@@ -200,10 +200,16 @@ update msg model =
                     update NoOp model
 
         ShowToast message ->
-            ( { model | toast = Just message }, Cmd.none )
+            ( { model | toasts = message :: model.toasts }, Cmd.none )
 
-        DismissToast ->
-            ( { model | toast = Nothing }, Cmd.none )
+        DismissToast index ->
+            ( { model
+                | toasts =
+                    List.take index model.toasts
+                        ++ List.drop (index + 1) model.toasts
+              }
+            , Cmd.none
+            )
 
         NoOp ->
             ( model, Cmd.none )
@@ -242,32 +248,43 @@ view model =
 
 body : Model -> Element Msg
 body model =
+    let
+        viewModal =
+            case model.modal of
+                Just element ->
+                    [ modal <|
+                        el [ centerX, centerY, width fill, height fill ] <|
+                            element
+                    ]
+
+                Nothing ->
+                    []
+
+        viewToasts =
+            if List.length model.toasts /= 0 then
+                [ inFront <|
+                    column
+                        [ alignBottom, centerX ]
+                        (model.toasts
+                            |> List.indexedMap
+                                (\index message ->
+                                    el [ paddingXY 0 5 ] <|
+                                        toast message (DismissToast index)
+                                )
+                        )
+                ]
+
+            else
+                []
+    in
     el
         ([ Region.mainContent
          , width fill
          , height fill
          , HA.style "overflow" "hidden" |> htmlAttribute
          ]
-            |> List.append
-                (case model.modal of
-                    Just element ->
-                        [ modal <|
-                            el [ centerX, centerY, width fill, height fill ] <|
-                                element
-                        ]
-
-                    Nothing ->
-                        []
-                )
-            |> List.append
-                (case model.toast of
-                    Just message ->
-                        [ toast message DismissToast
-                        ]
-
-                    Nothing ->
-                        []
-                )
+            |> List.append viewModal
+            |> List.append viewToasts
         )
     <|
         case model.frame of
