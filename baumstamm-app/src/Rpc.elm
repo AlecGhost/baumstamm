@@ -41,18 +41,17 @@ encodeOutgoing rpc =
 
 type Incoming
     = TreeData Data.TreeData
-    | InvalidProc
-    | InvalidPayload
+    | InvalidProc String
+    | NoProc
+    | NoPayload String
+    | Error String
 
 
 decodeIncoming : Value -> Incoming
 decodeIncoming value =
     let
-        procName =
-            Decode.string
-
         proc =
-            Decode.decodeValue (Decode.field "proc" procName) value
+            Decode.decodeValue (Decode.field "proc" Decode.string) value
     in
     case proc of
         Ok "tree_data" ->
@@ -175,8 +174,23 @@ decodeIncoming value =
                 Ok data ->
                     TreeData data
 
-                _ ->
-                    InvalidPayload
+                Err _ ->
+                    NoPayload "tree_data"
 
-        _ ->
-            InvalidProc
+        Ok "error" ->
+            let
+                payload =
+                    Decode.decodeValue (Decode.field "payload" Decode.string) value
+            in
+            case payload of
+                Ok error_message ->
+                    Error error_message
+
+                Err _ ->
+                    NoPayload "error"
+
+        Ok procName ->
+            InvalidProc procName
+
+        Err _ ->
+            NoProc

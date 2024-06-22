@@ -22,31 +22,36 @@ const incomingProcs = {
 };
 const outgoingProcs = {
     treeData: "tree_data",
+    error: "error",
 };
 app.ports.send.subscribe((rpc) => {
-    switch (rpc.proc) {
-        case incomingProcs.new:
-            {
-                state = init_state();
-                let treeData = getTreeData(state);
-                send(outgoingProcs.treeData, treeData);
-            }
-            break;
-        case incomingProcs.load:
-            {
-                load_tree(rpc.payload, state);
-                let treeData = getTreeData(state);
-                send(outgoingProcs.treeData, treeData);
-            }
-            break;
-        case incomingProcs.getTreeData:
-            {
-                let treeData = getTreeData(state);
-                send(outgoingProcs.treeData, treeData);
-            }
-            break;
-        default:
-            console.log("Unknown method:", rpc.proc);
+    try {
+        switch (rpc.proc) {
+            case incomingProcs.new:
+                {
+                    state = init_state();
+                    let treeData = getTreeData(state);
+                    send(outgoingProcs.treeData, treeData);
+                }
+                break;
+            case incomingProcs.load:
+                {
+                    load_tree(rpc.payload, state);
+                    let treeData = getTreeData(state);
+                    send(outgoingProcs.treeData, treeData);
+                }
+                break;
+            case incomingProcs.getTreeData:
+                {
+                    let treeData = getTreeData(state);
+                    send(outgoingProcs.treeData, treeData);
+                }
+                break;
+            default:
+                send(outgoingProcs.error, "The unknown procedure '" + rpc.proc + "' was called.");
+        }
+    } catch (e) {
+        send(outgoingProcs.error, e);
     }
 });
 
