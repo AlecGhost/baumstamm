@@ -5,11 +5,18 @@ use itertools::Itertools;
 type Pid = baumstamm_lib::PersonId;
 type Rid = baumstamm_lib::RelationshipId;
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub struct RelIndices {
+    pub rid: Rid,
     pub parents: [Option<usize>; 2],
     pub children: Vec<usize>,
     pub crossing_point: Option<usize>,
+}
+
+impl RelIndices {
+    pub fn get_parents(&self) -> Vec<usize> {
+        self.parents.iter().flatten().cloned().collect_vec()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -23,7 +30,7 @@ pub fn get_rel_indices(
     rels: &[Relationship],
     person_indices: &Grid<PersonIndex>,
 ) -> Grid<RelIndices> {
-    let mut rel_indices = layers
+    layers
         .iter()
         .enumerate()
         .map(|(index, layer)| {
@@ -34,7 +41,12 @@ pub fn get_rel_indices(
                         .iter()
                         .find(|rel| rel.id == *rid)
                         .expect("Inconsistent relationships");
-                    let mut rel_indices = RelIndices::default();
+                    let mut rel_indices = RelIndices {
+                        rid: rel.id,
+                        parents: [None, None],
+                        children: Vec::new(),
+                        crossing_point: None,
+                    };
                     if index > 0 {
                         if let Some(parent_indices) = person_indices.get(index - 1) {
                             let mut parent_indices = rel.parents.map(|opt_parent| {
@@ -78,9 +90,7 @@ pub fn get_rel_indices(
                 .sorted_by(|a, b| b.parents[0].cmp(&a.parents[0]))
                 .collect_vec()
         })
-        .collect_vec();
-    rel_indices.push(Vec::new());
-    rel_indices
+        .collect_vec()
 }
 
 pub fn get_person_indices(person_layers: &Grid<Pid>, row_length: usize) -> Grid<PersonIndex> {
