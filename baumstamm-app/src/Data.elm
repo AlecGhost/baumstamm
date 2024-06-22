@@ -40,8 +40,6 @@ type alias Rid =
 
 type alias Connections =
     { orientation : Orientation
-    , totalX : Int
-    , totalY : Int
     , passing : List Passing
     , ending : List Ending
     , crossing : List Crossing
@@ -49,27 +47,27 @@ type alias Connections =
 
 
 type alias Passing =
-    { connection : Cid
+    { rid : Rid
     , color : Color
-    , yIndex : Int
+    , yFraction : Fraction
     }
 
 
 type alias Ending =
-    { connection : Cid
+    { rid : Rid
     , color : Color
     , origin : Origin
-    , xIndex : Int
-    , yIndex : Int
+    , xFraction : Fraction
+    , yFraction : Fraction
     }
 
 
 type alias Crossing =
-    { connection : Cid
+    { rid : Rid
     , color : Color
     , origin : Origin
-    , xIndex : Int
-    , yIndex : Int
+    , xFraction : Fraction
+    , yFraction : Fraction
     }
 
 
@@ -84,5 +82,7 @@ type Origin
     | None
 
 
-type alias Cid =
-    Int
+type alias Fraction =
+    { numerator : Int
+    , denominator : Int
+    }

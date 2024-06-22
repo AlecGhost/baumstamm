@@ -85,6 +85,11 @@ decodeIncoming value =
                         (Decode.index 1 Decode.float)
                         (Decode.index 2 Decode.float)
 
+                decodeFraction =
+                    Decode.map2 Fraction
+                        (Decode.field "numerator" Decode.int)
+                        (Decode.field "denominator" Decode.int)
+
                 decodeOrientation =
                     Decode.string
                         |> Decode.andThen
@@ -120,25 +125,25 @@ decodeIncoming value =
 
                 decodePassing =
                     Decode.map3 Passing
-                        (Decode.field "connection" Decode.int)
+                        (Decode.field "rid" Decode.string)
                         (Decode.field "color" decodeColor)
-                        (Decode.field "y_index" Decode.int)
+                        (Decode.field "y_fraction" decodeFraction)
 
                 decodeEnding =
                     Decode.map5 Ending
-                        (Decode.field "connection" Decode.int)
+                        (Decode.field "rid" Decode.string)
                         (Decode.field "color" decodeColor)
                         (Decode.field "origin" decodeOrigin)
-                        (Decode.field "x_index" Decode.int)
-                        (Decode.field "y_index" Decode.int)
+                        (Decode.field "x_fraction" decodeFraction)
+                        (Decode.field "y_fraction" decodeFraction)
 
                 decodeCrossing =
                     Decode.map5 Crossing
-                        (Decode.field "connection" Decode.int)
+                        (Decode.field "rid" Decode.string)
                         (Decode.field "color" decodeColor)
                         (Decode.field "origin" decodeOrigin)
-                        (Decode.field "x_index" Decode.int)
-                        (Decode.field "y_index" Decode.int)
+                        (Decode.field "x_fraction" decodeFraction)
+                        (Decode.field "y_fraction" decodeFraction)
 
                 decodeGrid =
                     Decode.list <|
@@ -147,11 +152,9 @@ decodeIncoming value =
                                 [ Decode.map PersonItem (Decode.field "Person" Decode.string)
                                 , Decode.map ConnectionsItem
                                     (Decode.field "Connections"
-                                        (Decode.map6
+                                        (Decode.map4
                                             Connections
                                             (Decode.field "orientation" decodeOrientation)
-                                            (Decode.field "total_x" Decode.int)
-                                            (Decode.field "total_y" Decode.int)
                                             (Decode.field "passing" (Decode.list decodePassing))
                                             (Decode.field "ending" (Decode.list decodeEnding))
                                             (Decode.field "crossing" (Decode.list decodeCrossing))
