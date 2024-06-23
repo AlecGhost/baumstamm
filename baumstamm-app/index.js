@@ -4,6 +4,7 @@ import init, {
     get_grid,
     init_state,
     load_tree,
+    insert_info
 } from "./target/baumstamm-wasm/baumstamm_wasm.js";
 
 const flags = {
@@ -19,6 +20,7 @@ const incomingProcs = {
     new: "new",
     load: "load",
     getTreeData: "get_tree_data",
+    insertInfo: "insert_info",
 };
 const outgoingProcs = {
     treeData: "tree_data",
@@ -43,6 +45,16 @@ app.ports.send.subscribe((rpc) => {
                 break;
             case incomingProcs.getTreeData:
                 {
+                    let treeData = getTreeData(state);
+                    send(outgoingProcs.treeData, treeData);
+                }
+                break;
+            case incomingProcs.insertInfo:
+                {
+                    let pid = rpc.payload.pid;
+                    let key = rpc.payload.key;
+                    let value = rpc.payload.value;
+                    insert_info(pid, key, value, state);
                     let treeData = getTreeData(state);
                     send(outgoingProcs.treeData, treeData);
                 }

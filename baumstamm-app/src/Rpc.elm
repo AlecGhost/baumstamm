@@ -1,4 +1,4 @@
-port module Rpc exposing (Incoming(..), Outgoing(..), decodeIncoming, encodeOutgoing, receive, send)
+port module Rpc exposing (Incoming(..), InsertInfoPayload, Outgoing(..), decodeIncoming, encodeOutgoing, receive, send)
 
 import Data exposing (..)
 import Dict
@@ -13,10 +13,15 @@ port send : Value -> Cmd msg
 port receive : (Value -> msg) -> Sub msg
 
 
+type alias InsertInfoPayload =
+    { pid : Pid, key : String, value : String }
+
+
 type Outgoing
     = New
     | Load String
     | GetTreeData
+    | InsertInfo InsertInfoPayload
 
 
 encodeOutgoing : Outgoing -> Value
@@ -36,6 +41,21 @@ encodeOutgoing rpc =
         GetTreeData ->
             Encode.object
                 [ ( "proc", Encode.string "get_tree_data" )
+                ]
+
+        InsertInfo payload ->
+            Encode.object
+                [ ( "proc", Encode.string "insert_info" )
+                , ( "payload"
+                  , Encode.dict identity
+                        Encode.string
+                        (Dict.fromList
+                            [ ( "pid", payload.pid )
+                            , ( "key", payload.key )
+                            , ( "value", payload.value )
+                            ]
+                        )
+                  )
                 ]
 
 
