@@ -6,6 +6,8 @@ import Element.Border as Border
 import Element.Font as Font
 import Element.Input exposing (button)
 import FeatherIcons
+import Html.Events
+import Json.Decode as Decode
 
 
 palette : { bg : Color, fg : Color, action : Color, marker : Color }
@@ -119,3 +121,35 @@ toast message onDismiss =
                         |> Element.html
                 }
             ]
+
+
+type alias KeyboardEvent =
+    { key : String
+    , ctrl : Bool
+    , shift : Bool
+    , meta : Bool
+    }
+
+
+onKeyboardEvent : (KeyboardEvent -> Maybe msg) -> Attribute msg
+onKeyboardEvent eventHandler =
+    let
+        decoder =
+            Decode.map4 KeyboardEvent
+                (Decode.field "key" Decode.string)
+                (Decode.field "ctrlKey" Decode.bool)
+                (Decode.field "shiftKey" Decode.bool)
+                (Decode.field "metaKey" Decode.bool)
+                |> Decode.andThen
+                    (\event ->
+                        case eventHandler (Debug.log "event" event) of
+                            Just msg ->
+                                Decode.succeed (msg, True)
+
+                            Nothing ->
+                                Decode.fail "No event triggered"
+                    )
+    in
+    Html.Events.stopPropagationOn "keyup"
+        decoder
+        |> htmlAttribute

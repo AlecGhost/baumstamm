@@ -1,6 +1,6 @@
 module Person exposing (..)
 
-import Common exposing (buttonStyles, margin, palette)
+import Common exposing (buttonStyles, margin, onKeyboardEvent, palette)
 import Data exposing (Person, Pid, TreeData)
 import Dict
 import Element exposing (..)
@@ -180,7 +180,21 @@ viewEdit :
 viewEdit { pid, treeData, onDismiss, infoTableInput } =
     case getPerson pid treeData of
         Just person ->
-            column [ width fill, height fill, spacing 5 ] <|
+            column
+                [ width fill
+                , height fill
+                , spacing 5
+                , onKeyboardEvent
+                    (\{ key } ->
+                        case key of
+                            "Escape" ->
+                                Just onDismiss
+
+                            _ ->
+                                Nothing
+                    )
+                ]
+            <|
                 [ el
                     [ centerX
                     , Font.size 30
@@ -209,6 +223,17 @@ viewEdit { pid, treeData, onDismiss, infoTableInput } =
                     [ width fill, spacing 5 ]
                     [ row
                         [ width fill
+                        , onKeyboardEvent <|
+                            \{ key } ->
+                                case key of
+                                    "Enter" ->
+                                        Just infoTableInput.onSave
+
+                                    "Escape" ->
+                                        Just infoTableInput.onCancel
+
+                                    _ ->
+                                        Nothing
                         ]
                         [ Input.text
                             [ Background.color palette.bg
