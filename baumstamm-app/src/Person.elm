@@ -7,7 +7,8 @@ import Element exposing (..)
 import Element.Background as Background
 import Element.Border as Border
 import Element.Events exposing (onClick)
-import Element.Input exposing (button)
+import Element.Font as Font
+import Element.Input as Input
 import Utils exposing (flip, select)
 
 
@@ -159,19 +160,35 @@ view { pid, isActive, treeData, onSelect } =
             el [ Background.color (rgb 1 0 0) ] <| text "Inconsistent data!"
 
 
+type alias InfoTableInput msg =
+    { key : String
+    , value : String
+    , onKeyUpdate : String -> msg
+    , onValueUpdate : String -> msg
+    , onSave : msg
+    , onCancel : msg
+    }
+
+
 viewEdit :
     { pid : Pid
     , treeData : TreeData
-    , onSave : Person -> msg
-    , onCancel : msg
+    , onDismiss : msg
+    , infoTableInput : InfoTableInput msg
     }
     -> Element msg
-viewEdit { pid, treeData, onSave, onCancel } =
+viewEdit { pid, treeData, onDismiss, infoTableInput } =
     case getPerson pid treeData of
         Just person ->
-            column [ width fill, height fill ] <|
-                [ text <| getFullName person
-                , table [ explain Debug.todo ]
+            column [ width fill, height fill, spacing 5 ] <|
+                [ el
+                    [ centerX
+                    , Font.size 30
+                    ]
+                  <|
+                    text <|
+                        getFullName person
+                , table []
                     { data = getInfo person
                     , columns =
                         [ { header = text "Key"
@@ -188,16 +205,46 @@ viewEdit { pid, treeData, onSave, onCancel } =
                           }
                         ]
                     }
+                , column
+                    [ width fill, spacing 5 ]
+                    [ row
+                        [ width fill
+                        ]
+                        [ Input.text
+                            [ Background.color palette.bg
+                            ]
+                            { onChange = infoTableInput.onKeyUpdate
+                            , label = Input.labelHidden "Key"
+                            , placeholder = Just <| Input.placeholder [] <| text "Key"
+                            , text = infoTableInput.key
+                            }
+                        , Input.text
+                            [ Background.color palette.bg
+                            ]
+                            { onChange = infoTableInput.onValueUpdate
+                            , label = Input.labelHidden "Value"
+                            , placeholder = Just <| Input.placeholder [] <| text "Value"
+                            , text = infoTableInput.value
+                            }
+                        ]
+                    , row [ spaceEvenly, width fill ]
+                        [ el [ width fill ] <|
+                            Input.button buttonStyles.primary
+                                { label = el [ centerX ] <| text "Save"
+                                , onPress = Just infoTableInput.onSave
+                                }
+                        , el [ width fill ] <|
+                            Input.button buttonStyles.primary
+                                { label = el [ centerX ] <| text "Cancel"
+                                , onPress = Just infoTableInput.onCancel
+                                }
+                        ]
+                    ]
                 , row [ alignBottom, spaceEvenly, width fill ]
                     [ el [ width fill ] <|
-                        button buttonStyles.primary
-                            { label = el [ centerX ] <| text "Save"
-                            , onPress = Just (onSave person)
-                            }
-                    , el [ width fill ] <|
-                        button buttonStyles.cancel
-                            { label = el [ centerX ] <| text "Cancel"
-                            , onPress = Just onCancel
+                        Input.button buttonStyles.primary
+                            { label = el [ centerX ] <| text "Ok"
+                            , onPress = Just onDismiss
                             }
                     ]
                 ]

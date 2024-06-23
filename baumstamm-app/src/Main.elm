@@ -47,15 +47,21 @@ type alias Model =
     , treeData : Maybe TreeData
     , activePerson : Maybe Pid
     , frame : Frame
-    , modal : Maybe (Element Msg)
+    , modal : Maybe Modal
     , toasts : List String
     , panzoom : PanZoom.Model Msg
+    , infoTableKey : String
+    , infoTableValue : String
     }
 
 
 type Frame
     = TreeFrame
     | SettingsFrame
+
+
+type Modal
+    = EditModal
 
 
 type alias Flags =
@@ -80,14 +86,17 @@ type Msg
     | SelectFile
     | LoadFile File
     | ToggleSettings
-    | ShowModal (Element Msg)
-    | HideModal
+    | ShowEdit
+    | DismissEdit
     | UpdatePanZoom PanZoom.MouseEvent
     | New
     | SelectPerson Pid
-    | Edit
     | ShowToast String
     | DismissToast Int
+    | UpdateInfoTableKey String
+    | UpdateInfoTableValue String
+    | SaveInfoTable
+    | ClearInfoTable
     | NoOp
 
 
@@ -104,6 +113,8 @@ init flags =
             PanZoom.init
                 (PanZoom.defaultConfig UpdatePanZoom)
                 { scale = 1, position = { x = 600, y = 600 } }
+      , infoTableKey = ""
+      , infoTableValue = ""
       }
     , Cmd.none
     )
@@ -167,11 +178,11 @@ update msg model =
             , Cmd.none
             )
 
-        ShowModal element ->
-            ( { model | modal = Just element }, Cmd.none )
+        ShowEdit ->
+            ( { model | modal = Just EditModal }, Cmd.none )
 
-        HideModal ->
-            ( { model | modal = Nothing }, Cmd.none )
+        DismissEdit ->
+            ( { model | modal = Nothing, infoTableKey = "", infoTableValue = "" }, Cmd.none )
 
         UpdatePanZoom event ->
             ( { model | panzoom = PanZoom.update event model.panzoom }, Cmd.none )
@@ -181,23 +192,6 @@ update msg model =
 
         SelectPerson pid ->
             ( { model | activePerson = Just pid }, Cmd.none )
-
-        Edit ->
-            case ( model.activePerson, model.treeData ) of
-                ( Just pid, Just treeData ) ->
-                    update
-                        (ShowModal <|
-                            Person.viewEdit
-                                { pid = pid
-                                , treeData = treeData
-                                , onSave = \_ -> HideModal
-                                , onCancel = HideModal
-                                }
-                        )
-                        model
-
-                _ ->
-                    update NoOp model
 
         ShowToast message ->
             ( { model | toasts = message :: model.toasts }, Cmd.none )
@@ -210,6 +204,18 @@ update msg model =
               }
             , Cmd.none
             )
+
+        UpdateInfoTableKey key ->
+            ( { model | infoTableKey = key }, Cmd.none )
+
+        UpdateInfoTableValue value ->
+            ( { model | infoTableValue = value }, Cmd.none )
+
+        SaveInfoTable ->
+            ( { model | infoTableKey = "", infoTableValue = "" }, Cmd.none )
+
+        ClearInfoTable ->
+            ( { model | infoTableKey = "", infoTableValue = "" }, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
@@ -240,7 +246,7 @@ view model =
                 { onNew = Just New
                 , onSettings = Just ToggleSettings
                 , onUpload = Just SelectFile
-                , onEdit = model.activePerson |> Maybe.map (\_ -> Edit)
+                , onEdit = model.activePerson |> Maybe.map (\_ -> ShowEdit)
                 }
             , body model
             ]
@@ -250,14 +256,26 @@ body : Model -> Element Msg
 body model =
     let
         viewModal =
-            case model.modal of
-                Just element ->
+            case ( model.modal, model.activePerson, model.treeData ) of
+                ( Just EditModal, Just pid, Just treeData ) ->
                     [ modal <|
                         el [ centerX, centerY, width fill, height fill ] <|
-                            element
+                            Person.viewEdit
+                                { pid = pid
+                                , treeData = treeData
+                                , onDismiss = DismissEdit
+                                , infoTableInput =
+                                    { onCancel = ClearInfoTable
+                                    , onSave = NoOp
+                                    , onKeyUpdate = UpdateInfoTableKey
+                                    , onValueUpdate = UpdateInfoTableValue
+                                    , key = model.infoTableKey
+                                    , value = model.infoTableValue
+                                    }
+                                }
                     ]
 
-                Nothing ->
+                _ ->
                     []
 
         viewToasts =
