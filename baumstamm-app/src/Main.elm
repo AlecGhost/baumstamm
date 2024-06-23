@@ -80,6 +80,11 @@ decodeFlags value =
         (Decode.decodeValue flagDecoder value)
 
 
+clearInfoTable : Model -> Model
+clearInfoTable model =
+    { model | infoTableKey = "", infoTableValue = "" }
+
+
 type Msg
     = SendRpc Rpc.Outgoing
     | ReceiveRcp Rpc.Incoming
@@ -90,12 +95,12 @@ type Msg
     | DismissEdit
     | UpdatePanZoom PanZoom.MouseEvent
     | New
+    | InsertInfo Rpc.InsertInfoPayload
     | SelectPerson Pid
     | ShowToast String
     | DismissToast Int
     | UpdateInfoTableKey String
     | UpdateInfoTableValue String
-    | SaveInfoTable
     | ClearInfoTable
     | NoOp
 
@@ -182,13 +187,16 @@ update msg model =
             ( { model | modal = Just EditModal }, Cmd.none )
 
         DismissEdit ->
-            ( { model | modal = Nothing, infoTableKey = "", infoTableValue = "" }, Cmd.none )
+            ( { model | modal = Nothing } |> clearInfoTable, Cmd.none )
 
         UpdatePanZoom event ->
             ( { model | panzoom = PanZoom.update event model.panzoom }, Cmd.none )
 
         New ->
             update (SendRpc Rpc.New) model
+
+        InsertInfo payload ->
+            update (SendRpc <| Rpc.InsertInfo payload) (model |> clearInfoTable)
 
         SelectPerson pid ->
             ( { model | activePerson = Just pid }, Cmd.none )
@@ -211,11 +219,8 @@ update msg model =
         UpdateInfoTableValue value ->
             ( { model | infoTableValue = value }, Cmd.none )
 
-        SaveInfoTable ->
-            ( { model | infoTableKey = "", infoTableValue = "" }, Cmd.none )
-
         ClearInfoTable ->
-            ( { model | infoTableKey = "", infoTableValue = "" }, Cmd.none )
+            ( model |> clearInfoTable, Cmd.none )
 
         NoOp ->
             ( model, Cmd.none )
@@ -266,7 +271,12 @@ body model =
                                 , onDismiss = DismissEdit
                                 , infoTableInput =
                                     { onCancel = ClearInfoTable
-                                    , onSave = NoOp
+                                    , onSave =
+                                        InsertInfo
+                                            { pid = pid
+                                            , key = model.infoTableKey
+                                            , value = model.infoTableValue
+                                            }
                                     , onKeyUpdate = UpdateInfoTableKey
                                     , onValueUpdate = UpdateInfoTableValue
                                     , key = model.infoTableKey
