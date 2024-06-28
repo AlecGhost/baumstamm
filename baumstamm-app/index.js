@@ -39,7 +39,7 @@ const app = Elm.Main.init({
 
 // setup wasm
 await init();
-const state = init_state();
+let state = init_state();
 
 // tauri events
 if (flags.isTauri) {
@@ -105,7 +105,7 @@ app.ports.send.subscribe((rpc) => {
                 send(outgoingProcs.error, "The unknown procedure '" + rpc.proc + "' was called.");
         }
     } catch (e) {
-        send(outgoingProcs.error, e);
+        send(outgoingProcs.error, e.toString());
     }
 });
 
