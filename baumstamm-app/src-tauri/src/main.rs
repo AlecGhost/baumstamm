@@ -2,6 +2,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use tauri::{api::dialog::FileDialogBuilder, CustomMenuItem, Manager, Menu, MenuItem, Submenu};
 
+const EVENT_MENU_OPEN: &str = "menu-open";
+const EVENT_MENU_SAVE_AS: &str = "menu-save-as";
+const EVENT_OPEN: &str = "open";
+const EVENT_OPEN_ERROR: &str = "open-error";
+const EVENT_SAVE_AS: &str = "save-as";
+
 fn main() {
     tauri::Builder::default()
         .menu(build_menu())
@@ -9,38 +15,36 @@ fn main() {
             let window = event.window();
             let app = window.app_handle();
             match event.menu_item_id() {
-                "open" => {
+                EVENT_MENU_OPEN => {
                     FileDialogBuilder::new()
                         .add_filter("Application", &["json"])
                         .pick_file(move |path| {
                             if let Some(path) = path {
-                                match std::fs::read_to_string(&path) {
-                                    Ok(content) => {
-                                        app.emit_all("open", content).expect("open event failed")
-                                    }
+                                match std::fs::read_to_string(path) {
+                                    Ok(content) => app
+                                        .emit_all(EVENT_OPEN, content)
+                                        .expect("open event failed"),
                                     Err(err) => app
-                                        .emit_all("open-error", err.to_string())
+                                        .emit_all(EVENT_OPEN_ERROR, err.to_string())
                                         .expect("open-error event failed"),
                                 };
                             }
                         });
                 }
-                "save_as" => {
+                EVENT_MENU_SAVE_AS => {
                     FileDialogBuilder::new()
                         .add_filter("Application", &["json"])
                         .save_file(move |path| {
                             if let Some(path) = path {
-                                let content: &str = todo!();
-                                if let Err(err) = std::fs::write(&path, content) {
-                                    app.emit_all("save-as-error", err.to_string())
-                                        .expect("save-as-error event failed");
-                                }
+                                app.emit_all(EVENT_SAVE_AS, path)
+                                    .expect("save-as event failed");
                             }
                         });
                 }
                 _ => {}
             };
         })
+        .invoke_handler(tauri::generate_handler![save_as])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -56,8 +60,9 @@ fn build_menu() -> Menu {
             .add_native_item(MenuItem::Quit),
     );
 
-    let open = CustomMenuItem::new("open", "Open").accelerator("cmdOrControl+O");
-    let save_as = CustomMenuItem::new("save_as", "Save As").accelerator("cmdOrControl+Shift+S");
+    let open = CustomMenuItem::new(EVENT_MENU_OPEN, "Open").accelerator("cmdOrControl+O");
+    let save_as =
+        CustomMenuItem::new(EVENT_MENU_SAVE_AS, "Save As").accelerator("cmdOrControl+Shift+S");
     let file = Submenu::new("File", Menu::new().add_item(open).add_item(save_as));
 
     let edit_menu = Submenu::new(
@@ -90,4 +95,9 @@ fn build_menu() -> Menu {
         .add_submenu(edit_menu)
         .add_submenu(view_menu)
         .add_submenu(window_menu)
+}
+
+#[tauri::command]
+async fn save_as(path: String, content: String) -> Result<(), String> {
+    std::fs::write(path, content).map_err(|err| err.to_string())
 }

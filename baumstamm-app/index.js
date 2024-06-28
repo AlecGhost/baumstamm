@@ -3,19 +3,12 @@ import init, {
     get_relationships,
     get_grid,
     init_state,
+    insert_info,
     load_tree,
-    insert_info
+    save_tree,
 } from "./target/baumstamm-wasm/baumstamm_wasm.js";
 
-const flags = {
-    isTauri: "__TAURI__" in window,
-};
-const app = Elm.Main.init({
-    node: document.getElementById("baumstamm"),
-    flags,
-});
-await init();
-var state = init_state();
+// constants
 const incomingProcs = {
     new: "new",
     load: "load",
@@ -26,6 +19,55 @@ const outgoingProcs = {
     treeData: "tree_data",
     error: "error",
 };
+const events = {
+    open: "open",
+    openError: "open-error",
+    saveAs: "save-as",
+}
+const commands = {
+    saveAs: "save_as",
+}
+
+// setup elm
+const flags = {
+    isTauri: "__TAURI__" in window,
+};
+const app = Elm.Main.init({
+    node: document.getElementById("baumstamm"),
+    flags,
+});
+
+// setup wasm
+await init();
+const state = init_state();
+
+// tauri events
+if (flags.isTauri) {
+    const event = window.__TAURI__.event;
+    const invoke = window.__TAURI__.invoke;
+    event.listen(events.open, (event) => {
+        const treeString = event.payload;
+        try {
+            load_tree(treeString, state);
+            let treeData = getTreeData(state);
+            send(outgoingProcs.treeData, treeData);
+        } catch (e) {
+            send(outgoingProcs.error, e);
+        }
+    });
+    event.listen(events.openError, (event) => {
+        const err = event.payload;
+        send(outgoingProcs.error, err);
+    });
+    event.listen(events.saveAs, (event) => {
+        const path = event.payload;
+        const treeString = save_tree(state);
+        invoke(commands.saveAs, { path, content: treeString })
+            .catch((err) => send(outgoingProcs.error, err));
+    });
+}
+
+// elm rpc
 app.ports.send.subscribe((rpc) => {
     try {
         switch (rpc.proc) {
