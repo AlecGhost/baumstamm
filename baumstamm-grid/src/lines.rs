@@ -188,7 +188,7 @@ pub fn allocate_vertical(
             let bottom_endings = rel_indices
                 .iter()
                 .filter(|ri| ri.children.contains(&index))
-                .filter(|ri| ri.children.len() > 1 || ri.get_parents().len() != 0)
+                .filter(|ri| ri.children.len() > 1 || !ri.get_parents().is_empty())
                 .map(|ri| ri.rid)
                 .collect_vec();
             let lines = rel_indices.iter().map(|ri| ri.rid).flat_map(|rid| {

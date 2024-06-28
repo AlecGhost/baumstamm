@@ -27,7 +27,7 @@ pub fn check(tree_data: &TreeData) -> Result<(), ConsistencyError> {
     Ok(())
 }
 
-fn check_relationships(relationships: &Vec<Relationship>) -> Result<(), ConsistencyError> {
+fn check_relationships(relationships: &[Relationship]) -> Result<(), ConsistencyError> {
     if relationships.is_empty() {
         return Ok(());
     }
