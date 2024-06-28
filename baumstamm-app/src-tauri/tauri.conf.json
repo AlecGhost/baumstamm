@@ -3,7 +3,8 @@
         "beforeBuildCommand": "elm make src/Main.elm --output=target/main.js",
         "beforeDevCommand": "elm-live src/Main.elm --open --start-page=index.html -- --output=target/main.js",
         "devPath": "http://localhost:8000",
-        "distDir": "out"
+        "distDir": "out",
+        "withGlobalTauri": true
     },
     "package": {
         "productName": "baumstamm-app",
