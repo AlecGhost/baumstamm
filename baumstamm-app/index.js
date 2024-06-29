@@ -12,11 +12,13 @@ import init, {
 const incomingProcs = {
     new: "new",
     load: "load",
+    save: "save",
     getTreeData: "get_tree_data",
     insertInfo: "insert_info",
 };
 const outgoingProcs = {
     treeData: "tree_data",
+    download: "download",
     error: "error",
 };
 const events = {
@@ -83,6 +85,12 @@ app.ports.send.subscribe((rpc) => {
                     load_tree(rpc.payload, state);
                     let treeData = getTreeData(state);
                     send(outgoingProcs.treeData, treeData);
+                }
+                break;
+            case incomingProcs.save:
+                {
+                    const treeString = save_tree(state);
+                    send(outgoingProcs.download, treeString);
                 }
                 break;
             case incomingProcs.getTreeData:

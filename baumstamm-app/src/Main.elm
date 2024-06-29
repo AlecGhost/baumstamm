@@ -10,7 +10,8 @@ import Element.Font as Font
 import Element.Region as Region
 import FeatherIcons
 import File exposing (File)
-import File.Select as Select
+import File.Download
+import File.Select
 import Html exposing (Html)
 import Html.Attributes as HA
 import Json.Decode as Decode exposing (Value)
@@ -90,6 +91,8 @@ type Msg
     | ReceiveRcp Rpc.Incoming
     | SelectFile
     | LoadFile File
+    | SaveFile
+    | DownloadFile String
     | ToggleSettings
     | ShowEdit
     | DismissEdit
@@ -159,16 +162,25 @@ update msg model =
                 )
                 model
 
+        ReceiveRcp (Rpc.Download content) ->
+            update (DownloadFile content) model
+
         ReceiveRcp (Rpc.Error message) ->
             update (ShowToast message) model
 
         SelectFile ->
-            ( model, Select.file [ "application/json" ] LoadFile )
+            ( model, File.Select.file [ "application/json" ] LoadFile )
 
         LoadFile file ->
             ( model
             , Task.perform (Rpc.Load >> SendRpc) (File.toString file)
             )
+
+        SaveFile ->
+            update (SendRpc Rpc.Save) model
+
+        DownloadFile content ->
+            ( model, content |> File.Download.string "tree.json" "application/json" )
 
         ToggleSettings ->
             ( { model
@@ -251,6 +263,7 @@ view model =
                 { onNew = Just New
                 , onSettings = Just ToggleSettings
                 , onUpload = Just SelectFile
+                , onDownload = Just SaveFile
                 , onEdit = model.activePerson |> Maybe.map (\_ -> ShowEdit)
                 }
             , body model
