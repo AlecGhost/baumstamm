@@ -178,6 +178,107 @@ viewEdit :
     }
     -> Element msg
 viewEdit { pid, treeData, onDismiss, infoTableInput } =
+    let
+        heading person =
+            el
+                [ centerX
+                , Font.size 30
+                ]
+            <|
+                text <|
+                    getFullName person
+
+        profilePicture person =
+            case getImage person of
+                Just img ->
+                    [ el
+                        [ centerX
+                        , width (fill |> maximum 300)
+                        , height (fill |> maximum 300)
+                        , Background.uncropped img
+                        ]
+                        none
+                    ]
+
+                Nothing ->
+                    []
+
+        infoTable person =
+            table []
+                { data = getInfo person
+                , columns =
+                    [ { header = text "Key"
+                      , width = fill
+                      , view =
+                            \info ->
+                                text <| Tuple.first info
+                      }
+                    , { header = text "Value"
+                      , width = fill
+                      , view =
+                            \info ->
+                                text <| Tuple.second info
+                      }
+                    ]
+                }
+
+        tableEdit =
+            column
+                [ width fill, spacing 5 ]
+                [ row
+                    [ width fill
+                    , onKeyboardEvent <|
+                        \{ key } ->
+                            case key of
+                                "Enter" ->
+                                    Just infoTableInput.onSave
+
+                                "Escape" ->
+                                    Just infoTableInput.onCancel
+
+                                _ ->
+                                    Nothing
+                    ]
+                    [ Input.text
+                        [ Background.color palette.bg
+                        ]
+                        { onChange = infoTableInput.onKeyUpdate
+                        , label = Input.labelHidden "Key"
+                        , placeholder = Just <| Input.placeholder [] <| text "Key"
+                        , text = infoTableInput.key
+                        }
+                    , Input.text
+                        [ Background.color palette.bg
+                        ]
+                        { onChange = infoTableInput.onValueUpdate
+                        , label = Input.labelHidden "Value"
+                        , placeholder = Just <| Input.placeholder [] <| text "Value"
+                        , text = infoTableInput.value
+                        }
+                    ]
+                , row [ spaceEvenly, width fill ]
+                    [ el [ width fill ] <|
+                        Input.button buttonStyles.primary
+                            { label = el [ centerX ] <| text "Save"
+                            , onPress = Just infoTableInput.onSave
+                            }
+                    , el [ width fill ] <|
+                        Input.button buttonStyles.primary
+                            { label = el [ centerX ] <| text "Cancel"
+                            , onPress = Just infoTableInput.onCancel
+                            }
+                    ]
+                ]
+
+        okButton =
+            row [ alignBottom, spaceEvenly, width fill ]
+                [ el [ width fill ] <|
+                    Input.button buttonStyles.primary
+                        { label = el [ centerX ] <| text "Ok"
+                        , onPress = Just onDismiss
+                        }
+                ]
+    in
     case getPerson pid treeData of
         Just person ->
             column
@@ -195,84 +296,12 @@ viewEdit { pid, treeData, onDismiss, infoTableInput } =
                     )
                 ]
             <|
-                [ el
-                    [ centerX
-                    , Font.size 30
-                    ]
-                  <|
-                    text <|
-                        getFullName person
-                , table []
-                    { data = getInfo person
-                    , columns =
-                        [ { header = text "Key"
-                          , width = fill
-                          , view =
-                                \info ->
-                                    text <| Tuple.first info
-                          }
-                        , { header = text "Value"
-                          , width = fill
-                          , view =
-                                \info ->
-                                    text <| Tuple.second info
-                          }
-                        ]
-                    }
-                , column
-                    [ width fill, spacing 5 ]
-                    [ row
-                        [ width fill
-                        , onKeyboardEvent <|
-                            \{ key } ->
-                                case key of
-                                    "Enter" ->
-                                        Just infoTableInput.onSave
-
-                                    "Escape" ->
-                                        Just infoTableInput.onCancel
-
-                                    _ ->
-                                        Nothing
-                        ]
-                        [ Input.text
-                            [ Background.color palette.bg
-                            ]
-                            { onChange = infoTableInput.onKeyUpdate
-                            , label = Input.labelHidden "Key"
-                            , placeholder = Just <| Input.placeholder [] <| text "Key"
-                            , text = infoTableInput.key
-                            }
-                        , Input.text
-                            [ Background.color palette.bg
-                            ]
-                            { onChange = infoTableInput.onValueUpdate
-                            , label = Input.labelHidden "Value"
-                            , placeholder = Just <| Input.placeholder [] <| text "Value"
-                            , text = infoTableInput.value
-                            }
-                        ]
-                    , row [ spaceEvenly, width fill ]
-                        [ el [ width fill ] <|
-                            Input.button buttonStyles.primary
-                                { label = el [ centerX ] <| text "Save"
-                                , onPress = Just infoTableInput.onSave
-                                }
-                        , el [ width fill ] <|
-                            Input.button buttonStyles.primary
-                                { label = el [ centerX ] <| text "Cancel"
-                                , onPress = Just infoTableInput.onCancel
-                                }
-                        ]
-                    ]
-                , row [ alignBottom, spaceEvenly, width fill ]
-                    [ el [ width fill ] <|
-                        Input.button buttonStyles.primary
-                            { label = el [ centerX ] <| text "Ok"
-                            , onPress = Just onDismiss
-                            }
-                    ]
-                ]
+                heading person
+                    :: profilePicture person
+                    ++ [ infoTable person
+                       , tableEdit
+                       , okButton
+                       ]
 
         Nothing ->
             el [ Background.color (rgb 1 0 0) ] <| text "Inconsistent data!"
