@@ -20,6 +20,7 @@ type alias InsertInfoPayload =
 type Outgoing
     = New
     | Load String
+    | Save
     | GetTreeData
     | InsertInfo InsertInfoPayload
 
@@ -36,6 +37,11 @@ encodeOutgoing rpc =
             Encode.object
                 [ ( "proc", Encode.string "load" )
                 , ( "payload", Encode.string file )
+                ]
+
+        Save ->
+            Encode.object
+                [ ( "proc", Encode.string "save" )
                 ]
 
         GetTreeData ->
@@ -61,10 +67,11 @@ encodeOutgoing rpc =
 
 type Incoming
     = TreeData Data.TreeData
+    | Download String
+    | Error String
     | InvalidProc String
     | NoProc
     | NoPayload String
-    | Error String
 
 
 decodeIncoming : Value -> Incoming
@@ -196,6 +203,18 @@ decodeIncoming value =
 
                 Err _ ->
                     NoPayload "tree_data"
+
+        Ok "download" ->
+            let
+                payload =
+                    Decode.decodeValue (Decode.field "payload" Decode.string) value
+            in
+            case payload of
+                Ok content ->
+                    Download content
+
+                Err _ ->
+                    NoPayload "download"
 
         Ok "error" ->
             let

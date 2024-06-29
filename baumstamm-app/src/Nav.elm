@@ -7,16 +7,18 @@ import Element.Font as Font
 import Element.Input exposing (button)
 import Element.Region as Region
 import FeatherIcons exposing (withSize)
+import Html.Attributes
 
 
 navBar :
     { onEdit : Maybe msg
     , onSettings : Maybe msg
     , onUpload : Maybe msg
+    , onDownload : Maybe msg
     , onNew : Maybe msg
     }
     -> Element msg
-navBar { onEdit, onUpload, onSettings, onNew } =
+navBar { onEdit, onUpload, onDownload, onSettings, onNew } =
     column
         [ Region.navigation
         , spacing 7
@@ -26,6 +28,8 @@ navBar { onEdit, onUpload, onSettings, onNew } =
         ]
         [ navIcon [] { icon = FeatherIcons.filePlus, onPress = onNew }
         , navIcon [] { icon = FeatherIcons.upload, onPress = onUpload }
+        , navIcon [ Html.Attributes.download "tree.json" |> htmlAttribute ]
+            { icon = FeatherIcons.download, onPress = onDownload }
         , navIcon [] { icon = FeatherIcons.edit, onPress = onEdit }
         , navIcon [ alignBottom ] { icon = FeatherIcons.settings, onPress = onSettings }
         ]
