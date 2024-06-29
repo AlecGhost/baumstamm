@@ -51,7 +51,7 @@ if (flags.isTauri) {
         const treeString = event.payload;
         try {
             load_tree(treeString, state);
-            let treeData = getTreeData(state);
+            const treeData = getTreeData(state);
             send(outgoingProcs.treeData, treeData);
         } catch (e) {
             send(outgoingProcs.error, e);
@@ -76,14 +76,14 @@ app.ports.send.subscribe((rpc) => {
             case incomingProcs.new:
                 {
                     state = init_state();
-                    let treeData = getTreeData(state);
+                    const treeData = getTreeData(state);
                     send(outgoingProcs.treeData, treeData);
                 }
                 break;
             case incomingProcs.load:
                 {
                     load_tree(rpc.payload, state);
-                    let treeData = getTreeData(state);
+                    const treeData = getTreeData(state);
                     send(outgoingProcs.treeData, treeData);
                 }
                 break;
@@ -95,17 +95,17 @@ app.ports.send.subscribe((rpc) => {
                 break;
             case incomingProcs.getTreeData:
                 {
-                    let treeData = getTreeData(state);
+                    const treeData = getTreeData(state);
                     send(outgoingProcs.treeData, treeData);
                 }
                 break;
             case incomingProcs.insertInfo:
                 {
-                    let pid = rpc.payload.pid;
-                    let key = rpc.payload.key;
-                    let value = rpc.payload.value;
+                    const pid = rpc.payload.pid;
+                    const key = rpc.payload.key;
+                    const value = rpc.payload.value;
                     insert_info(pid, key, value, state);
-                    let treeData = getTreeData(state);
+                    const treeData = getTreeData(state);
                     send(outgoingProcs.treeData, treeData);
                 }
                 break;
