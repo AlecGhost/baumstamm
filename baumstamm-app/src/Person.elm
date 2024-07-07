@@ -9,6 +9,7 @@ import Element.Border as Border
 import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
+import Url exposing (Url)
 import Utils exposing (flip, select)
 
 
@@ -106,6 +107,15 @@ getImage person =
         |> Dict.get "@image"
 
 
+encodeImageUri : String -> String
+encodeImageUri uri =
+    if uri |> String.startsWith "https://" then
+        uri
+
+    else
+        "asset://localhost/" ++ Url.percentEncode uri
+
+
 view :
     { pid : Pid
     , isActive : Bool
@@ -133,28 +143,55 @@ view { pid, isActive, treeData, onSelect } =
                     , mouseOver [ Border.color palette.marker ]
                     , onClick <| onSelect pid
                     ]
-                    (let
-                        firstName =
-                            getFirstName person
+                <|
+                    []
+                        ++ (case getImage person of
+                                Just img ->
+                                    [ el [ height (px 5) ] none
+                                    , el
+                                        [ centerX
+                                        , centerY
+                                        , width (fill |> maximum 150)
+                                        , height (fillPortion 2)
+                                        , Background.uncropped (encodeImageUri img)
+                                        ]
+                                        none
+                                    ]
 
-                        middleNames =
-                            getMiddleNames person
+                                Nothing ->
+                                    []
+                           )
+                        ++ (let
+                                firstName =
+                                    getFirstName person
 
-                        lastName =
-                            getLastName person
+                                middleNames =
+                                    getMiddleNames person
 
-                        names =
-                            [ firstName, middleNames, lastName ]
-                                |> List.filterMap identity
-                                |> select List.isEmpty ((::) "?") identity
-                     in
-                     names
-                        |> List.map text
-                        |> List.map
-                            (el
-                                [ centerX, centerY ]
-                            )
-                    )
+                                lastName =
+                                    getLastName person
+
+                                names =
+                                    [ firstName, middleNames, lastName ]
+                                        |> List.filterMap identity
+                                        |> select List.isEmpty ((::) "?") identity
+
+                                nameEls =
+                                    names
+                                        |> List.map text
+                                        |> List.map
+                                            (el
+                                                [ centerX, centerY ]
+                                            )
+                            in
+                            [ column
+                                [ centerX
+                                , centerY
+                                , height (fillPortion 1)
+                                ]
+                                nameEls
+                            ]
+                           )
 
         Nothing ->
             el [ Background.color (rgb 1 0 0) ] <| text "Inconsistent data!"
