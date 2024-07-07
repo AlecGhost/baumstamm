@@ -10,6 +10,12 @@ import Html.Events
 import Json.Decode as Decode
 
 
+type alias Settings =
+    { showProfilePictures : Bool
+    , showMiddleNames : Bool
+    }
+
+
 palette : { bg : Color, fg : Color, action : Color, marker : Color }
 palette =
     { bg = rgb255 48 56 65
@@ -144,7 +150,7 @@ onKeyboardEvent eventHandler =
                     (\event ->
                         case eventHandler (Debug.log "event" event) of
                             Just msg ->
-                                Decode.succeed (msg, True)
+                                Decode.succeed ( msg, True )
 
                             Nothing ->
                                 Decode.fail "No event triggered"
