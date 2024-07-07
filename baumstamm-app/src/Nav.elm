@@ -56,13 +56,13 @@ navIcon attributes { icon, onPress } =
             else
                 [ Font.color palette.bg ]
     in
-    el ([ centerX, Element.paddingXY 0 5 ] |> List.append attributes) <|
+    el ([ centerX, paddingXY 0 5 ] |> List.append attributes) <|
         button
             attrs
             { label =
                 icon
                     |> withSize 40
                     |> FeatherIcons.toHtml []
-                    |> Element.html
+                    |> html
             , onPress = onPress
             }
