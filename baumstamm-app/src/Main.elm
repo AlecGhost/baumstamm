@@ -19,6 +19,7 @@ import Nav exposing (navIcon)
 import PanZoom
 import Person
 import Rpc
+import Settings
 import Task
 import Tree
 import Utils exposing (..)
@@ -106,7 +107,16 @@ type Msg
     | UpdateInfoTableKey String
     | UpdateInfoTableValue String
     | ClearInfoTable
+    | UpdateSettings Settings
+    | ResetSettings
     | NoOp
+
+
+defaultSettings : Settings
+defaultSettings =
+    { showProfilePictures = False
+    , showMiddleNames = False
+    }
 
 
 init : Value -> ( Model, Cmd Msg )
@@ -124,10 +134,7 @@ init flags =
                 { scale = 1, position = { x = 600, y = 600 } }
       , infoTableKey = ""
       , infoTableValue = ""
-      , settings =
-            { showProfilePictures = True
-            , showMiddleNames = False
-            }
+      , settings = defaultSettings
       }
     , Cmd.none
     )
@@ -239,6 +246,12 @@ update msg model =
         ClearInfoTable ->
             ( model |> clearInfoTable, Cmd.none )
 
+        UpdateSettings settings ->
+            ( { model | settings = settings }, Cmd.none )
+
+        ResetSettings ->
+            ( { model | settings = defaultSettings }, Cmd.none )
+
         NoOp ->
             ( model, Cmd.none )
 
@@ -335,7 +348,12 @@ body model =
     <|
         case model.frame of
             SettingsFrame ->
-                el [ centerX, centerY ] <| text "Settings"
+                Settings.view
+                    { settings = model.settings
+                    , onUpdate = UpdateSettings
+                    , onReset = ResetSettings
+                    , onDismiss = ToggleSettings
+                    }
 
             TreeFrame ->
                 case model.treeData of
