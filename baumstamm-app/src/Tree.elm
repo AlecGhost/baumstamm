@@ -13,7 +13,7 @@ view { treeData, activePerson, onSelect } =
         viewItem item =
             el
                 [ width (px 200)
-                , height (px 100)
+                , height (px 300)
                 ]
                 (case item of
                     PersonItem pid ->
