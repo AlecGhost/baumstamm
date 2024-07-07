@@ -1,19 +1,34 @@
 module Tree exposing (..)
 
+import Common exposing (Settings)
 import Connections
 import Data exposing (GridItem(..), Pid, TreeData)
 import Element exposing (..)
 import Person
 
 
-view : { treeData : TreeData, activePerson : Maybe Pid, onSelect : Pid -> msg } -> Element msg
-view { treeData, activePerson, onSelect } =
+view :
+    { treeData : TreeData
+    , activePerson : Maybe Pid
+    , onSelect : Pid -> msg
+    , settings : Settings
+    }
+    -> Element msg
+view { treeData, activePerson, onSelect, settings } =
     let
         viewItem : GridItem -> Element msg
         viewItem item =
+            let
+                h =
+                    if settings.showProfilePictures then
+                        300
+
+                    else
+                        100
+            in
             el
                 [ width (px 200)
-                , height (px 300)
+                , height (px h)
                 ]
                 (case item of
                     PersonItem pid ->
@@ -26,6 +41,7 @@ view { treeData, activePerson, onSelect } =
                             , isActive = isActive
                             , treeData = treeData
                             , onSelect = onSelect
+                            , settings = settings
                             }
 
                     ConnectionsItem connections ->

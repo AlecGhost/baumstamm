@@ -1,6 +1,6 @@
 module Person exposing (..)
 
-import Common exposing (buttonStyles, margin, onKeyboardEvent, palette)
+import Common exposing (Settings, buttonStyles, margin, onKeyboardEvent, palette)
 import Data exposing (Person, Pid, TreeData)
 import Dict
 import Element exposing (..)
@@ -9,7 +9,7 @@ import Element.Border as Border
 import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
-import Url exposing (Url)
+import Url
 import Utils exposing (flip, select)
 
 
@@ -107,6 +107,13 @@ getImage person =
         |> Dict.get "@image"
 
 
+
+{-
+   If the image is not an https resource, but a local one,
+   the asset protocol must be used
+-}
+
+
 encodeImageUri : String -> String
 encodeImageUri uri =
     if uri |> String.startsWith "https://" then
@@ -121,9 +128,10 @@ view :
     , isActive : Bool
     , treeData : TreeData
     , onSelect : Pid -> msg
+    , settings : Settings
     }
     -> Element msg
-view { pid, isActive, treeData, onSelect } =
+view { pid, isActive, treeData, onSelect, settings } =
     case getPerson pid treeData of
         Just person ->
             margin 0.95 1 <|
@@ -145,8 +153,9 @@ view { pid, isActive, treeData, onSelect } =
                     ]
                 <|
                     []
-                        ++ (case getImage person of
-                                Just img ->
+                        -- append profile picture
+                        ++ (case ( settings.showProfilePictures, getImage person ) of
+                                ( True, Just img ) ->
                                     [ el [ height (px 5) ] none
                                     , el
                                         [ centerX
@@ -158,15 +167,21 @@ view { pid, isActive, treeData, onSelect } =
                                         none
                                     ]
 
-                                Nothing ->
+                                -- either profile pictures are not switched on it is or not present
+                                _ ->
                                     []
                            )
+                        -- append names
                         ++ (let
                                 firstName =
                                     getFirstName person
 
                                 middleNames =
-                                    getMiddleNames person
+                                    if settings.showMiddleNames then
+                                        getMiddleNames person
+
+                                    else
+                                        Nothing
 
                                 lastName =
                                     getLastName person

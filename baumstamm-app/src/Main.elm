@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Browser
-import Common exposing (modal, palette, toast)
+import Common exposing (Settings, modal, palette, toast)
 import Connections exposing (view)
 import Data exposing (GridItem(..), Pid, TreeData)
 import Element exposing (..)
@@ -53,6 +53,7 @@ type alias Model =
     , panzoom : PanZoom.Model Msg
     , infoTableKey : String
     , infoTableValue : String
+    , settings : Settings
     }
 
 
@@ -123,6 +124,10 @@ init flags =
                 { scale = 1, position = { x = 600, y = 600 } }
       , infoTableKey = ""
       , infoTableValue = ""
+      , settings =
+            { showProfilePictures = True
+            , showMiddleNames = False
+            }
       }
     , Cmd.none
     )
@@ -343,6 +348,7 @@ body model =
                                 { treeData = treeData
                                 , activePerson = model.activePerson
                                 , onSelect = SelectPerson
+                                , settings = model.settings
                                 }
 
                     Nothing ->
