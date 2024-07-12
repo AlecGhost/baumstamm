@@ -196,12 +196,18 @@ view { pid, isActive, treeData, onSelect, settings } =
                                         |> List.map text
                                         |> List.map
                                             (el
-                                                [ centerX, centerY ]
+                                                [ centerX
+                                                , centerY
+                                                , scrollbarX
+                                                , clipY
+                                                , width (shrink |> maximum 180)
+                                                ]
                                             )
                             in
                             [ column
                                 [ centerX
                                 , centerY
+                                , width fill
                                 , height (fillPortion 1)
                                 ]
                                 nameEls
