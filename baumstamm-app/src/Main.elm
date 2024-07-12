@@ -44,8 +44,7 @@ subscriptions _ =
 
 
 type alias Model =
-    { flags : Flags
-    , file : String
+    { isTauri : Bool
     , treeData : Maybe TreeData
     , activePerson : Maybe Pid
     , frame : Frame
@@ -68,19 +67,52 @@ type Modal
 
 
 type alias Flags =
-    { isTauri : Bool }
+    { isTauri : Bool
+    , settings : Settings
+    , treeData : Maybe TreeData
+    }
+
+
+defaultFlags : Flags
+defaultFlags =
+    { isTauri = False
+    , settings = defaultSettings
+    , treeData = Nothing
+    }
 
 
 decodeFlags : Value -> Flags
 decodeFlags value =
     let
-        flagDecoder =
-            Decode.map Flags
-                (Decode.field "isTauri" Decode.bool)
+        decodeIsTauri =
+            Decode.field "isTauri" Decode.bool
+
+        decodeSettings =
+            Decode.field "settings"
+                (Decode.oneOf
+                    [ Decode.map2 Settings
+                        (Decode.field "showMiddleNames" Decode.bool)
+                        (Decode.field "showProfilePictures" Decode.bool)
+                    , Decode.succeed defaultSettings
+                    ]
+                )
+
+        decodeTreeData =
+            Decode.oneOf
+                [ Rpc.decodeTreeData
+                    |> Decode.map Just
+                , Decode.succeed Nothing
+                ]
+
+        decode =
+            Decode.map3 Flags
+                decodeIsTauri
+                decodeSettings
+                decodeTreeData
     in
     Result.withDefault
-        { isTauri = False }
-        (Decode.decodeValue flagDecoder value)
+        defaultFlags
+        (Decode.decodeValue decode value)
 
 
 clearInfoTable : Model -> Model
@@ -121,9 +153,13 @@ defaultSettings =
 
 init : Value -> ( Model, Cmd Msg )
 init flags =
-    ( { flags = decodeFlags flags
-      , file = ""
-      , treeData = Nothing
+    let
+        args =
+            decodeFlags flags
+    in
+    ( { isTauri = args.isTauri
+      , settings = args.settings
+      , treeData = args.treeData
       , activePerson = Nothing
       , frame = TreeFrame
       , modal = Nothing
@@ -134,7 +170,6 @@ init flags =
                 { scale = 1, position = { x = 600, y = 600 } }
       , infoTableKey = ""
       , infoTableValue = ""
-      , settings = defaultSettings
       }
     , Cmd.none
     )
