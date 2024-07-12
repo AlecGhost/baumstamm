@@ -27,21 +27,40 @@ const events = {
     saveAs: "save-as",
 }
 const commands = {
+    loadConfig: "load_config",
     saveAs: "save_as",
 }
-
-// setup elm
-const flags = {
-    isTauri: "__TAURI__" in window,
-};
-const app = Elm.Main.init({
-    node: document.getElementById("baumstamm"),
-    flags,
-});
 
 // setup wasm
 await init();
 let state = init_state();
+
+// build flags
+const flags = {
+    isTauri: "__TAURI__" in window,
+    settings: null,
+    treeData: null,
+};
+if (flags.isTauri) {
+    const invoke = window.__TAURI__.invoke;
+    const config = await invoke(commands.loadConfig);
+    const showMiddleNames = config.show_middle_names;
+    const showProfilePictures = config.show_profile_pictures;
+    flags.settings = {
+        showMiddleNames,
+        showProfilePictures,
+    }
+    if (config.tree_data !== null) {
+        load_tree(config.tree_data, state);
+        flags.treeData = getTreeData(state);
+    }
+}
+
+// setup elm
+const app = Elm.Main.init({
+    node: document.getElementById("baumstamm"),
+    flags,
+});
 
 // tauri events
 if (flags.isTauri) {
