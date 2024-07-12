@@ -98,11 +98,13 @@ decodeFlags value =
                 )
 
         decodeTreeData =
-            Decode.oneOf
-                [ Rpc.decodeTreeData
-                    |> Decode.map Just
-                , Decode.succeed Nothing
-                ]
+            Decode.field "treeData"
+                (Decode.oneOf
+                    [ Rpc.decodeTreeData
+                        |> Decode.map Just
+                    , Decode.succeed Nothing
+                    ]
+                )
 
         decode =
             Decode.map3 Flags

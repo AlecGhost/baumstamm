@@ -1,5 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+use serde::{Deserialize, Serialize};
 use tauri::{api::dialog::FileDialogBuilder, CustomMenuItem, Manager, Menu, MenuItem, Submenu};
 
 const EVENT_MENU_OPEN: &str = "menu-open";
@@ -44,7 +45,7 @@ fn main() {
                 _ => {}
             };
         })
-        .invoke_handler(tauri::generate_handler![save_as])
+        .invoke_handler(tauri::generate_handler![save_as, load_config])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
@@ -100,4 +101,20 @@ fn build_menu() -> Menu {
 #[tauri::command]
 async fn save_as(path: String, content: String) -> Result<(), String> {
     std::fs::write(path, content).map_err(|err| err.to_string())
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+struct Config {
+    tree_data: Option<String>,
+    show_middle_names: bool,
+    show_profile_pictures: bool,
+}
+
+#[tauri::command]
+fn load_config() -> Config {
+    Config {
+        tree_data: None,
+        show_middle_names: false,
+        show_profile_pictures: false,
+    }
 }
