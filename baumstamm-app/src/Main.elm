@@ -90,9 +90,10 @@ decodeFlags value =
         decodeSettings =
             Decode.field "settings"
                 (Decode.oneOf
-                    [ Decode.map2 Settings
+                    [ Decode.map3 Settings
                         (Decode.field "showMiddleNames" Decode.bool)
                         (Decode.field "showProfilePictures" Decode.bool)
+                        (Decode.field "showDates" Decode.bool)
                     , Decode.succeed defaultSettings
                     ]
                 )
@@ -150,6 +151,7 @@ defaultSettings : Settings
 defaultSettings =
     { showProfilePictures = False
     , showMiddleNames = False
+    , showDates = False
     }
 
 

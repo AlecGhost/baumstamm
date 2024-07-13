@@ -84,6 +84,34 @@ getFullName person =
             "?"
 
 
+getDateOfBirth : Person -> Maybe String
+getDateOfBirth person =
+    person.info
+        |> Dict.get reservedKeys.dateOfBirth
+
+
+getDateOfDeath : Person -> Maybe String
+getDateOfDeath person =
+    person.info
+        |> Dict.get reservedKeys.dateOfDeath
+
+
+getDates : Person -> Maybe String
+getDates person =
+    case ( getDateOfBirth person, getDateOfDeath person ) of
+        ( Just birth, Just death ) ->
+            Just <| birth ++ " - " ++ death
+
+        ( Just birth, Nothing ) ->
+            Just <| "*" ++ birth
+
+        ( Nothing, Just death ) ->
+            Just <| "†" ++ death
+
+        ( Nothing, Nothing ) ->
+            Nothing
+
+
 getInfo : Person -> List ( String, String )
 getInfo person =
     let
@@ -104,7 +132,7 @@ getInfo person =
 getImage : Person -> Maybe String
 getImage person =
     person.info
-        |> Dict.get "@image"
+        |> Dict.get reservedKeys.image
 
 
 
@@ -212,6 +240,23 @@ view { pid, isActive, treeData, onSelect, settings } =
                                 ]
                                 nameEls
                             ]
+                           )
+                        ++ (case ( settings.showDates, getDates person ) of
+                                ( True, Just dates ) ->
+                                    [ el
+                                        [ centerX
+                                        , centerY
+                                        , width fill
+                                        , height (fillPortion 1)
+                                        ]
+                                      <|
+                                        el [ centerX, centerY, width (shrink |> maximum 180) ] <|
+                                            text <|
+                                                dates
+                                    ]
+
+                                _ ->
+                                    []
                            )
 
         Nothing ->
