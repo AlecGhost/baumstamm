@@ -51,23 +51,29 @@ view { settings, onUpdate, onReset, onDismiss } =
         column
             [ centerX, centerY ]
         <|
-            [ checkbox []
-                { onChange = \value -> onUpdate { settings | showProfilePictures = value }
+            let
+                switch { label, checked, update } =
+                    checkbox []
+                        { onChange = update >> onUpdate
+                        , checked = checked
+                        , label = Input.labelRight [] <| text label
+                        , icon = checkBoxIcon
+                        }
+            in
+            [ switch
+                { label = "Show profile pictures"
                 , checked = settings.showProfilePictures
-                , label = Input.labelRight [] <| text "Show profile pictures"
-                , icon = checkBoxIcon
+                , update = \b -> { settings | showProfilePictures = b }
                 }
-            , checkbox []
-                { onChange = \value -> onUpdate { settings | showMiddleNames = value }
+            , switch
+                { label = "Show middle names"
                 , checked = settings.showMiddleNames
-                , label = Input.labelRight [] <| text "Show middle names"
-                , icon = checkBoxIcon
+                , update = \b -> { settings | showMiddleNames = b }
                 }
-            , checkbox []
-                { onChange = \value -> onUpdate { settings | showDates = value }
+            , switch
+                { label = "Show dates"
                 , checked = settings.showDates
-                , label = Input.labelRight [] <| text "Show dates"
-                , icon = checkBoxIcon
+                , update = \b -> { settings | showDates = b }
                 }
             , row []
                 [ button [ Font.color (rgb 1 0 0) ]
