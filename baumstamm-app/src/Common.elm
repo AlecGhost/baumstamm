@@ -13,6 +13,7 @@ import Json.Decode as Decode
 type alias Settings =
     { showProfilePictures : Bool
     , showMiddleNames : Bool
+    , showDates : Bool
     }
 
 

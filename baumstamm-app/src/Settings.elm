@@ -63,6 +63,12 @@ view { settings, onUpdate, onReset, onDismiss } =
                 , label = Input.labelRight [] <| text "Show middle names"
                 , icon = checkBoxIcon
                 }
+            , checkbox []
+                { onChange = \value -> onUpdate { settings | showDates = value }
+                , checked = settings.showDates
+                , label = Input.labelRight [] <| text "Show dates"
+                , icon = checkBoxIcon
+                }
             , row []
                 [ button [ Font.color (rgb 1 0 0) ]
                     { onPress = Just onReset

@@ -108,6 +108,7 @@ struct Config {
     tree_data: Option<String>,
     show_middle_names: bool,
     show_profile_pictures: bool,
+    show_dates: bool,
 }
 
 #[tauri::command]
@@ -116,5 +117,6 @@ fn load_config() -> Config {
         tree_data: None,
         show_middle_names: false,
         show_profile_pictures: false,
+        show_dates: false,
     }
 }

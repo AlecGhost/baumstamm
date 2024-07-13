@@ -46,9 +46,11 @@ if (flags.isTauri) {
     const config = await invoke(commands.loadConfig);
     const showMiddleNames = config.show_middle_names;
     const showProfilePictures = config.show_profile_pictures;
+    const showDates = config.show_dates;
     flags.settings = {
         showMiddleNames,
         showProfilePictures,
+        showDates,
     }
     if (config.tree_data !== null) {
         load_tree(config.tree_data, state);
