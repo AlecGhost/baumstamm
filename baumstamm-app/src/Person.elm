@@ -84,6 +84,30 @@ getFullName person =
             "?"
 
 
+getNames : Person -> Bool -> List String
+getNames person includeMiddleNames =
+    let
+        firstName =
+            getFirstName person
+
+        middleNames =
+            if includeMiddleNames then
+                getMiddleNames person
+
+            else
+                Nothing
+
+        lastName =
+            getLastName person
+
+        names =
+            [ firstName, middleNames, lastName ]
+                |> List.filterMap identity
+                |> select List.isEmpty ((::) "?") identity
+    in
+    names
+
+
 getDateOfBirth : Person -> Maybe String
 getDateOfBirth person =
     person.info
@@ -201,26 +225,8 @@ view { pid, isActive, treeData, onSelect, settings } =
                            )
                         -- append names
                         ++ (let
-                                firstName =
-                                    getFirstName person
-
-                                middleNames =
-                                    if settings.showMiddleNames then
-                                        getMiddleNames person
-
-                                    else
-                                        Nothing
-
-                                lastName =
-                                    getLastName person
-
-                                names =
-                                    [ firstName, middleNames, lastName ]
-                                        |> List.filterMap identity
-                                        |> select List.isEmpty ((::) "?") identity
-
                                 nameEls =
-                                    names
+                                    getNames person settings.showMiddleNames
                                         |> List.map text
                                         |> List.map
                                             (el
@@ -241,6 +247,7 @@ view { pid, isActive, treeData, onSelect, settings } =
                                 nameEls
                             ]
                            )
+                        -- append dates
                         ++ (case ( settings.showDates, getDates person ) of
                                 ( True, Just dates ) ->
                                     [ el
