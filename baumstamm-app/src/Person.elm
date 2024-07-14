@@ -10,7 +10,7 @@ import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
 import Url
-import Utils exposing (flip, select)
+import Utils exposing (asList, flip, select)
 
 
 reservedKeys :
@@ -204,70 +204,78 @@ view { pid, isActive, treeData, onSelect, settings } =
                     , onClick <| onSelect pid
                     ]
                 <|
-                    []
-                        -- append profile picture
-                        ++ (case ( settings.showProfilePictures, getImage person ) of
-                                ( True, Just img ) ->
-                                    [ el [ height (px 5) ] none
-                                    , el
-                                        [ centerX
-                                        , centerY
-                                        , width (fill |> maximum 150)
-                                        , height (fillPortion 2)
-                                        , Background.uncropped (encodeImageUri img)
-                                        ]
-                                        none
-                                    ]
-
-                                -- either profile pictures are not switched on it is or not present
-                                _ ->
-                                    []
-                           )
-                        -- append names
-                        ++ (let
-                                nameEls =
-                                    getNames person settings.showMiddleNames
-                                        |> List.map text
-                                        |> List.map
-                                            (el
-                                                [ centerX
-                                                , centerY
-                                                , scrollbarX
-                                                , clipY
-                                                , width (shrink |> maximum 180)
-                                                ]
-                                            )
-                            in
-                            [ column
-                                [ centerX
-                                , centerY
-                                , width fill
-                                , height (fillPortion 1)
-                                ]
-                                nameEls
-                            ]
-                           )
-                        -- append dates
-                        ++ (case ( settings.showDates, getDates person ) of
-                                ( True, Just dates ) ->
-                                    [ el
-                                        [ centerX
-                                        , centerY
-                                        , width fill
-                                        , height (fillPortion 1)
-                                        ]
-                                      <|
-                                        el [ centerX, centerY, width (shrink |> maximum 180) ] <|
-                                            text <|
-                                                dates
-                                    ]
-
-                                _ ->
-                                    []
-                           )
+                    el [ height (px 5) ] none
+                        :: (viewProfilePicture person settings |> asList)
+                        ++ (viewNames person settings |> asList)
+                        ++ (viewDates person settings |> asList)
 
         Nothing ->
             el [ Background.color (rgb 1 0 0) ] <| text "Inconsistent data!"
+
+
+viewProfilePicture : Person -> Settings -> Maybe (Element msg)
+viewProfilePicture person settings =
+    case ( settings.showProfilePictures, getImage person ) of
+        ( True, Just img ) ->
+            Just <|
+                el
+                    [ centerX
+                    , centerY
+                    , width (fill |> maximum 150)
+                    , height (fillPortion 2)
+                    , Background.uncropped (encodeImageUri img)
+                    ]
+                    none
+
+        -- either profile pictures are not switched on it is or not present
+        _ ->
+            Nothing
+
+
+viewNames : Person -> Settings -> Maybe (Element msg)
+viewNames person settings =
+    let
+        nameEls =
+            getNames person settings.showMiddleNames
+                |> List.map text
+                |> List.map
+                    (el
+                        [ centerX
+                        , centerY
+                        , scrollbarX
+                        , clipY
+                        , width (shrink |> maximum 180)
+                        ]
+                    )
+    in
+    Just <|
+        column
+            [ centerX
+            , centerY
+            , width fill
+            , height (fillPortion 1)
+            ]
+            nameEls
+
+
+viewDates : Person -> Settings -> Maybe (Element msg)
+viewDates person settings =
+    case ( settings.showDates, getDates person ) of
+        ( True, Just dates ) ->
+            Just <|
+                el
+                    [ centerX
+                    , centerY
+                    , width fill
+                    , height (fillPortion 1)
+                    ]
+                <|
+                    el [ centerX, centerY, width (shrink |> maximum 180) ] <|
+                        text <|
+                            dates
+
+        _ ->
+            Nothing
 
 
 type alias InfoTableInput msg =
