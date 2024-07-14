@@ -190,6 +190,7 @@ view { pid, isActive, treeData, onSelect, settings } =
                 column
                     [ width fill
                     , height fill
+                    , clip
                     , Background.color palette.fg
                     , Border.width 2
                     , Border.rounded 15
@@ -242,9 +243,7 @@ viewNames person settings =
                     (el
                         [ centerX
                         , centerY
-                        , scrollbarX
-                        , clipY
-                        , width (shrink |> maximum 180)
+                        , width (shrink |> maximum 230)
                         ]
                     )
     in
@@ -270,7 +269,12 @@ viewDates person settings =
                     , height (fillPortion 1)
                     ]
                 <|
-                    el [ centerX, centerY, width (shrink |> maximum 180) ] <|
+                    el
+                        [ centerX
+                        , centerY
+                        , width (shrink |> maximum 230)
+                        ]
+                    <|
                         text <|
                             dates
 
