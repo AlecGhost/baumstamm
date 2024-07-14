@@ -17,6 +17,16 @@ flip f =
     \b a -> f a b
 
 
+asList : Maybe a -> List a
+asList maybe =
+    case maybe of
+        Just just ->
+            [ just ]
+
+        Nothing ->
+            []
+
+
 
 {-
    Create an instance of `Color` from hsl values.
