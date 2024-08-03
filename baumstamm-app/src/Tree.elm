@@ -29,7 +29,6 @@ view { treeData, activePerson, onSelect, settings } =
             el
                 [ width (px 250)
                 , height (px h)
-                , clip
                 ]
                 (case item of
                     PersonItem pid ->

@@ -9,6 +9,7 @@ import Element.Border as Border
 import Element.Events exposing (onClick)
 import Element.Font as Font
 import Element.Input as Input
+import FeatherIcons
 import Url
 import Utils exposing (asList, flip, select)
 
@@ -311,19 +312,17 @@ viewEdit { pid, treeData, onDismiss, infoTableInput } =
                     getFullName person
 
         profilePicture person =
-            case getImage person of
-                Just img ->
-                    [ el
-                        [ centerX
-                        , width (fill |> maximum 300)
-                        , height (fill |> maximum 300)
-                        , Background.uncropped img
-                        ]
-                        none
-                    ]
-
-                Nothing ->
-                    []
+            getImage person
+                |> Maybe.map
+                    (\img ->
+                        el
+                            [ centerX
+                            , width (fill |> maximum 300)
+                            , height (fill |> maximum 300)
+                            , Background.uncropped img
+                            ]
+                            none
+                    )
 
         infoTable person =
             table []
@@ -418,12 +417,61 @@ viewEdit { pid, treeData, onDismiss, infoTableInput } =
                     )
                 ]
             <|
-                heading person
-                    :: profilePicture person
-                    ++ [ infoTable person
-                       , tableEdit
-                       , okButton
-                       ]
+                [ heading person
+                , profilePicture person |> Maybe.withDefault (el [] none)
+                , viewStats person
+                , infoTable person
+                , tableEdit
+                , okButton
+                ]
 
         Nothing ->
             el [ Background.color (rgb 1 0 0) ] <| text "Inconsistent data!"
+
+
+editIcon : Element msg
+editIcon =
+    FeatherIcons.edit
+        |> FeatherIcons.withSize 20
+        |> FeatherIcons.toHtml []
+        |> html
+
+
+viewStats : Person -> Element msg
+viewStats person =
+    let
+        data =
+            [ { label = "First name", content = getFirstName person }
+            , { label = "Middle names", content = getMiddleNames person }
+            , { label = "Last name", content = getLastName person }
+            , { label = "*", content = getDateOfBirth person }
+            , { label = "†", content = getDateOfDeath person }
+            ]
+    in
+    table [ width fill ]
+        { data = data
+        , columns =
+            [ { header = none
+              , width = fillPortion 1
+              , view =
+                    \row -> text row.label
+              }
+            , { header = none
+              , width = fillPortion 20
+              , view =
+                    \row -> text (row.content |> Maybe.withDefault "-")
+              }
+            , { header = none
+              , width = fillPortion 1
+              , view =
+                    \_ ->
+                        Input.button
+                            [ pointer
+                            , Font.color palette.action
+                            , mouseOver
+                                [ Font.color palette.marker ]
+                            ]
+                            { label = editIcon, onPress = Nothing }
+              }
+            ]
+        }
