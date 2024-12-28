@@ -1,6 +1,6 @@
 module Person exposing (..)
 
-import Common exposing (Settings, buttonStyles, margin, onKeyboardEvent, palette)
+import Common exposing (Settings, buttonStyles, margin, onKeyboardEvent)
 import Data exposing (Person, Pid, TreeData)
 import Dict
 import Element exposing (..)
@@ -192,17 +192,17 @@ view { pid, isActive, treeData, onSelect, settings } =
                     [ width fill
                     , height fill
                     , clip
-                    , Background.color palette.fg
+                    , Background.color settings.palette.fg
                     , Border.width 2
                     , Border.rounded 15
                     , Border.color
                         (if isActive then
-                            palette.marker
+                            settings.palette.marker
 
                          else
-                            palette.action
+                            settings.palette.action
                         )
-                    , mouseOver [ Border.color palette.marker ]
+                    , mouseOver [ Border.color settings.palette.marker ]
                     , onClick <| onSelect pid
                     ]
                 <|
@@ -298,9 +298,10 @@ viewEdit :
     , treeData : TreeData
     , onDismiss : msg
     , infoTableInput : InfoTableInput msg
+    , settings : Settings
     }
     -> Element msg
-viewEdit { pid, treeData, onDismiss, infoTableInput } =
+viewEdit { pid, treeData, onDismiss, infoTableInput, settings } =
     let
         heading person =
             el
@@ -361,7 +362,7 @@ viewEdit { pid, treeData, onDismiss, infoTableInput } =
                                     Nothing
                     ]
                     [ Input.text
-                        [ Background.color palette.bg
+                        [ Background.color settings.palette.bg
                         ]
                         { onChange = infoTableInput.onKeyUpdate
                         , label = Input.labelHidden "Key"
@@ -369,7 +370,7 @@ viewEdit { pid, treeData, onDismiss, infoTableInput } =
                         , text = infoTableInput.key
                         }
                     , Input.text
-                        [ Background.color palette.bg
+                        [ Background.color settings.palette.bg
                         ]
                         { onChange = infoTableInput.onValueUpdate
                         , label = Input.labelHidden "Value"
@@ -379,12 +380,12 @@ viewEdit { pid, treeData, onDismiss, infoTableInput } =
                     ]
                 , row [ spaceEvenly, width fill ]
                     [ el [ width fill ] <|
-                        Input.button buttonStyles.primary
+                        Input.button buttonStyle.primary
                             { label = el [ centerX ] <| text "Save"
                             , onPress = Just infoTableInput.onSave
                             }
                     , el [ width fill ] <|
-                        Input.button buttonStyles.primary
+                        Input.button buttonStyle.primary
                             { label = el [ centerX ] <| text "Cancel"
                             , onPress = Just infoTableInput.onCancel
                             }
@@ -394,11 +395,14 @@ viewEdit { pid, treeData, onDismiss, infoTableInput } =
         okButton =
             row [ alignBottom, spaceEvenly, width fill ]
                 [ el [ width fill ] <|
-                    Input.button buttonStyles.primary
+                    Input.button buttonStyle.primary
                         { label = el [ centerX ] <| text "Ok"
                         , onPress = Just onDismiss
                         }
                 ]
+
+        buttonStyle =
+            buttonStyles settings
     in
     case getPerson pid treeData of
         Just person ->
@@ -419,7 +423,7 @@ viewEdit { pid, treeData, onDismiss, infoTableInput } =
             <|
                 [ heading person
                 , profilePicture person |> Maybe.withDefault (el [] none)
-                , viewStats person
+                , viewStats settings person
                 , infoTable person
                 , tableEdit
                 , okButton
@@ -437,8 +441,8 @@ editIcon =
         |> html
 
 
-viewStats : Person -> Element msg
-viewStats person =
+viewStats : Settings -> Person -> Element msg
+viewStats { palette } person =
     let
         data =
             [ { label = "First name", content = getFirstName person }

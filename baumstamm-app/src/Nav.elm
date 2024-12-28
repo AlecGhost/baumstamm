@@ -1,6 +1,6 @@
 module Nav exposing (..)
 
-import Common exposing (palette)
+import Common exposing (Settings)
 import Element exposing (..)
 import Element.Background as Background
 import Element.Font as Font
@@ -16,27 +16,54 @@ navBar :
     , onUpload : Maybe msg
     , onDownload : Maybe msg
     , onNew : Maybe msg
+    , settings : Settings
     }
     -> Element msg
-navBar { onEdit, onUpload, onDownload, onSettings, onNew } =
+navBar { onEdit, onUpload, onDownload, onSettings, onNew, settings } =
     column
         [ Region.navigation
         , spacing 7
-        , Background.color palette.fg
+        , Background.color settings.palette.fg
         , height fill
         , width (px 80)
         ]
-        [ navIcon [] { icon = FeatherIcons.filePlus, onPress = onNew }
-        , navIcon [] { icon = FeatherIcons.upload, onPress = onUpload }
+        [ navIcon []
+            { icon = FeatherIcons.filePlus
+            , onPress = onNew
+            , settings = settings
+            }
+        , navIcon []
+            { icon = FeatherIcons.upload
+            , onPress = onUpload
+            , settings = settings
+            }
         , navIcon [ Html.Attributes.download "tree.json" |> htmlAttribute ]
-            { icon = FeatherIcons.download, onPress = onDownload }
-        , navIcon [] { icon = FeatherIcons.edit, onPress = onEdit }
-        , navIcon [ alignBottom ] { icon = FeatherIcons.settings, onPress = onSettings }
+            { icon = FeatherIcons.download
+            , onPress = onDownload
+            , settings = settings
+            }
+        , navIcon []
+            { icon = FeatherIcons.edit
+            , onPress = onEdit
+            , settings = settings
+            }
+        , navIcon [ alignBottom ]
+            { icon = FeatherIcons.settings
+            , onPress = onSettings
+            , settings = settings
+            }
         ]
 
 
-navIcon : List (Attribute msg) -> { icon : FeatherIcons.Icon, onPress : Maybe msg } -> Element msg
-navIcon attributes { icon, onPress } =
+navIcon :
+    List (Attribute msg)
+    ->
+        { icon : FeatherIcons.Icon
+        , onPress : Maybe msg
+        , settings : Settings
+        }
+    -> Element msg
+navIcon attributes { icon, onPress, settings } =
     let
         active =
             case onPress of
@@ -49,12 +76,12 @@ navIcon attributes { icon, onPress } =
         attrs =
             if active then
                 [ pointer
-                , Font.color palette.action
-                , mouseOver [ Font.color palette.marker ]
+                , Font.color settings.palette.action
+                , mouseOver [ Font.color settings.palette.marker ]
                 ]
 
             else
-                [ Font.color palette.bg ]
+                [ Font.color settings.palette.bg ]
     in
     el ([ centerX, paddingXY 0 5 ] |> List.append attributes) <|
         button
