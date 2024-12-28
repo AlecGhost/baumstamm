@@ -15,7 +15,8 @@
             "elm/svg": "1.0.1",
             "elm/url": "1.0.0",
             "feathericons/elm-feather": "1.5.0",
-            "mdgriffith/elm-ui": "1.1.8"
+            "mdgriffith/elm-ui": "1.1.8",
+            "rtfeldman/elm-hex": "1.0.0"
         },
         "indirect": {
             "elm/bytes": "1.0.8",
