@@ -1,7 +1,7 @@
 module Main exposing (..)
 
 import Browser
-import Common exposing (Settings, modal, palette, toast)
+import Common exposing (Settings, defaultPalette, modal, printPalette, toast)
 import Connections exposing (view)
 import Data exposing (GridItem(..), Pid, TreeData)
 import Element exposing (..)
@@ -90,10 +90,11 @@ decodeFlags value =
         decodeSettings =
             Decode.field "settings"
                 (Decode.oneOf
-                    [ Decode.map3 Settings
+                    [ Decode.map4 Settings
                         (Decode.field "showMiddleNames" Decode.bool)
                         (Decode.field "showProfilePictures" Decode.bool)
                         (Decode.field "showDates" Decode.bool)
+                        (Decode.field "palette" decodePalette)
                     , Decode.succeed defaultSettings
                     ]
                 )
@@ -106,6 +107,21 @@ decodeFlags value =
                     , Decode.succeed Nothing
                     ]
                 )
+
+        decodePalette =
+            Decode.map
+                (\palette ->
+                    case palette of
+                        "default" ->
+                            defaultPalette
+
+                        "print" ->
+                            printPalette
+
+                        _ ->
+                            defaultPalette
+                )
+                Decode.string
 
         decode =
             Decode.map3 Flags
@@ -152,6 +168,7 @@ defaultSettings =
     { showProfilePictures = False
     , showMiddleNames = False
     , showDates = False
+    , palette = defaultPalette
     }
 
 
@@ -301,6 +318,10 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
+    let
+        palette =
+            model.settings.palette
+    in
     Element.layoutWith
         { options =
             [ focusStyle
@@ -326,6 +347,7 @@ view model =
                 , onUpload = Just SelectFile
                 , onDownload = Just SaveFile
                 , onEdit = model.activePerson |> Maybe.map (\_ -> ShowEdit)
+                , settings = model.settings
                 }
             , body model
             ]
@@ -337,7 +359,7 @@ body model =
         viewModal =
             case ( model.modal, model.activePerson, model.treeData ) of
                 ( Just EditModal, Just pid, Just treeData ) ->
-                    [ modal <|
+                    [ modal model.settings <|
                         el [ centerX, centerY, width fill, height fill ] <|
                             Person.viewEdit
                                 { pid = pid
@@ -356,6 +378,7 @@ body model =
                                     , key = model.infoTableKey
                                     , value = model.infoTableValue
                                     }
+                                , settings = model.settings
                                 }
                     ]
 
@@ -371,7 +394,7 @@ body model =
                             |> List.indexedMap
                                 (\index message ->
                                     el [ paddingXY 0 5 ] <|
-                                        toast message (DismissToast index)
+                                        toast model.settings message (DismissToast index)
                                 )
                         )
                 ]
@@ -417,7 +440,15 @@ body model =
                         column [ centerX, centerY, spacing 10 ]
                             [ text "Start a new tree or upload an existing file."
                             , row [ spacing 20, width fill ]
-                                [ navIcon [] { icon = FeatherIcons.filePlus, onPress = Just New }
-                                , navIcon [] { icon = FeatherIcons.upload, onPress = Just SelectFile }
+                                [ navIcon []
+                                    { icon = FeatherIcons.filePlus
+                                    , onPress = Just New
+                                    , settings = model.settings
+                                    }
+                                , navIcon []
+                                    { icon = FeatherIcons.upload
+                                    , onPress = Just SelectFile
+                                    , settings = model.settings
+                                    }
                                 ]
                             ]

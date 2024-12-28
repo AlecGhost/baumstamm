@@ -14,16 +14,17 @@ type alias Settings =
     { showProfilePictures : Bool
     , showMiddleNames : Bool
     , showDates : Bool
+    , palette : Palette
     }
 
 
 type alias Palette =
-    { bg : Color, fg : Color, action : Color, marker : Color, font : Color }
-
-
-palette : Palette
-palette =
-    defaultPalette
+    { bg : Color
+    , fg : Color
+    , action : Color
+    , marker : Color
+    , font : Color
+    }
 
 
 defaultPalette : Palette
@@ -46,17 +47,24 @@ printPalette =
     }
 
 
-buttonStyles =
+type alias ButtonStyles msg =
+    { primary : List (Attribute msg)
+    , cancel : List (Attribute msg)
+    }
+
+
+buttonStyles : Settings -> ButtonStyles msg
+buttonStyles settings =
     { primary =
         [ centerX
         , width (px 100)
         , Border.rounded 15
         , paddingXY 2 3
         , Border.width 2
-        , Border.color palette.action
+        , Border.color settings.palette.action
         , pointer
         , mouseOver
-            [ Border.color palette.marker ]
+            [ Border.color settings.palette.marker ]
         ]
     , cancel =
         [ centerX
@@ -64,10 +72,10 @@ buttonStyles =
         , Border.rounded 15
         , paddingXY 2 3
         , Border.width 2
-        , Border.color palette.fg
+        , Border.color settings.palette.fg
         , pointer
         , mouseOver
-            [ Border.color palette.marker ]
+            [ Border.color settings.palette.marker ]
         ]
     }
 
@@ -107,13 +115,13 @@ margin percentileX percentileY element =
         ]
 
 
-modal : Element msg -> Attribute msg
-modal element =
+modal : Settings -> Element msg -> Attribute msg
+modal settings element =
     inFront <|
         margin 0.8
             0.8
             (el
-                [ Background.color palette.fg
+                [ Background.color settings.palette.fg
                 , width fill
                 , height fill
                 , paddingXY 30 30
@@ -123,13 +131,13 @@ modal element =
             )
 
 
-toast : String -> msg -> Element msg
-toast message onDismiss =
+toast : Settings -> String -> msg -> Element msg
+toast settings message onDismiss =
     el
-        [ Background.color palette.fg
+        [ Background.color settings.palette.fg
         , paddingXY 10 10
         , Border.width 2
-        , Border.color palette.action
+        , Border.color settings.palette.action
         , Border.rounded 15
         ]
     <|
@@ -138,8 +146,8 @@ toast message onDismiss =
                 text message
             , button
                 [ pointer
-                , Font.color palette.action
-                , mouseOver [ Font.color palette.marker ]
+                , Font.color settings.palette.action
+                , mouseOver [ Font.color settings.palette.marker ]
                 ]
                 { onPress = Just onDismiss
                 , label =
