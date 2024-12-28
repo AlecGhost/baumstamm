@@ -5,7 +5,6 @@ use super::indices::PersonIndex;
 use serde::{Deserialize, Serialize};
 use specta::Type;
 
-type Color = (f32, f32, f32);
 type Pid = baumstamm_lib::PersonId;
 type Rid = baumstamm_lib::RelationshipId;
 
@@ -41,14 +40,12 @@ pub enum Orientation {
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct Passing {
     rid: Rid,
-    color: Color,
     y_fraction: Fraction,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct Ending {
     rid: Rid,
-    color: Color,
     origin: Origin,
     x_fraction: Fraction,
     y_fraction: Fraction,
@@ -57,7 +54,6 @@ pub struct Ending {
 #[derive(Clone, Debug, Serialize, Deserialize, Type)]
 pub struct Crossing {
     rid: Rid,
-    color: Color,
     origin: Origin,
     x_fraction: Fraction,
     y_fraction: Fraction,
@@ -106,7 +102,6 @@ pub fn new_connection_row(
                     allocated_line.line.start < index && index < allocated_line.line.end
                 })
                 .map(|allocated_line| Passing {
-                    color: color(allocated_line.line.rid),
                     rid: allocated_line.line.rid,
                     y_fraction: allocated_line.pos.clone(),
                 })
@@ -128,7 +123,6 @@ pub fn new_connection_row(
                         };
                         Crossing {
                             rid,
-                            color: color(rid),
                             origin,
                             x_fraction,
                             y_fraction,
@@ -141,7 +135,6 @@ pub fn new_connection_row(
                         let origin = Origin::None;
                         Crossing {
                             rid,
-                            color: color(rid),
                             origin,
                             x_fraction,
                             y_fraction,
@@ -169,7 +162,6 @@ pub fn new_connection_row(
                         };
                         Ending {
                             rid,
-                            color: color(rid),
                             origin,
                             x_fraction,
                             y_fraction,
@@ -182,7 +174,6 @@ pub fn new_connection_row(
                         let origin = Origin::None;
                         Ending {
                             rid,
-                            color: color(rid),
                             origin,
                             x_fraction,
                             y_fraction,
@@ -198,9 +189,4 @@ pub fn new_connection_row(
             })
         })
         .collect_vec()
-}
-
-fn color(rid: Rid) -> Color {
-    let fraction = (rid.0 % 6) as f32 / 6f32;
-    ((360.0 * fraction), 70.0, 50.0)
 }
