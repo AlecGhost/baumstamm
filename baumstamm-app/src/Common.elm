@@ -17,12 +17,32 @@ type alias Settings =
     }
 
 
-palette : { bg : Color, fg : Color, action : Color, marker : Color }
+type alias Palette =
+    { bg : Color, fg : Color, action : Color, marker : Color, font : Color }
+
+
+palette : Palette
 palette =
+    defaultPalette
+
+
+defaultPalette : Palette
+defaultPalette =
     { bg = rgb255 48 56 65
     , fg = rgb255 58 71 80
     , action = rgb255 0 173 181
     , marker = rgb255 238 238 238
+    , font = rgb255 255 255 255
+    }
+
+
+printPalette : Palette
+printPalette =
+    { bg = rgb 1 1 1
+    , fg = rgb 1 1 1
+    , action = rgb 0 0 0
+    , marker = rgb 0 0 0
+    , font = rgb 0 0 0
     }
 
 
