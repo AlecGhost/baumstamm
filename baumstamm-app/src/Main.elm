@@ -310,7 +310,11 @@ view model =
                 }
             ]
         }
-        [ Background.color palette.bg, width fill, height fill, Font.color (rgb 1 1 1) ]
+        [ Background.color palette.bg
+        , width fill
+        , height fill
+        , Font.color palette.font
+        ]
     <|
         row
             [ height fill
