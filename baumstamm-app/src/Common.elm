@@ -42,7 +42,7 @@ printPalette =
     { bg = rgb 1 1 1
     , fg = rgb 1 1 1
     , action = rgb 0 0 0
-    , marker = rgb 0 0 0
+    , marker = rgb 0.5 0.5 0.5
     , font = rgb 0 0 0
     }
 
