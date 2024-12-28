@@ -1,7 +1,6 @@
 module Data exposing (..)
 
 import Dict exposing (Dict)
-import Element exposing (Color)
 
 
 type alias TreeData =
@@ -48,14 +47,12 @@ type alias Connections =
 
 type alias Passing =
     { rid : Rid
-    , color : Color
     , yFraction : Fraction
     }
 
 
 type alias Ending =
     { rid : Rid
-    , color : Color
     , origin : Origin
     , xFraction : Fraction
     , yFraction : Fraction
@@ -64,7 +61,6 @@ type alias Ending =
 
 type alias Crossing =
     { rid : Rid
-    , color : Color
     , origin : Origin
     , xFraction : Fraction
     , yFraction : Fraction

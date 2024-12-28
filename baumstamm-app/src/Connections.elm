@@ -1,10 +1,27 @@
 module Connections exposing (..)
 
-import Data exposing (Connections, Crossing, Ending, Fraction, Orientation(..), Origin(..), Passing)
-import Element exposing (Element, html)
+import Data exposing (Connections, Crossing, Ending, Fraction, Orientation(..), Origin(..), Passing, Rid)
+import Element exposing (Color, Element, html)
+import Hex
 import Svg
 import Svg.Attributes as SAttr
 import Utils exposing (..)
+
+
+color : Rid -> Color
+color rid =
+    let
+        fraction =
+            toFloat (modBy 6 val) / 6
+
+        val =
+            rid
+                |> String.slice 0 3
+                |> String.toLower
+                |> Hex.fromString
+                |> Result.withDefault 1
+    in
+    hsl (360 * fraction) 70 50
 
 
 view : Connections -> Element msg
@@ -28,7 +45,7 @@ view connections =
                 , SAttr.y1 <| percentile p.yFraction
                 , SAttr.x2 "100%"
                 , SAttr.y2 <| percentile p.yFraction
-                , SAttr.stroke <| toRgbString p.color
+                , SAttr.stroke <| toRgbString (color p.rid)
                 , SAttr.strokeWidth "2"
                 ]
                 []
@@ -44,7 +61,7 @@ view connections =
                                 , SAttr.y1 <| percentile e.yFraction
                                 , SAttr.x2 <| percentile e.xFraction
                                 , SAttr.y2 <| percentile e.yFraction
-                                , SAttr.stroke <| toRgbString e.color
+                                , SAttr.stroke <| toRgbString (color e.rid)
                                 , SAttr.strokeWidth "2"
                                 ]
                                 []
@@ -55,7 +72,7 @@ view connections =
                                 , SAttr.y1 <| percentile e.yFraction
                                 , SAttr.x2 <| percentile e.xFraction
                                 , SAttr.y2 <| percentile e.yFraction
-                                , SAttr.stroke <| toRgbString e.color
+                                , SAttr.stroke <| toRgbString (color e.rid)
                                 , SAttr.strokeWidth "2"
                                 ]
                                 []
@@ -75,7 +92,7 @@ view connections =
                                     "100%"
                         , SAttr.x2 <| percentile e.xFraction
                         , SAttr.y2 <| percentile e.yFraction
-                        , SAttr.stroke <| toRgbString e.color
+                        , SAttr.stroke <| toRgbString (color e.rid)
                         , SAttr.strokeWidth "2"
                         ]
                         []
@@ -93,7 +110,7 @@ view connections =
                                 , SAttr.y1 <| percentile c.yFraction
                                 , SAttr.x2 <| percentile c.xFraction
                                 , SAttr.y2 <| percentile c.yFraction
-                                , SAttr.stroke <| toRgbString c.color
+                                , SAttr.stroke <| toRgbString (color c.rid)
                                 , SAttr.strokeWidth "2"
                                 ]
                                 []
@@ -104,7 +121,7 @@ view connections =
                                 , SAttr.y1 <| percentile c.yFraction
                                 , SAttr.x2 <| percentile c.xFraction
                                 , SAttr.y2 <| percentile c.yFraction
-                                , SAttr.stroke <| toRgbString c.color
+                                , SAttr.stroke <| toRgbString (color c.rid)
                                 , SAttr.strokeWidth "2"
                                 ]
                                 []
@@ -124,7 +141,7 @@ view connections =
                                     "0%"
                         , SAttr.x2 <| percentile c.xFraction
                         , SAttr.y2 <| percentile c.yFraction
-                        , SAttr.stroke <| toRgbString c.color
+                        , SAttr.stroke <| toRgbString (color c.rid)
                         , SAttr.strokeWidth "2"
                         ]
                         []

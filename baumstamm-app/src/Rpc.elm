@@ -158,12 +158,6 @@ decodeTreeData =
                     )
                     (Decode.field "children" (Decode.list Decode.string))
 
-        decodeColor =
-            Decode.map3 hsl
-                (Decode.index 0 Decode.float)
-                (Decode.index 1 Decode.float)
-                (Decode.index 2 Decode.float)
-
         decodeFraction =
             Decode.map2 Fraction
                 (Decode.field "numerator" Decode.int)
@@ -203,23 +197,20 @@ decodeTreeData =
                     )
 
         decodePassing =
-            Decode.map3 Passing
+            Decode.map2 Passing
                 (Decode.field "rid" Decode.string)
-                (Decode.field "color" decodeColor)
                 (Decode.field "y_fraction" decodeFraction)
 
         decodeEnding =
-            Decode.map5 Ending
+            Decode.map4 Ending
                 (Decode.field "rid" Decode.string)
-                (Decode.field "color" decodeColor)
                 (Decode.field "origin" decodeOrigin)
                 (Decode.field "x_fraction" decodeFraction)
                 (Decode.field "y_fraction" decodeFraction)
 
         decodeCrossing =
-            Decode.map5 Crossing
+            Decode.map4 Crossing
                 (Decode.field "rid" Decode.string)
-                (Decode.field "color" decodeColor)
                 (Decode.field "origin" decodeOrigin)
                 (Decode.field "x_fraction" decodeFraction)
                 (Decode.field "y_fraction" decodeFraction)
