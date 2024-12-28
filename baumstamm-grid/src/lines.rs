@@ -22,6 +22,24 @@ pub struct AllocatedLine<Line> {
     pub line: Line,
 }
 
+enum Occupation {
+    Upper,
+    Lower,
+    Both,
+}
+
+impl VLine {
+    fn occupation(&self) -> Occupation {
+        match (self.top, self.middle, self.bottom) {
+            (_, true, _) => Occupation::Both,
+            (true, false, false) => Occupation::Upper,
+            (false, false, true) => Occupation::Lower,
+            (true, false, true) => panic!("VLine must not be top and bottom."),
+            (false, false, false) => panic!("VLine must not have no parts."),
+        }
+    }
+}
+
 pub fn create_horizontal(row: &[RelIndices]) -> [Vec<HLine>; 2] {
     let lines = row
         .iter()
@@ -238,23 +256,6 @@ pub fn allocate_vertical(
                 }
             }).collect_vec();
 
-            enum Occupation {
-                Upper,
-                Lower,
-                Both,
-            }
-
-            impl VLine {
-                fn occupation(&self) -> Occupation {
-                    match (self.top, self.middle, self.bottom) {
-                        (_, true, _) => Occupation::Both,
-                        (true, false, false) =>Occupation::Upper,
-                        (false, false, true) => Occupation::Lower,
-                        (true, false, true)=>panic!("VLine must not be top and bottom."),
-                        (false, false, false)=>panic!("VLine must not have no parts."),
-                    }
-                }
-            }
 
             let mut allocator: Vec<Occupation> = Vec::new();
             fn allocate(allocator: &mut Vec<Occupation>, line: &VLine) -> usize {
