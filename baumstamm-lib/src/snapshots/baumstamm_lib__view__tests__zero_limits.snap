@@ -1,0 +1,26 @@
+---
+source: baumstamm-lib/src/view.rs
+expression: "crate :: tree :: FamilyTree :: from(view)"
+---
+FamilyTree {
+    tree_data: TreeData {
+        relationships: [
+            Relationship {
+                id: A1,
+                parents: [
+                    None,
+                    None,
+                ],
+                children: [
+                    0,
+                ],
+            },
+        ],
+        persons: [
+            Person {
+                id: 0,
+                info: None,
+            },
+        ],
+    },
+}

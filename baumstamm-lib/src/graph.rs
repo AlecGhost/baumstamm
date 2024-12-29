@@ -57,7 +57,7 @@ impl<'a> DescendantWalker<'a> {
     }
 }
 
-impl<'a> Iterator for DescendantWalker<'a> {
+impl Iterator for DescendantWalker<'_> {
     type Item = Rid;
 
     fn next(&mut self) -> Option<Self::Item> {

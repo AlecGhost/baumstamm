@@ -1,7 +1,9 @@
 use crate::{
     consistency,
     error::{Error, InputError, MergeConflict},
-    io, Person, PersonId, Relationship, RelationshipId, TreeData,
+    io,
+    view::View,
+    Person, PersonId, Relationship, RelationshipId, TreeData,
 };
 use itertools::Itertools;
 use specta::Type;
@@ -402,6 +404,12 @@ impl Default for FamilyTree {
         Self {
             tree_data: TreeData::new(initial_rels, vec![initial_person]),
         }
+    }
+}
+
+impl From<View<'_>> for FamilyTree {
+    fn from(view: View<'_>) -> Self {
+        Self::try_from(TreeData::from(view.clone())).expect("Invalid view")
     }
 }
 
