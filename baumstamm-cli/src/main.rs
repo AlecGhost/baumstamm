@@ -1,4 +1,8 @@
-use baumstamm_lib::{graph::Graph, FamilyTree, PersonId, RelationshipId};
+use baumstamm_lib::{
+    graph::Graph,
+    view::{View, ViewLimit},
+    FamilyTree, PersonId, RelationshipId,
+};
 use clap::{Args, Parser, Subcommand};
 use std::{error::Error, fs, path::Path};
 
@@ -21,6 +25,7 @@ enum Action {
     Info(Info),
     #[command(subcommand)]
     Show(Show),
+    View(ViewOptions),
 }
 
 #[derive(Subcommand)]
@@ -79,6 +84,39 @@ enum Show {
     PersonLayers,
 }
 
+#[derive(Args)]
+struct ViewOptions {
+    root: String,
+    #[arg(short='p', long)]
+    show_partners: bool,
+    #[arg(short='u', long)]
+    show_ancestor_siblings: bool,
+    #[arg(short='v', long)]
+    show_partner_siblings: bool,
+    #[arg(short='d', long)]
+    descendent_gen_limit: Option<usize>,
+    #[arg(short='a', long)]
+    ancestor_gen_limit: Option<usize>,
+}
+
+impl From<ViewOptions> for baumstamm_lib::view::ViewOptions {
+    fn from(options: ViewOptions) -> Self {
+        baumstamm_lib::view::ViewOptions {
+            show_partners: options.show_partners,
+            show_ancestor_siblings: options.show_ancestor_siblings,
+            show_partner_siblings: options.show_partner_siblings,
+            descendent_gen_limit: options
+                .descendent_gen_limit
+                .map(ViewLimit::Limit)
+                .unwrap_or(ViewLimit::Unlimited),
+            ancestor_gen_limit: options
+                .ancestor_gen_limit
+                .map(ViewLimit::Limit)
+                .unwrap_or(ViewLimit::Unlimited),
+        }
+    }
+}
+
 fn save<P: AsRef<Path>>(path: P, tree: &FamilyTree) -> Result<(), Box<dyn Error>> {
     fs::write(path, tree.save()?)?;
     Ok(())
@@ -100,13 +138,13 @@ fn main() -> Result<(), Box<dyn Error>> {
             Action::Add(add) => match add {
                 Add::Child(child) => {
                     let child_id =
-                        tree.add_child(RelationshipId(u128::from_str_radix(&child.rel_id, 16)?))?;
+                        tree.add_child(RelationshipId::try_from(child.rel_id.as_str())?)?;
                     save(&args.file, &tree)?;
                     println!("Added child as \"{}\"", child_id);
                 }
                 Add::Parent(parent) => {
                     let result =
-                        tree.add_parent(RelationshipId(u128::from_str_radix(&parent.rel_id, 16)?))?;
+                        tree.add_parent(RelationshipId::try_from(parent.rel_id.as_str())?)?;
                     save(&args.file, &tree)?;
                     println!(
                         "Added parent as \"{}\" and child of relationship \"{}\"",
@@ -114,17 +152,15 @@ fn main() -> Result<(), Box<dyn Error>> {
                     );
                 }
                 Add::NewRelationship(rel) => {
-                    let rel_id = tree.add_new_relationship(PersonId(u128::from_str_radix(
-                        &rel.person_id,
-                        16,
-                    )?))?;
+                    let rel_id =
+                        tree.add_new_relationship(PersonId::try_from(rel.person_id.as_str())?)?;
                     save(&args.file, &tree)?;
                     println!("Added new relationship \"{}\"", rel_id);
                 }
                 Add::RelationshipWithPartner(rel) => {
                     let rel_id = tree.add_relationship_with_partner(
-                        PersonId(u128::from_str_radix(&rel.person_id, 16)?),
-                        PersonId(u128::from_str_radix(&rel.partner_id, 16)?),
+                        PersonId::try_from(rel.person_id.as_str())?,
+                        PersonId::try_from(rel.partner_id.as_str())?,
                     )?;
                     save(&args.file, &tree)?;
                     println!("Added relationship \"{}\"", rel_id);
@@ -133,7 +169,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Action::Info(info) => match info {
                 Info::Insert(insert) => {
                     tree.insert_info(
-                        PersonId(u128::from_str_radix(&insert.person_id, 16)?),
+                        PersonId::try_from(insert.person_id.as_str())?,
                         insert.key.clone(),
                         insert.value.clone(),
                     )?;
@@ -144,10 +180,8 @@ fn main() -> Result<(), Box<dyn Error>> {
                     );
                 }
                 Info::Remove(remove) => {
-                    let value = tree.remove_info(
-                        PersonId(u128::from_str_radix(&remove.person_id, 16)?),
-                        &remove.key,
-                    )?;
+                    let value = tree
+                        .remove_info(PersonId::try_from(remove.person_id.as_str())?, &remove.key)?;
                     save(&args.file, &tree)?;
                     println!(
                         "Removed \"{}\": \"{}\" from \"{}\"",
@@ -167,9 +201,19 @@ fn main() -> Result<(), Box<dyn Error>> {
                     println!(
                         "Person Layers: {:#?}",
                         graph.person_layers(tree.get_relationships())
-                    )
+                    );
                 }
             },
+            Action::View(options) => {
+                let view = View::new(
+                    &tree,
+                    PersonId::try_from(options.root.clone().as_str())?,
+                    &options.into(),
+                )?;
+                let view_tree: FamilyTree = view.into();
+                let tree_string = view_tree.save()?;
+                println!("{}", tree_string);
+            }
         };
     };
     Ok(())
