@@ -5,12 +5,14 @@ use specta::Type;
 use std::collections::HashMap;
 pub use tree::FamilyTree;
 use uuid::Uuid;
+use view::View;
 
 mod consistency;
 pub mod error;
 pub mod graph;
 mod io;
 mod tree;
+pub mod view;
 
 /// Arbitrary information about a person.
 pub type PersonInfo = HashMap<String, String>;
@@ -18,6 +20,18 @@ pub type PersonInfo = HashMap<String, String>;
 /// UUID for a `Relationship`, stored as u128.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Type)]
 pub struct RelationshipId(#[serde(with = "id")] pub u128);
+
+impl RelationshipId {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for RelationshipId {
+    fn default() -> Self {
+        Self(Uuid::new_v4().to_u128_le())
+    }
+}
 
 /// A relationship referencing two optional parents and the resulting children.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, Type)]
@@ -30,7 +44,7 @@ pub struct Relationship {
 impl Relationship {
     fn new(p1: Option<PersonId>, p2: Option<PersonId>, children: Vec<PersonId>) -> Self {
         Self {
-            id: RelationshipId(Uuid::new_v4().to_u128_le()),
+            id: RelationshipId::new(),
             parents: [p1, p2],
             children,
         }
@@ -87,6 +101,18 @@ impl Relationship {
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash, Type)]
 pub struct PersonId(#[serde(with = "id")] pub u128);
 
+impl PersonId {
+    pub fn new() -> Self {
+        Self::default()
+    }
+}
+
+impl Default for PersonId {
+    fn default() -> Self {
+        Self(Uuid::new_v4().to_u128_le())
+    }
+}
+
 /// A person with a unique identifier and arbitrary attached information
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Type)]
 pub struct Person {
@@ -97,7 +123,7 @@ pub struct Person {
 impl Person {
     fn new() -> Self {
         Self {
-            id: PersonId(Uuid::new_v4().to_u128_le()),
+            id: PersonId::new(),
             info: None,
         }
     }
@@ -115,6 +141,19 @@ impl TreeData {
         Self {
             relationships,
             persons,
+        }
+    }
+}
+
+impl From<View<'_>> for TreeData {
+    fn from(view: View<'_>) -> Self {
+        Self {
+            relationships: view.get_relationships().to_vec(),
+            persons: view
+                .get_persons()
+                .iter()
+                .map(|person| (*person).clone())
+                .collect(),
         }
     }
 }
