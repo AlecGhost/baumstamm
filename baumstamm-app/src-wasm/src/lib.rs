@@ -1,4 +1,7 @@
-use baumstamm_lib::FamilyTree;
+use baumstamm_lib::{
+    view::{View, ViewOptions},
+    FamilyTree,
+};
 use serde_wasm_bindgen as bind;
 use wasm_bindgen::prelude::*;
 
@@ -6,6 +9,38 @@ use wasm_bindgen::prelude::*;
 #[derive(Debug, Default)]
 pub struct State {
     tree: FamilyTree,
+    view: Option<FamilyTree>,
+    view_selection: ViewSelection,
+}
+
+impl State {
+    fn get_view(&self) -> &FamilyTree {
+        match self.view.as_ref() {
+            Some(view) => view,
+            None => &self.tree,
+        }
+    }
+
+    fn update_view(&mut self) {
+        match &self.view_selection {
+            ViewSelection::Full => self.view = None,
+            ViewSelection::Partial { root, options } => {
+                self.view = View::new(&self.tree, *root, options)
+                    .ok()
+                    .map(FamilyTree::from);
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+enum ViewSelection {
+    #[default]
+    Full,
+    Partial {
+        root: Pid,
+        options: ViewOptions,
+    },
 }
 
 type JResult = std::result::Result<JsValue, JsValue>;
@@ -33,19 +68,19 @@ pub fn save_tree(state: &State) -> JResult {
 // get datastructures
 #[wasm_bindgen]
 pub fn get_persons(state: &State) -> JResult {
-    let persons = state.tree.get_persons().to_vec();
+    let persons = state.get_view().get_persons().to_vec();
     Ok(bind::to_value(&persons)?)
 }
 
 #[wasm_bindgen]
 pub fn get_relationships(state: &State) -> JResult {
-    let persons = state.tree.get_relationships().to_vec();
+    let persons = state.get_view().get_relationships().to_vec();
     Ok(bind::to_value(&persons)?)
 }
 
 #[wasm_bindgen]
 pub fn get_grid(state: &State) -> JResult {
-    let tree = &state.tree;
+    let tree = state.get_view();
     let grid = baumstamm_grid::generate(tree);
     Ok(bind::to_value(&grid)?)
 }
@@ -57,6 +92,7 @@ pub fn add_parent(rid: &str, state: &mut State) -> JResult {
         .tree
         .add_parent(parse_rid(rid)?)
         .map_err(|err| err.to_string())?;
+    state.update_view();
     Ok(bind::to_value(&result)?)
 }
 
@@ -66,6 +102,7 @@ pub fn add_child(rid: &str, state: &mut State) -> JResult {
         .tree
         .add_child(parse_rid(rid)?)
         .map_err(|err| err.to_string())?;
+    state.update_view();
     Ok(bind::to_value(&result)?)
 }
 
@@ -75,6 +112,7 @@ pub fn add_new_relationship(pid: &str, state: &mut State) -> JResult {
         .tree
         .add_new_relationship(parse_pid(pid)?)
         .map_err(|err| err.to_string())?;
+    state.update_view();
     Ok(bind::to_value(&result)?)
 }
 
@@ -84,6 +122,7 @@ pub fn add_relationship_with_partner(pid: &str, partner_pid: &str, state: &mut S
         .tree
         .add_relationship_with_partner(parse_pid(pid)?, parse_pid(partner_pid)?)
         .map_err(|err| err.to_string())?;
+    state.update_view();
     Ok(bind::to_value(&result)?)
 }
 
@@ -93,6 +132,7 @@ pub fn remove_person(pid: &str, state: &mut State) -> JResult {
         .tree
         .remove_person(parse_pid(pid)?)
         .map_err(|err| err.to_string())?;
+    state.update_view();
     Ok(JsValue::NULL)
 }
 
@@ -102,6 +142,7 @@ pub fn merge_person(pid1: &str, pid2: &str, state: &mut State) -> JResult {
         .tree
         .merge_person(parse_pid(pid1)?, parse_pid(pid2)?)
         .map_err(|err| err.to_string())?;
+    state.update_view();
     Ok(JsValue::NULL)
 }
 
