@@ -4,6 +4,7 @@ import { SidebarProvider } from './components/ui/sidebar';
 import { Sidebar } from './Sidebar';
 
 function App() {
+    window.document.documentElement.classList.add("dark")
     const [state, setState] = useState<State | null>(null);
     const [open, setOpen] = React.useState(true);
 
