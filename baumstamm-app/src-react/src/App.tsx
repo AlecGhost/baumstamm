@@ -1,26 +1,14 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useState } from 'react';
+import init, { State, init_state, get_grid } from 'baumstamm-wasm';
 
 function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+    const [state, setState] = useState<State | null>(null);
+    useEffect(() => { init().then((_) => setState(init_state())) }, []);
+    return (
+        <React.Suspense fallback={<div>Initialising App</div>}>
+            {state && <div>Hello</div>}
+        </React.Suspense >
+    );
 }
 
 export default App;

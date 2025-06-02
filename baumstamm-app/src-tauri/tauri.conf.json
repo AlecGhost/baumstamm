@@ -1,9 +1,9 @@
 {
     "build": {
-        "beforeBuildCommand": "elm make src/Main.elm --output=target/main.js",
-        "beforeDevCommand": "elm-live src/Main.elm --open --start-page=index.html -- --output=target/main.js",
-        "devPath": "http://localhost:8000",
-        "distDir": "out",
+        "beforeBuildCommand": "cd src-react && npm run build",
+        "beforeDevCommand": "cd src-react && npm start",
+        "devPath": "http://localhost:3000",
+        "distDir": "build",
         "withGlobalTauri": true
     },
     "package": {
