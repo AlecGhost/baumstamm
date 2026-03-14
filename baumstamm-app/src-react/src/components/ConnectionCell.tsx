@@ -51,7 +51,7 @@ export const ConnectionCell: React.FC<ConnectionCellProps> = ({ connections }) =
                             <line x1={`${x}%`} y1={`${y}%`} x2={`${x}%`} y2={edgeY} />
 
                             {/* Corner rounding (optional polish) */}
-                            {e.origin !== "None" && (
+                            {e.y_fraction.numerator > 0 && (
                                 <circle cx={`${x}%`} cy={`${y}%`} r="2" fill="currentColor" stroke="none" />
                             )}
                         </g>
@@ -79,7 +79,7 @@ export const ConnectionCell: React.FC<ConnectionCellProps> = ({ connections }) =
                             <line x1={`${x}%`} y1={startY} x2={`${x}%`} y2={endY} />
 
                             {/* Corner dot */}
-                            {c.origin !== "None" && (
+                            {c.y_fraction.numerator > 0 && (
                                 <circle cx={`${x}%`} cy={`${y}%`} r="2" fill="currentColor" stroke="none" />
                             )}
                         </g>
