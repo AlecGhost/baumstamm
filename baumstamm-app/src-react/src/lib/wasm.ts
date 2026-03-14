@@ -6,7 +6,6 @@ import init, {
     get_persons,
     get_relationships,
     get_grid,
-    // @ts-expect-error: baumstamm-wasm is untyped or loosely typed from wasm-pack
 } from "baumstamm-wasm";
 import type { Person, Relationship, Grid, TreeData } from "./types";
 

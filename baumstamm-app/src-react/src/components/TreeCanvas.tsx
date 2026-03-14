@@ -31,21 +31,9 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data }) => {
 
     const handlePointerUp = (e: React.PointerEvent) => {
         setIsDragging(false);
-        e.currentTarget.releasePointerCapture(e.pointerId);
-    };
-
-    const handleWheel = (e: WheelEvent) => {
-        // Prevent default browser zoom/scroll
-        e.preventDefault();
-
-        const zoomSensitivity = 0.001;
-        const delta = -e.deltaY * zoomSensitivity;
-        
-        setZoom((prevZoom) => {
-            const newZoom = prevZoom * Math.exp(delta);
-            // Clamp zoom between 10% and 500%
-            return Math.min(Math.max(newZoom, 0.1), 5);
-        });
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+            e.currentTarget.releasePointerCapture(e.pointerId);
+        }
     };
 
     // Attach wheel event passively to prevent default scrolling
@@ -53,11 +41,25 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data }) => {
         const container = containerRef.current;
         if (!container) return;
 
+        const handleWheel = (e: WheelEvent) => {
+            // Prevent default browser zoom/scroll
+            e.preventDefault();
+
+            const zoomSensitivity = 0.001;
+            const delta = -e.deltaY * zoomSensitivity;
+            
+            setZoom((prevZoom) => {
+                const newZoom = prevZoom * Math.exp(delta);
+                // Clamp zoom between 10% and 500%
+                return Math.min(Math.max(newZoom, 0.1), 5);
+            });
+        };
+
         container.addEventListener("wheel", handleWheel, { passive: false });
         return () => {
             container.removeEventListener("wheel", handleWheel);
         };
-    }, []);
+    }, [data]);
 
     // Reset view when data changes
     useEffect(() => {
@@ -101,7 +103,11 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data }) => {
             </div>
             
             {/* Controls overlay */}
-            <div className="absolute bottom-4 right-4 flex gap-2 bg-card border border-border rounded-md shadow-sm p-1">
+            <div 
+                className="absolute bottom-4 right-4 flex gap-2 bg-card border border-border rounded-md shadow-sm p-1"
+                onPointerDown={(e) => e.stopPropagation()}
+                onPointerUp={(e) => e.stopPropagation()}
+            >
                 <button 
                     onClick={() => setZoom(z => Math.max(z * 0.8, 0.1))}
                     className="p-2 hover:bg-muted rounded"
