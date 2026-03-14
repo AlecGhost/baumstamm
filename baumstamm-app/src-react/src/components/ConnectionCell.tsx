@@ -58,13 +58,16 @@ export const ConnectionCell: React.FC<ConnectionCellProps> = ({ connections }) =
                     );
                 })}
 
-                {/* Crossing: horizontal line from origin to x, vertical line across full cell */}
+                {/* Crossing: horizontal line from origin to x, vertical line connecting horizontal line to opposite edge */}
                 {crossing.map((c, i) => {
                     const x = (c.x_fraction.numerator / c.x_fraction.denominator) * 100;
                     const y = (c.y_fraction.numerator / c.y_fraction.denominator) * 100;
                     
+                    const startY = isUp ? `${y}%` : "0%";
+                    const endY = isUp ? "100%" : `${y}%`;
+
                     return (
-                        <g key={`cross-${i}`} className="text-muted-foreground" stroke="currentColor" strokeWidth="2">
+                        <g key={`cross-${i}`} className="text-muted-foreground" stroke="currentColor" strokeWidth="2" fill="none">
                             {/* Horizontal part */}
                             {c.origin === "Left" && (
                                 <line x1="0%" y1={`${y}%`} x2={`${x}%`} y2={`${y}%`} />
@@ -72,8 +75,8 @@ export const ConnectionCell: React.FC<ConnectionCellProps> = ({ connections }) =
                             {c.origin === "Right" && (
                                 <line x1={`${x}%`} y1={`${y}%`} x2="100%" y2={`${y}%`} />
                             )}
-                            {/* Vertical part (full height) */}
-                            <line x1={`${x}%`} y1="0%" x2={`${x}%`} y2="100%" />
+                            {/* Vertical trunk to opposite edge */}
+                            <line x1={`${x}%`} y1={startY} x2={`${x}%`} y2={endY} />
 
                             {/* Corner dot */}
                             {c.origin !== "None" && (
