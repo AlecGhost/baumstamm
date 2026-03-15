@@ -186,9 +186,11 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
             ? data.persons.find((p) => p.id === selectedPersonId) || null
             : null
         }
+        treeData={data}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onUpdate={onUpdate}
+        onSelectPerson={setSelectedPersonId}
       />
     </div>
   );

@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import type { Person } from "@/lib/types";
+import React, { useEffect, useState, useMemo } from "react";
+import type { Person, TreeData } from "@/lib/types";
 import { getPersonName } from "@/lib/types";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { WasmServiceLive } from "@/lib/wasm";
@@ -7,22 +7,52 @@ import { Effect } from "effect";
 
 interface PersonDetailsModalProps {
   person: Person | null;
+  treeData?: TreeData | null;
   isOpen: boolean;
   onClose: () => void;
   onUpdate: () => void;
+  onSelectPerson?: (id: string) => void;
 }
 
 export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
   person,
+  treeData,
   isOpen,
   onClose,
   onUpdate,
+  onSelectPerson,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [newKeyInput, setNewKeyInput] = useState("");
   const [newValueInput, setNewValueInput] = useState("");
+
+  const relatives = useMemo(() => {
+    if (!person || !treeData) return { parents: [], partners: [], children: [] };
+    
+    const parents = new Set<string>();
+    const partners = new Set<string>();
+    const children = new Set<string>();
+
+    for (const rel of treeData.relationships) {
+      if (rel.children.includes(person.id)) {
+        rel.parents.forEach((p) => p && p !== person.id && parents.add(p));
+      }
+      if (rel.parents.includes(person.id)) {
+        rel.parents.forEach((p) => p && p !== person.id && partners.add(p));
+        rel.children.forEach((c) => c && children.add(c));
+      }
+    }
+
+    const mapPerson = (id: string) => treeData.persons.find((p) => p.id === id);
+    
+    return {
+      parents: Array.from(parents).map(mapPerson).filter(Boolean) as Person[],
+      partners: Array.from(partners).map(mapPerson).filter(Boolean) as Person[],
+      children: Array.from(children).map(mapPerson).filter(Boolean) as Person[],
+    };
+  }, [person, treeData]);
 
   // Close on Escape key
   useEffect(() => {
@@ -260,6 +290,60 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                           Died
                         </span>
                         <span className="font-medium">{dod}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Relatives */}
+                {(relatives.parents.length > 0 || relatives.partners.length > 0 || relatives.children.length > 0) && (
+                  <div className="space-y-3 pt-2">
+                    {relatives.parents.length > 0 && (
+                      <div>
+                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Parents</h3>
+                        <div className="flex flex-wrap">
+                          {relatives.parents.map((p) => (
+                            <button
+                              key={p.id}
+                              onClick={() => { if (onSelectPerson) onSelectPerson(p.id); }}
+                              className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors mr-2 mb-2"
+                            >
+                              {getPersonName(p)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {relatives.partners.length > 0 && (
+                      <div>
+                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Partners</h3>
+                        <div className="flex flex-wrap">
+                          {relatives.partners.map((p) => (
+                            <button
+                              key={p.id}
+                              onClick={() => { if (onSelectPerson) onSelectPerson(p.id); }}
+                              className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors mr-2 mb-2"
+                            >
+                              {getPersonName(p)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {relatives.children.length > 0 && (
+                      <div>
+                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Children</h3>
+                        <div className="flex flex-wrap">
+                          {relatives.children.map((p) => (
+                            <button
+                              key={p.id}
+                              onClick={() => { if (onSelectPerson) onSelectPerson(p.id); }}
+                              className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 transition-colors mr-2 mb-2"
+                            >
+                              {getPersonName(p)}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
