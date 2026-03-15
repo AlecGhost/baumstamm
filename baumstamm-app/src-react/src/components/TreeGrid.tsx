@@ -4,54 +4,54 @@ import { PersonCell } from "./PersonCell";
 import { ConnectionCell } from "./ConnectionCell";
 
 interface TreeGridProps {
-    data: TreeData;
+  data: TreeData;
 }
 
 export const TreeGrid: React.FC<TreeGridProps> = ({ data }) => {
-    const { grid, persons } = data;
+  const { grid, persons } = data;
 
-    if (!grid || grid.length === 0) {
-        return null;
-    }
+  if (!grid || grid.length === 0) {
+    return null;
+  }
 
-    const rows = grid.length;
-    const cols = grid[0].length;
+  const rows = grid.length;
+  const cols = grid[0].length;
 
-    // Find person object by ID
-    const getPerson = (id: string) => persons.find((p) => p.id === id);
+  // Find person object by ID
+  const getPerson = (id: string) => persons.find((p) => p.id === id);
 
-    return (
-        <div
-            className="grid gap-0 place-items-center"
-            style={{
-                gridTemplateColumns: `repeat(${cols}, minmax(180px, 1fr))`,
-                gridTemplateRows: `repeat(${rows}, auto)`,
-            }}
-        >
-            {grid.map((row, rowIndex) =>
-                row.map((cell, colIndex) => {
-                    const key = `${rowIndex}-${colIndex}`;
+  return (
+    <div
+      className="grid gap-0 place-items-center"
+      style={{
+        gridTemplateColumns: `repeat(${cols}, minmax(180px, 1fr))`,
+        gridTemplateRows: `repeat(${rows}, auto)`,
+      }}
+    >
+      {grid.map((row, rowIndex) =>
+        row.map((cell, colIndex) => {
+          const key = `${rowIndex}-${colIndex}`;
 
-                    if ("Person" in cell) {
-                        return (
-                            <div key={key} className="w-full h-full p-2">
-                                <PersonCell
-                                    personId={cell.Person}
-                                    person={getPerson(cell.Person)}
-                                />
-                            </div>
-                        );
-                    } else if ("Connections" in cell) {
-                        return (
-                            <div key={key} className="w-full h-full min-h-[40px]">
-                                <ConnectionCell connections={cell.Connections} />
-                            </div>
-                        );
-                    }
+          if ("Person" in cell) {
+            return (
+              <div key={key} className="w-full h-full p-2">
+                <PersonCell
+                  personId={cell.Person}
+                  person={getPerson(cell.Person)}
+                />
+              </div>
+            );
+          } else if ("Connections" in cell) {
+            return (
+              <div key={key} className="w-full h-full min-h-[40px]">
+                <ConnectionCell connections={cell.Connections} />
+              </div>
+            );
+          }
 
-                    return <div key={key} />;
-                })
-            )}
-        </div>
-    );
+          return <div key={key} />;
+        }),
+      )}
+    </div>
+  );
 };
