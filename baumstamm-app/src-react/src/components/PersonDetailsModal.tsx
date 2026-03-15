@@ -9,7 +9,7 @@ interface PersonDetailsModalProps {
   person: Person | null;
   isOpen: boolean;
   onClose: () => void;
-  onUpdate?: () => void;
+  onUpdate: () => void;
 }
 
 export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
@@ -78,9 +78,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
       );
 
       setIsEditing(false);
-      if (onUpdate) {
-        onUpdate();
-      }
+      onUpdate();
     } catch (err) {
       console.error("Failed to save person details:", err);
     } finally {

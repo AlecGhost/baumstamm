@@ -7,12 +7,14 @@ interface TreeGridProps {
   data: TreeData;
   selectedPersonId: string | null;
   onSelectPerson: (id: string) => void;
+  onDoubleClickPerson: (id: string) => void;
 }
 
 export const TreeGrid: React.FC<TreeGridProps> = ({
   data,
   selectedPersonId,
   onSelectPerson,
+  onDoubleClickPerson,
 }) => {
   const { grid, persons } = data;
 
@@ -46,6 +48,7 @@ export const TreeGrid: React.FC<TreeGridProps> = ({
                   person={getPerson(cell.Person)}
                   isSelected={cell.Person === selectedPersonId}
                   onSelect={onSelectPerson}
+                  onDoubleClick={onDoubleClickPerson}
                 />
               </div>
             );

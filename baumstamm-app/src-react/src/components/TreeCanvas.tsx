@@ -5,7 +5,7 @@ import { PersonDetailsModal } from "./PersonDetailsModal";
 
 interface TreeCanvasProps {
   data: TreeData | null;
-  onUpdate?: () => void;
+  onUpdate: () => void;
 }
 
 export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
@@ -112,6 +112,10 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
             onSelectPerson={(id: string) =>
               setSelectedPersonId((prev) => (prev === id ? null : id))
             }
+            onDoubleClickPerson={(id: string) => {
+              setSelectedPersonId(id);
+              setIsModalOpen(true);
+            }}
           />
         </div>
       </div>
