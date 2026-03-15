@@ -5,9 +5,10 @@ import { PersonDetailsModal } from "./PersonDetailsModal";
 
 interface TreeCanvasProps {
   data: TreeData | null;
+  onUpdate?: () => void;
 }
 
-export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data }) => {
+export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -192,6 +193,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data }) => {
         }
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onUpdate={onUpdate}
       />
     </div>
   );

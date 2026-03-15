@@ -4,6 +4,8 @@ import init, {
   get_persons,
   get_relationships,
   get_grid,
+  insert_info,
+  remove_info,
 } from "baumstamm-wasm";
 import type { Person, Relationship, Grid, TreeData } from "./types";
 
@@ -14,6 +16,12 @@ export interface WasmService {
   readonly getRelationships: () => Effect.Effect<Relationship[], Error>;
   readonly getGrid: () => Effect.Effect<Grid, Error>;
   readonly getTreeData: () => Effect.Effect<TreeData, Error>;
+  readonly insertInfo: (
+    pid: string,
+    key: string,
+    value: string,
+  ) => Effect.Effect<void, Error>;
+  readonly removeInfo: (pid: string, key: string) => Effect.Effect<void, Error>;
 }
 
 export const WasmService = Context.GenericTag<WasmService>(
@@ -50,6 +58,22 @@ export const WasmServiceLive = {
     Effect.try({
       try: () => get_grid() as Grid,
       catch: (error) => new Error(`Failed to get grid: ${error}`),
+    }),
+
+  insertInfo: (pid: string, key: string, value: string) =>
+    Effect.try({
+      try: () => {
+        insert_info(pid, key, value);
+      },
+      catch: (error) => new Error(`Failed to insert info: ${error}`),
+    }),
+
+  removeInfo: (pid: string, key: string) =>
+    Effect.try({
+      try: () => {
+        remove_info(pid, key);
+      },
+      catch: (error) => new Error(`Failed to remove info: ${error}`),
     }),
 
   getTreeData: function () {

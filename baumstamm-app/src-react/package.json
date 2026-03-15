@@ -10,7 +10,7 @@
     "format:check": "prettier src/ --check",
     "format:fix": "prettier src/ --write",
     "fix": "npm run format:fix && npm run lint:fix",
-    "build": "tsc -b && vite build && npm run format:check && npm run lint:check && npm run cdk synth",
+    "build": "tsc -b && vite build && npm run format:check && npm run lint:check",
     "build:wasm": "cd ../src-wasm/ && wasm-pack build --target web --out-dir pkg",
     "preview": "vite preview"
   },

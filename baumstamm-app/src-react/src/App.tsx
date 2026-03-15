@@ -35,8 +35,20 @@ function App() {
         setTreeData(data);
       }),
     ).catch((err) => {
-      console.error(err);
       setError(`Failed to load tree: ${err.message}`);
+    });
+  };
+
+  const handleRefresh = () => {
+    if (!isWasmLoaded) return;
+    Effect.runPromise(
+      Effect.gen(function* () {
+        const data = yield* WasmServiceLive.getTreeData();
+        setTreeData(data);
+      }),
+    ).catch((err) => {
+      console.error(err);
+      setError(`Failed to refresh tree: ${err.message}`);
     });
   };
 
@@ -92,7 +104,7 @@ function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 min-h-0 relative">
-        <TreeCanvas data={treeData} />
+        <TreeCanvas data={treeData} onUpdate={handleRefresh} />
       </main>
     </div>
   );
