@@ -5,9 +5,15 @@ import { ConnectionCell } from "./ConnectionCell";
 
 interface TreeGridProps {
   data: TreeData;
+  selectedPersonId: string | null;
+  onSelectPerson: (id: string) => void;
 }
 
-export const TreeGrid: React.FC<TreeGridProps> = ({ data }) => {
+export const TreeGrid: React.FC<TreeGridProps> = ({
+  data,
+  selectedPersonId,
+  onSelectPerson,
+}) => {
   const { grid, persons } = data;
 
   if (!grid || grid.length === 0) {
@@ -38,6 +44,8 @@ export const TreeGrid: React.FC<TreeGridProps> = ({ data }) => {
                 <PersonCell
                   personId={cell.Person}
                   person={getPerson(cell.Person)}
+                  isSelected={cell.Person === selectedPersonId}
+                  onSelect={onSelectPerson}
                 />
               </div>
             );

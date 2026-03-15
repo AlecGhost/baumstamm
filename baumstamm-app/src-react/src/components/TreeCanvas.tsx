@@ -11,6 +11,8 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data }) => {
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -66,6 +68,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data }) => {
     if (data) {
       setPan({ x: 0, y: 0 });
       setZoom(1);
+      setSelectedPersonId(null);
     }
   }, [data]);
 
@@ -98,7 +101,13 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data }) => {
         }}
       >
         <div className="p-16">
-          <TreeGrid data={data} />
+          <TreeGrid
+            data={data}
+            selectedPersonId={selectedPersonId}
+            onSelectPerson={(id: string) =>
+              setSelectedPersonId((prev) => (prev === id ? null : id))
+            }
+          />
         </div>
       </div>
 
