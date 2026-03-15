@@ -1,17 +1,22 @@
+use std::sync::Mutex;
+
 use baumstamm_lib::{
     view::{View, ViewOptions},
     FamilyTree,
 };
+use once_cell::sync::Lazy;
 use serde_wasm_bindgen as bind;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 #[derive(Debug, Default)]
-pub struct State {
+struct State {
     tree: FamilyTree,
     view: Option<FamilyTree>,
     view_selection: ViewSelection,
 }
+
+static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(State::default()));
 
 impl State {
     fn get_view(&self) -> &FamilyTree {
@@ -48,38 +53,44 @@ type Pid = baumstamm_lib::PersonId;
 type Rid = baumstamm_lib::RelationshipId;
 
 #[wasm_bindgen]
-pub fn init_state() -> State {
-    State::default()
-}
-
-#[wasm_bindgen]
-pub fn load_tree(input: &str, state: &mut State) -> JResult {
+pub fn load_tree(input: &str) -> JResult {
     let tree = FamilyTree::try_from(input).map_err(|err| err.to_string())?;
-    state.tree = tree;
+    STATE.lock().unwrap().tree = tree;
     Ok(JsValue::NULL)
 }
 
 #[wasm_bindgen]
-pub fn save_tree(state: &State) -> JResult {
-    let string = state.tree.save().map_err(|err| err.to_string())?;
+pub fn save_tree() -> JResult {
+    let string = STATE
+        .lock()
+        .unwrap()
+        .tree
+        .save()
+        .map_err(|err| err.to_string())?;
     Ok(JsValue::from(string))
 }
 
 // get datastructures
 #[wasm_bindgen]
-pub fn get_persons(state: &State) -> JResult {
-    let persons = state.get_view().get_persons().to_vec();
+pub fn get_persons() -> JResult {
+    let persons = STATE.lock().unwrap().get_view().get_persons().to_vec();
     Ok(bind::to_value(&persons)?)
 }
 
 #[wasm_bindgen]
-pub fn get_relationships(state: &State) -> JResult {
-    let persons = state.get_view().get_relationships().to_vec();
+pub fn get_relationships() -> JResult {
+    let persons = STATE
+        .lock()
+        .unwrap()
+        .get_view()
+        .get_relationships()
+        .to_vec();
     Ok(bind::to_value(&persons)?)
 }
 
 #[wasm_bindgen]
-pub fn get_grid(state: &State) -> JResult {
+pub fn get_grid() -> JResult {
+    let state = STATE.lock().unwrap();
     let tree = state.get_view();
     let grid = baumstamm_grid::generate(tree);
     Ok(bind::to_value(&grid)?)
@@ -87,69 +98,83 @@ pub fn get_grid(state: &State) -> JResult {
 
 // adding nodes
 #[wasm_bindgen]
-pub fn add_parent(rid: &str, state: &mut State) -> JResult {
-    let result = state
+pub fn add_parent(rid: &str) -> JResult {
+    let result = STATE
+        .lock()
+        .unwrap()
         .tree
         .add_parent(parse_rid(rid)?)
         .map_err(|err| err.to_string())?;
-    state.update_view();
+    STATE.lock().unwrap().update_view();
     Ok(bind::to_value(&result)?)
 }
 
 #[wasm_bindgen]
-pub fn add_child(rid: &str, state: &mut State) -> JResult {
-    let result = state
+pub fn add_child(rid: &str) -> JResult {
+    let result = STATE
+        .lock()
+        .unwrap()
         .tree
         .add_child(parse_rid(rid)?)
         .map_err(|err| err.to_string())?;
-    state.update_view();
+    STATE.lock().unwrap().update_view();
     Ok(bind::to_value(&result)?)
 }
 
 #[wasm_bindgen]
-pub fn add_new_relationship(pid: &str, state: &mut State) -> JResult {
-    let result = state
+pub fn add_new_relationship(pid: &str) -> JResult {
+    let result = STATE
+        .lock()
+        .unwrap()
         .tree
         .add_new_relationship(parse_pid(pid)?)
         .map_err(|err| err.to_string())?;
-    state.update_view();
+    STATE.lock().unwrap().update_view();
     Ok(bind::to_value(&result)?)
 }
 
 #[wasm_bindgen]
-pub fn add_relationship_with_partner(pid: &str, partner_pid: &str, state: &mut State) -> JResult {
-    let result = state
+pub fn add_relationship_with_partner(pid: &str, partner_pid: &str) -> JResult {
+    let result = STATE
+        .lock()
+        .unwrap()
         .tree
         .add_relationship_with_partner(parse_pid(pid)?, parse_pid(partner_pid)?)
         .map_err(|err| err.to_string())?;
-    state.update_view();
+    STATE.lock().unwrap().update_view();
     Ok(bind::to_value(&result)?)
 }
 
 #[wasm_bindgen]
-pub fn remove_person(pid: &str, state: &mut State) -> JResult {
-    state
+pub fn remove_person(pid: &str) -> JResult {
+    STATE
+        .lock()
+        .unwrap()
         .tree
         .remove_person(parse_pid(pid)?)
         .map_err(|err| err.to_string())?;
-    state.update_view();
+    STATE.lock().unwrap().update_view();
     Ok(JsValue::NULL)
 }
 
 #[wasm_bindgen]
-pub fn merge_person(pid1: &str, pid2: &str, state: &mut State) -> JResult {
-    state
+pub fn merge_person(pid1: &str, pid2: &str) -> JResult {
+    STATE
+        .lock()
+        .unwrap()
         .tree
         .merge_person(parse_pid(pid1)?, parse_pid(pid2)?)
         .map_err(|err| err.to_string())?;
-    state.update_view();
+    STATE.lock().unwrap().update_view();
     Ok(JsValue::NULL)
 }
 
 // info
 #[wasm_bindgen]
-pub fn insert_info(pid: &str, key: &str, value: &str, state: &mut State) -> JResult {
-    state
+pub fn insert_info(pid: &str, key: &str, value: &str) -> JResult {
+    STATE
+        .lock()
+        .unwrap()
         .tree
         .insert_info(parse_pid(pid)?, key.to_string(), value.to_string())
         .map_err(|err| err.to_string())?;
@@ -157,8 +182,10 @@ pub fn insert_info(pid: &str, key: &str, value: &str, state: &mut State) -> JRes
 }
 
 #[wasm_bindgen]
-pub fn remove_info(pid: &str, key: &str, state: &mut State) -> JResult {
-    let result = state
+pub fn remove_info(pid: &str, key: &str) -> JResult {
+    let result = STATE
+        .lock()
+        .unwrap()
         .tree
         .remove_info(parse_pid(pid)?, key)
         .map_err(|err| err.to_string())?;

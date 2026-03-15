@@ -4,10 +4,9 @@ import { WasmServiceLive } from "@/lib/wasm";
 import type { TreeData } from "@/lib/types";
 import { LoadTreeDialog } from "@/components/LoadTreeDialog";
 import { TreeCanvas } from "@/components/TreeCanvas";
-import type { State } from "baumstamm-wasm";
 
 function App() {
-    const [wasmState, setWasmState] = useState<State | null>(null);
+    const [isWasmLoaded, setIsWasmLoaded] = useState<boolean>(false);
     const [treeData, setTreeData] = useState<TreeData | null>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -16,8 +15,7 @@ function App() {
         Effect.runPromise(
             Effect.gen(function* () {
                 yield* WasmServiceLive.init;
-                const state = yield* WasmServiceLive.initState;
-                setWasmState(state);
+                setIsWasmLoaded(true);
             })
         ).catch((err) => {
             console.error(err);
@@ -26,13 +24,14 @@ function App() {
     }, []);
 
     const handleLoadTree = (fileContent: string) => {
-        if (!wasmState) return;
+        if (!isWasmLoaded) return;
         setError(null);
 
         Effect.runPromise(
             Effect.gen(function* () {
-                yield* WasmServiceLive.loadTree(fileContent, wasmState);
-                const data = yield* WasmServiceLive.getTreeData(wasmState);
+                setTreeData(null);
+                yield* WasmServiceLive.loadTree(fileContent);
+                const data = yield* WasmServiceLive.getTreeData();
                 setTreeData(data);
             })
         ).catch((err) => {
@@ -41,7 +40,7 @@ function App() {
         });
     };
 
-    if (!wasmState && !error) {
+    if (!isWasmLoaded && !error) {
         return (
             <div className="w-screen h-screen flex items-center justify-center bg-background">
                 <div className="flex flex-col items-center gap-4">

@@ -1,7 +1,5 @@
 import { Effect, Context } from "effect";
 import init, {
-    State,
-    init_state,
     load_tree,
     get_persons,
     get_relationships,
@@ -11,12 +9,11 @@ import type { Person, Relationship, Grid, TreeData } from "./types";
 
 export interface WasmService {
     readonly init: Effect.Effect<void, Error>;
-    readonly initState: Effect.Effect<State, Error>;
-    readonly loadTree: (input: string, state: State) => Effect.Effect<void, Error>;
-    readonly getPersons: (state: State) => Effect.Effect<Person[], Error>;
-    readonly getRelationships: (state: State) => Effect.Effect<Relationship[], Error>;
-    readonly getGrid: (state: State) => Effect.Effect<Grid, Error>;
-    readonly getTreeData: (state: State) => Effect.Effect<TreeData, Error>;
+    readonly loadTree: (input: string) => Effect.Effect<void, Error>;
+    readonly getPersons: () => Effect.Effect<Person[], Error>;
+    readonly getRelationships: () => Effect.Effect<Relationship[], Error>;
+    readonly getGrid: () => Effect.Effect<Grid, Error>;
+    readonly getTreeData: () => Effect.Effect<TreeData, Error>;
 }
 
 export const WasmService = Context.GenericTag<WasmService>("@services/WasmService");
@@ -27,23 +24,18 @@ export const WasmServiceLive = {
         catch: (error) => new Error(`Failed to initialize WASM: ${error}`),
     }).pipe(Effect.asVoid),
 
-    initState: Effect.try({
-        try: () => init_state(),
-        catch: (error) => new Error(`Failed to initialize state: ${error}`),
-    }),
-
-    loadTree: (input: string, state: State) =>
+    loadTree: (input: string) =>
         Effect.try({
             try: () => {
-                load_tree(input, state);
+                load_tree(input);
             },
             catch: (error) => new Error(`Failed to load tree: ${error}`),
         }),
 
-    getPersons: (state: State) =>
+    getPersons: () =>
         Effect.try({
             try: () => {
-                const rawPersons = get_persons(state);
+                const rawPersons = get_persons();
                 // Convert Map to Object for info
                 return rawPersons.map((p: Record<string, any>) => ({
                     id: p.id,
@@ -53,23 +45,23 @@ export const WasmServiceLive = {
             catch: (error) => new Error(`Failed to get persons: ${error}`),
         }),
 
-    getRelationships: (state: State) =>
+    getRelationships: () =>
         Effect.try({
-            try: () => get_relationships(state) as Relationship[],
+            try: () => get_relationships() as Relationship[],
             catch: (error) => new Error(`Failed to get relationships: ${error}`),
         }),
 
-    getGrid: (state: State) =>
+    getGrid: () =>
         Effect.try({
-            try: () => get_grid(state) as Grid,
+            try: () => get_grid() as Grid,
             catch: (error) => new Error(`Failed to get grid: ${error}`),
         }),
 
-    getTreeData: function (state: State) {
+    getTreeData: function () {
         return Effect.all({
-            persons: this.getPersons(state),
-            relationships: this.getRelationships(state),
-            grid: this.getGrid(state),
+            persons: this.getPersons(),
+            relationships: this.getRelationships(),
+            grid: this.getGrid(),
         }).pipe(
             Effect.map(({ persons, relationships, grid }) => ({
                 persons,
