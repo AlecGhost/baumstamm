@@ -9,6 +9,16 @@ export type Relationship = {
   children: string[];
 };
 
+export type ViewLimit = "Unlimited" | { Limit: number };
+
+export type ViewOptions = {
+  show_partners: boolean;
+  show_partner_siblings: boolean;
+  show_ancestor_siblings: boolean;
+  descendent_gen_limit: ViewLimit;
+  ancestor_gen_limit: ViewLimit;
+};
+
 export type Fraction = {
   numerator: number;
   denominator: number;

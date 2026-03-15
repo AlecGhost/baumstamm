@@ -48,6 +48,13 @@ enum ViewSelection {
     },
 }
 
+#[derive(serde::Serialize)]
+struct TreeData<'a> {
+    persons: &'a [Person],
+    relationships: &'a [Relationship],
+    grid: Vec<Vec<baumstamm_grid::GridItem>>,
+}
+
 type JResult = std::result::Result<JsValue, JsValue>;
 type Pid = baumstamm_lib::PersonId;
 type Rid = baumstamm_lib::RelationshipId;
@@ -104,12 +111,28 @@ pub fn get_tree_data() -> JResult {
     let relationships = tree.get_relationships();
     let grid = baumstamm_grid::generate(tree);
 
-    #[derive(serde::Serialize)]
-    struct TreeData<'a> {
-        persons: &'a [Person],
-        relationships: &'a [Relationship],
-        grid: Vec<Vec<baumstamm_grid::GridItem>>,
-    }
+    let data = TreeData {
+        persons,
+        relationships,
+        grid,
+    };
+
+    Ok(bind::to_value(&data)?)
+}
+
+#[wasm_bindgen]
+pub fn get_sub_tree_data(root: &str, options: JsValue) -> JResult {
+    let state = STATE.lock().unwrap();
+    let root_pid = parse_pid(root)?;
+    let opts: ViewOptions = bind::from_value(options)
+        .map_err(|err| err.to_string())?;
+
+    let view = View::new(&state.tree, root_pid, &opts).map_err(|err| err.to_string())?;
+
+    let sub_tree = FamilyTree::from(view);
+    let persons = sub_tree.get_persons();
+    let relationships = sub_tree.get_relationships();
+    let grid = baumstamm_grid::generate(&sub_tree);
 
     let data = TreeData {
         persons,

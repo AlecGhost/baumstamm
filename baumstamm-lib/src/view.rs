@@ -3,7 +3,7 @@ use itertools::Itertools;
 
 type Pid = PersonId;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct ViewOptions {
     pub show_partners: bool,
     pub show_partner_siblings: bool,
@@ -24,7 +24,7 @@ impl Default for ViewOptions {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default)]
+#[derive(Clone, Copy, Debug, Default, serde::Serialize, serde::Deserialize)]
 pub enum ViewLimit {
     #[default]
     Unlimited,
