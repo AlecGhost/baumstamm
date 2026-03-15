@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import type { TreeData } from "@/lib/types";
 import { TreeGrid } from "./TreeGrid";
+import { PersonDetailsModal } from "./PersonDetailsModal";
 
 interface TreeCanvasProps {
   data: TreeData | null;
@@ -12,8 +13,20 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data }) => {
   const [zoom, setZoom] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
+
+  // Handle Enter key for selected person
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && selectedPersonId && !isModalOpen) {
+        setIsModalOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedPersonId, isModalOpen]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     setIsDragging(true);
@@ -170,6 +183,16 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data }) => {
           </svg>
         </button>
       </div>
+
+      <PersonDetailsModal
+        person={
+          selectedPersonId
+            ? data.persons.find((p) => p.id === selectedPersonId) || null
+            : null
+        }
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 };
