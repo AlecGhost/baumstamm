@@ -1,6 +1,6 @@
 export type Person = {
   id: string;
-  info: Record<string, string> | null;
+  info: Map<string, string> | null;
 };
 
 export type Relationship = {
@@ -57,8 +57,9 @@ export type TreeData = {
 
 export const getPersonName = (person: Person | null | undefined): string => {
   if (!person || !person.info) return "Unknown";
-  const first = person.info["@firstName" as keyof typeof person.info] || "";
-  const last = person.info["@lastName" as keyof typeof person.info] || "";
+  const first = person.info.get("@firstName") || "";
+  const last = person.info.get("@lastName") || "";
   const name = `${first} ${last}`.trim();
-  return name || "Unknown";
+  if (name === "") return "Unknown";
+  return name;
 };

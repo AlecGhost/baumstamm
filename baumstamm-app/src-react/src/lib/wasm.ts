@@ -36,14 +36,7 @@ export const WasmServiceLive = {
 
   getPersons: () =>
     Effect.try({
-      try: () => {
-        const rawPersons = get_persons();
-        // Convert Map to Object for info
-        return rawPersons.map((p: Record<string, unknown>) => ({
-          id: p.id,
-          info: p.info ? Object.fromEntries(p.info) : null,
-        })) as Person[];
-      },
+      try: () => get_persons() as Person[],
       catch: (error) => new Error(`Failed to get persons: ${error}`),
     }),
 
