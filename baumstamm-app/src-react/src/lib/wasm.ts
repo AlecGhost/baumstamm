@@ -4,6 +4,7 @@ import init, {
   get_persons,
   get_relationships,
   get_grid,
+  get_tree_data,
   insert_info,
   remove_info,
 } from "baumstamm-wasm";
@@ -76,17 +77,9 @@ export const WasmServiceLive = {
       catch: (error) => new Error(`Failed to remove info: ${error}`),
     }),
 
-  getTreeData: function () {
-    return Effect.all({
-      persons: this.getPersons(),
-      relationships: this.getRelationships(),
-      grid: this.getGrid(),
-    }).pipe(
-      Effect.map(({ persons, relationships, grid }) => ({
-        persons,
-        relationships,
-        grid,
-      })),
-    );
-  },
+  getTreeData: () =>
+    Effect.try({
+      try: () => get_tree_data() as TreeData,
+      catch: (error) => new Error(`Failed to get tree data: ${error}`),
+    }),
 };

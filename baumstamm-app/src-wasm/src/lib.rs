@@ -2,7 +2,7 @@ use std::sync::Mutex;
 
 use baumstamm_lib::{
     view::{View, ViewOptions},
-    FamilyTree,
+    FamilyTree, Person, Relationship,
 };
 use once_cell::sync::Lazy;
 use serde_wasm_bindgen as bind;
@@ -94,6 +94,30 @@ pub fn get_grid() -> JResult {
     let tree = state.get_view();
     let grid = baumstamm_grid::generate(tree);
     Ok(bind::to_value(&grid)?)
+}
+
+#[wasm_bindgen]
+pub fn get_tree_data() -> JResult {
+    let state = STATE.lock().unwrap();
+    let tree = state.get_view();
+    let persons = tree.get_persons();
+    let relationships = tree.get_relationships();
+    let grid = baumstamm_grid::generate(tree);
+
+    #[derive(serde::Serialize)]
+    struct TreeData<'a> {
+        persons: &'a [Person],
+        relationships: &'a [Relationship],
+        grid: Vec<Vec<baumstamm_grid::GridItem>>,
+    }
+
+    let data = TreeData {
+        persons,
+        relationships,
+        grid,
+    };
+
+    Ok(bind::to_value(&data)?)
 }
 
 // adding nodes

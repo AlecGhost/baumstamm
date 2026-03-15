@@ -230,6 +230,7 @@ dependencies = [
  "baumstamm-grid",
  "baumstamm-lib",
  "once_cell",
+ "serde",
  "serde-wasm-bindgen",
  "wasm-bindgen",
 ]
