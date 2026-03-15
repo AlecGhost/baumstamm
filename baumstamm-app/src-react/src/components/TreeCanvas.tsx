@@ -77,15 +77,6 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
     };
   }, [data]);
 
-  // Reset view when data changes
-  useEffect(() => {
-    if (data) {
-      setPan({ x: 0, y: 0 });
-      setZoom(1);
-      setSelectedPersonId(null);
-    }
-  }, [data]);
-
   if (!data) {
     return (
       <div className="w-full h-full flex items-center justify-center text-muted-foreground">

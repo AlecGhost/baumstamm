@@ -9,6 +9,7 @@ function App() {
   const [isWasmLoaded, setIsWasmLoaded] = useState<boolean>(false);
   const [treeData, setTreeData] = useState<TreeData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [treeKey, setTreeKey] = useState<number>(0);
 
   // Initialise WASM on mount
   useEffect(() => {
@@ -33,6 +34,7 @@ function App() {
         yield* WasmServiceLive.loadTree(fileContent);
         const data = yield* WasmServiceLive.getTreeData();
         setTreeData(data);
+        setTreeKey(k => k + 1);
       }),
     ).catch((err) => {
       setError(`Failed to load tree: ${err.message}`);
@@ -104,7 +106,7 @@ function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 min-h-0 relative">
-        <TreeCanvas data={treeData} onUpdate={handleRefresh} />
+        <TreeCanvas key={treeKey} data={treeData} onUpdate={handleRefresh} />
       </main>
     </div>
   );
