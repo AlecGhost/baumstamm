@@ -58,6 +58,9 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
     if (!container) return;
 
     const handleWheel = (e: WheelEvent) => {
+      // When the modal is open, don't intercept wheel events on the background
+      if (isModalOpen) return;
+
       // Prevent default browser zoom/scroll
       e.preventDefault();
 
@@ -75,7 +78,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
     return () => {
       container.removeEventListener("wheel", handleWheel);
     };
-  }, [data]);
+  }, [data, isModalOpen]);
 
   if (!data) {
     return (

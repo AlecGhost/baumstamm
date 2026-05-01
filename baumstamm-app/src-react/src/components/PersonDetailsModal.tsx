@@ -1,10 +1,106 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { Person, TreeData } from "@/lib/types";
 import { getPersonName } from "@/lib/types";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { WasmServiceLive } from "@/lib/wasm";
 import { Effect } from "effect";
 import { TreeGrid } from "./TreeGrid";
+
+// ---------------------------------------------------------------------------
+// Embedded pan/zoom canvas for the sub-tree inside the modal
+// ---------------------------------------------------------------------------
+interface EmbeddedTreeCanvasProps {
+  data: TreeData;
+  selectedPersonId: string | null;
+  onSelectPerson: (id: string) => void;
+}
+
+const EmbeddedTreeCanvas: React.FC<EmbeddedTreeCanvasProps> = ({
+  data,
+  selectedPersonId,
+  onSelectPerson,
+}) => {
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
+
+  // Wheel zoom scoped to this canvas
+  useEffect(() => {
+    const container = canvasRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const zoomSensitivity = 0.001;
+      const delta = -e.deltaY * zoomSensitivity;
+
+      setZoom((prev) => {
+        const next = prev * Math.exp(delta);
+        return Math.min(Math.max(next, 0.1), 5);
+      });
+    };
+
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, []);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    setLastPos({ x: e.clientX, y: e.clientY });
+    e.currentTarget.setPointerCapture(e.pointerId);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - lastPos.x;
+    const dy = e.clientY - lastPos.y;
+    setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+    setLastPos({ x: e.clientX, y: e.clientY });
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+  };
+
+  return (
+    <div
+      ref={canvasRef}
+      className="w-full h-80 border rounded-xl overflow-hidden bg-muted/30 relative cursor-grab active:cursor-grabbing select-none"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
+    >
+      <div
+        className="absolute origin-center transition-transform duration-75 ease-out"
+        style={{
+          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+          left: "50%",
+          top: "50%",
+          translate: "-50% -50%",
+        }}
+      >
+        <div className="p-8">
+          <TreeGrid
+            data={data}
+            selectedPersonId={selectedPersonId}
+            onSelectPerson={onSelectPerson}
+            onDoubleClickPerson={() => {}}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
 
 interface PersonDetailsModalProps {
   person: Person | null;
@@ -294,14 +390,11 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                     <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                       Immediate Family
                     </h3>
-                    <div className="w-full h-80 border rounded-xl overflow-hidden bg-muted/30">
-                      <TreeGrid
-                        data={subTreeData}
-                        selectedPersonId={person?.id}
-                        onSelectPerson={onSelectPerson}
-                        onDoubleClickPerson={() => { }}
-                      />
-                    </div>
+                    <EmbeddedTreeCanvas
+                      data={subTreeData}
+                      selectedPersonId={person?.id ?? null}
+                      onSelectPerson={onSelectPerson}
+                    />
                   </div>
                 )}
 
