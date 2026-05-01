@@ -48,7 +48,10 @@ export interface WasmService {
     partnerPid: string,
   ) => Effect.Effect<string, Error>;
   readonly removePerson: (pid: string) => Effect.Effect<void, Error>;
-  readonly mergePerson: (pid1: string, pid2: string) => Effect.Effect<void, Error>;
+  readonly mergePerson: (
+    pid1: string,
+    pid2: string,
+  ) => Effect.Effect<void, Error>;
 }
 
 export const WasmService = Context.GenericTag<WasmService>(
@@ -136,7 +139,8 @@ export const WasmServiceLive: WasmService = {
   addRelationshipWithPartner: (pid: string, partnerPid: string) =>
     Effect.try({
       try: () => add_relationship_with_partner(pid, partnerPid) as string,
-      catch: (error) => new Error(`Failed to add relationship with partner: ${error}`),
+      catch: (error) =>
+        new Error(`Failed to add relationship with partner: ${error}`),
     }),
 
   removePerson: (pid: string) =>

@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { Person, TreeData } from "@/lib/types";
+import type { Person, Relationship, TreeData } from "@/lib/types";
 import { getPersonName } from "@/lib/types";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { WasmServiceLive } from "@/lib/wasm";
@@ -89,7 +89,9 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isActionView, setIsActionView] = useState(false);
-  const [actionState, setActionState] = useState<{type: "none"} | {type: "partner"} | {type: "merge"}>({type: "none"});
+  const [actionState, setActionState] = useState<
+    { type: "none" } | { type: "partner" } | { type: "merge" }
+  >({ type: "none" });
   const [actionSearchQuery, setActionSearchQuery] = useState("");
   const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -105,7 +107,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
       WasmServiceLive.getSubTreeData(person.id, {
         show_partners: true,
         show_siblings: true,
-        show_partner_siblings: true,
+        show_partner_siblings: false,
         show_ancestor_siblings: false,
         descendent_gen_limit: { Limit: 1 },
         ancestor_gen_limit: { Limit: 1 },
@@ -164,7 +166,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
     if (!isOpen) {
       setIsEditing(false);
       setIsActionView(false);
-      setActionState({type: "none"});
+      setActionState({ type: "none" });
       setActionSearchQuery("");
       setNewKeyInput("");
       setNewValueInput("");
@@ -267,6 +269,20 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
     }
   };
 
+  const handleAddNewPartner = async () => {
+    if (!person || !treeData) return;
+    try {
+      const newRelId = await Effect.runPromise(
+        WasmServiceLive.addNewRelationship(person.id),
+      );
+      await Effect.runPromise(WasmServiceLive.addParent(newRelId));
+      onUpdate();
+      setIsActionView(false);
+    } catch (e) {
+      console.error("Failed to add new partner:", e);
+    }
+  };
+
   const handleAddPartner = async (partnerId: string) => {
     if (!person) return;
     try {
@@ -304,7 +320,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
     }
   };
 
-  const getPartnerName = (rel: any, currentPersonId: string) => {
+  const getPartnerName = (rel: Relationship, currentPersonId: string) => {
     if (!treeData) return "Unknown";
     const partnerId = rel.parents.find(
       (p: string | null) => p !== null && p !== currentPersonId,
@@ -348,7 +364,9 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
 
   const allEntries = isEditing
     ? Object.entries(editForm)
-    : person.info ? Array.from(person.info.entries()) : [];
+    : person.info
+      ? Array.from(person.info.entries())
+      : [];
   const excludeKeys = [
     "@image",
     "@dateOfBirth",
@@ -409,7 +427,10 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                     className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                     value={editForm["@image"] || ""}
                     onChange={(e) =>
-                      setEditForm((prev) => ({ ...prev, "@image": e.target.value }))
+                      setEditForm((prev) => ({
+                        ...prev,
+                        "@image": e.target.value,
+                      }))
                     }
                     placeholder="/path/to/image.jpg or https://..."
                   />
@@ -466,9 +487,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
             <button
               onClick={handleCloseOrBack}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label={
-                isEditing || isActionView ? "Cancel" : "Close modal"
-              }
+              aria-label={isEditing || isActionView ? "Cancel" : "Close modal"}
             >
               <svg
                 width="15"
@@ -519,10 +538,16 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                     ))
                   )}
                   <button
+                    onClick={handleAddNewPartner}
+                    className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                  >
+                    Add New Partner
+                  </button>
+                  <button
                     onClick={() => setActionState({ type: "partner" })}
                     className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
                   >
-                    Add New Partner...
+                    Add Existing Partner...
                   </button>
                   <button
                     onClick={() => setActionState({ type: "merge" })}
