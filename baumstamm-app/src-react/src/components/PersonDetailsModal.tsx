@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Person, TreeData } from "@/lib/types";
 import { getPersonName } from "@/lib/types";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
@@ -21,7 +21,29 @@ const EmbeddedTreeCanvas: React.FC<EmbeddedTreeCanvasProps> = ({
   selectedPersonId,
   onSelectPerson,
 }) => {
-  const { containerRef, pointerHandlers, transformStyle } = usePanZoom({ enabled: true });
+  const { containerRef, setZoom, setPan, pointerHandlers, transformStyle } =
+    usePanZoom({
+      enabled: true,
+    });
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // After render, measure content vs container and zoom to fit
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const content = contentRef.current;
+    if (!container || !content) return;
+
+    const cw = container.clientWidth;
+    const ch = container.clientHeight;
+    const sw = content.scrollWidth;
+    const sh = content.scrollHeight;
+
+    setPan({ x: 0, y: 0 });
+    if (sw > 0 && sh > 0) {
+      const fitZoom = Math.min(cw / sw, ch / sh, 1);
+      setZoom(fitZoom);
+    }
+  }, [data, setZoom, setPan, containerRef]);
 
   return (
     <div
@@ -33,12 +55,12 @@ const EmbeddedTreeCanvas: React.FC<EmbeddedTreeCanvasProps> = ({
         className="absolute origin-center transition-transform duration-75 ease-out"
         style={transformStyle}
       >
-        <div className="p-8">
+        <div ref={contentRef} className="p-8">
           <TreeGrid
             data={data}
             selectedPersonId={selectedPersonId}
             onSelectPerson={onSelectPerson}
-            onDoubleClickPerson={() => { }}
+            onDoubleClickPerson={() => {}}
           />
         </div>
       </div>
