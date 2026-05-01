@@ -127,16 +127,38 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
     }
   }, [isEditing, isActionView, onClose]);
 
-  // Close on Escape key
+  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
+      if (!isOpen) return;
+
+      if (e.key === "Escape") {
         handleCloseOrBack();
+        return;
+      }
+
+      // Ignore shortcuts if we're focused on an input or textarea
+      if (
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.tagName === "SELECT"
+      ) {
+        return;
+      }
+
+      if (!isEditing && !isActionView) {
+        if (e.key === "a" || e.key === "A") {
+          e.preventDefault();
+          setIsActionView(true);
+        } else if (e.key === "e" || e.key === "E") {
+          e.preventDefault();
+          setIsEditing(true);
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handleCloseOrBack]);
+  }, [isOpen, handleCloseOrBack, isEditing, isActionView]);
 
   useEffect(() => {
     if (!isOpen) {
