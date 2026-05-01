@@ -138,33 +138,36 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (isEditing && person && person.info) {
+    if (isEditing && person) {
       const initialForm: Record<string, string> = {};
-      for (const [key, value] of person.info.entries()) {
-        initialForm[key] = value;
+      if (person.info) {
+        for (const [key, value] of person.info.entries()) {
+          initialForm[key] = value;
+        }
       }
       setEditForm(initialForm);
     }
   }, [isEditing, person]);
 
-  if (!isOpen || !person || !person.info) return null;
+  if (!isOpen || !person) return null;
 
   const handleSave = async () => {
-    if (!person || !person.info) return;
+    if (!person) return;
     setIsSaving(true);
 
     try {
       await Effect.runPromise(
         Effect.gen(function* () {
+          const currentInfo = person.info || new Map<string, string>();
           // Find removed keys
-          for (const [oldKey] of person.info!.entries()) {
+          for (const [oldKey] of currentInfo.entries()) {
             if (!(oldKey in editForm)) {
               yield* WasmServiceLive.removeInfo(person.id, oldKey);
             }
           }
           // Find added/changed keys
           for (const [newKey, newValue] of Object.entries(editForm)) {
-            if (person.info!.get(newKey) !== newValue) {
+            if (currentInfo.get(newKey) !== newValue) {
               yield* WasmServiceLive.insertInfo(person.id, newKey, newValue);
             }
           }
@@ -287,7 +290,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
   // When editing, show the raw image path/URL. When viewing, render it.
   const imageValue = isEditing
     ? editForm["@image"] || ""
-    : person.info.get("@image");
+    : person.info?.get("@image");
   let displayImage = imageValue;
   if (!isEditing && displayImage && displayImage.startsWith("/")) {
     if (typeof window !== "undefined" && window.__TAURI__) {
@@ -304,14 +307,14 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
   // If viewing, use person.info. If editing, use editForm.
   const dob = isEditing
     ? editForm["@dateOfBirth"]
-    : person.info.get("@dateOfBirth");
+    : person.info?.get("@dateOfBirth");
   const dod = isEditing
     ? editForm["@dateOfDeath"]
-    : person.info.get("@dateOfDeath");
+    : person.info?.get("@dateOfDeath");
 
   const allEntries = isEditing
     ? Object.entries(editForm)
-    : Array.from(person.info.entries());
+    : person.info ? Array.from(person.info.entries()) : [];
   const excludeKeys = [
     "@image",
     "@dateOfBirth",
