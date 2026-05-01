@@ -115,16 +115,28 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
       .catch((err) => console.error("Failed to fetch sub tree data:", err));
   }, [person, isOpen, treeData]); // include treeData to refresh when tree changes
 
+  const handleCloseOrBack = React.useCallback(() => {
+    if (isEditing) {
+      setIsEditing(false);
+    } else if (isActionView) {
+      setIsActionView(false);
+      setActionState({ type: "none" });
+      setActionSearchQuery("");
+    } else {
+      onClose();
+    }
+  }, [isEditing, isActionView, onClose]);
+
   // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen && !isEditing) {
-        onClose();
+      if (e.key === "Escape" && isOpen) {
+        handleCloseOrBack();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose, isEditing]);
+  }, [isOpen, handleCloseOrBack]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -430,13 +442,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
               </button>
             )}
             <button
-              onClick={() => {
-                if (isEditing) setIsEditing(false);
-                else if (isActionView) {
-                  setIsActionView(false);
-                  setActionState({ type: "none" });
-                } else onClose();
-              }}
+              onClick={handleCloseOrBack}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
               aria-label={
                 isEditing || isActionView ? "Cancel" : "Close modal"
