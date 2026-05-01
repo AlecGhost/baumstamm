@@ -6,6 +6,7 @@ type Pid = PersonId;
 #[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
 pub struct ViewOptions {
     pub show_partners: bool,
+    pub show_siblings: bool,
     pub show_partner_siblings: bool,
     pub show_ancestor_siblings: bool,
     pub descendent_gen_limit: ViewLimit,
@@ -16,6 +17,7 @@ impl Default for ViewOptions {
     fn default() -> Self {
         Self {
             show_partners: true,
+            show_siblings: false,
             show_partner_siblings: false,
             show_ancestor_siblings: false,
             ancestor_gen_limit: ViewLimit::default(),
@@ -120,7 +122,7 @@ impl View<'_> {
                 children: parent_rel
                     .children
                     .iter()
-                    .filter(|c| options.show_ancestor_siblings || *c == root)
+                    .filter(|c| options.show_siblings || *c == root)
                     .cloned()
                     .collect_vec(),
             }],
@@ -128,7 +130,7 @@ impl View<'_> {
                 children: parent_rel
                     .children
                     .iter()
-                    .filter(|c| options.show_ancestor_siblings || *c == root)
+                    .filter(|c| options.show_siblings || *c == root)
                     .cloned()
                     .collect_vec(),
                 ..parent_rel.clone()
@@ -153,6 +155,7 @@ impl View<'_> {
                 .collect_vec(),
         };
         let ancestor_options = ViewOptions {
+            show_siblings: options.show_ancestor_siblings,
             ancestor_gen_limit: options.ancestor_gen_limit - 1,
             descendent_gen_limit: ViewLimit::Limit(0),
             ..options.clone()
@@ -163,6 +166,7 @@ impl View<'_> {
             .flat_map(|pid| Self::filter_relationships(&pid, rels, &ancestor_options))
             .collect_vec();
         let descendent_options = ViewOptions {
+            show_siblings: false,
             ancestor_gen_limit: ViewLimit::Limit(0),
             descendent_gen_limit: options.descendent_gen_limit - 1,
             ..options.clone()
@@ -225,6 +229,7 @@ mod tests {
             ancestor_gen_limit: ViewLimit::Limit(0),
             descendent_gen_limit: ViewLimit::Limit(0),
             show_partners: true,
+            show_siblings: false,
             show_ancestor_siblings: false,
             show_partner_siblings: false,
        },
@@ -232,6 +237,7 @@ mod tests {
             ancestor_gen_limit: ViewLimit::Limit(1),
             descendent_gen_limit: ViewLimit::Limit(1),
             show_partners: true,
+            show_siblings: false,
             show_ancestor_siblings: false,
             show_partner_siblings: false,
        }

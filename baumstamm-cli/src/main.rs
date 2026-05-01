@@ -89,6 +89,8 @@ struct ViewOptions {
     root: String,
     #[arg(short='p', long)]
     show_partners: bool,
+    #[arg(short='s', long)]
+    show_siblings: bool,
     #[arg(short='u', long)]
     show_ancestor_siblings: bool,
     #[arg(short='v', long)]
@@ -103,6 +105,7 @@ impl From<ViewOptions> for baumstamm_lib::view::ViewOptions {
     fn from(options: ViewOptions) -> Self {
         baumstamm_lib::view::ViewOptions {
             show_partners: options.show_partners,
+            show_siblings: options.show_siblings,
             show_ancestor_siblings: options.show_ancestor_siblings,
             show_partner_siblings: options.show_partner_siblings,
             descendent_gen_limit: options

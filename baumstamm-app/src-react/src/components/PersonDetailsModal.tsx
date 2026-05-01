@@ -101,7 +101,8 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
     Effect.runPromise(
       WasmServiceLive.getSubTreeData(person.id, {
         show_partners: true,
-        show_partner_siblings: false,
+        show_siblings: true,
+        show_partner_siblings: true,
         show_ancestor_siblings: false,
         descendent_gen_limit: { Limit: 1 },
         ancestor_gen_limit: { Limit: 1 },
