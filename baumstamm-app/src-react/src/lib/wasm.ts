@@ -8,6 +8,12 @@ import init, {
   get_sub_tree_data,
   insert_info,
   remove_info,
+  add_parent,
+  add_child,
+  add_new_relationship,
+  add_relationship_with_partner,
+  remove_person,
+  merge_person,
 } from "baumstamm-wasm";
 import type {
   Person,
@@ -34,13 +40,22 @@ export interface WasmService {
     value: string,
   ) => Effect.Effect<void, Error>;
   readonly removeInfo: (pid: string, key: string) => Effect.Effect<void, Error>;
+  readonly addParent: (rid: string) => Effect.Effect<[string, string], Error>;
+  readonly addChild: (rid: string) => Effect.Effect<string, Error>;
+  readonly addNewRelationship: (pid: string) => Effect.Effect<string, Error>;
+  readonly addRelationshipWithPartner: (
+    pid: string,
+    partnerPid: string,
+  ) => Effect.Effect<string, Error>;
+  readonly removePerson: (pid: string) => Effect.Effect<void, Error>;
+  readonly mergePerson: (pid1: string, pid2: string) => Effect.Effect<void, Error>;
 }
 
 export const WasmService = Context.GenericTag<WasmService>(
   "@services/WasmService",
 );
 
-export const WasmServiceLive = {
+export const WasmServiceLive: WasmService = {
   init: Effect.tryPromise({
     try: () => init(),
     catch: (error) => new Error(`Failed to initialize WASM: ${error}`),
@@ -98,5 +113,45 @@ export const WasmServiceLive = {
     Effect.try({
       try: () => get_sub_tree_data(root, options) as TreeData,
       catch: (error) => new Error(`Failed to get sub tree data: ${error}`),
+    }),
+
+  addParent: (rid: string) =>
+    Effect.try({
+      try: () => add_parent(rid) as [string, string],
+      catch: (error) => new Error(`Failed to add parent: ${error}`),
+    }),
+
+  addChild: (rid: string) =>
+    Effect.try({
+      try: () => add_child(rid) as string,
+      catch: (error) => new Error(`Failed to add child: ${error}`),
+    }),
+
+  addNewRelationship: (pid: string) =>
+    Effect.try({
+      try: () => add_new_relationship(pid) as string,
+      catch: (error) => new Error(`Failed to add relationship: ${error}`),
+    }),
+
+  addRelationshipWithPartner: (pid: string, partnerPid: string) =>
+    Effect.try({
+      try: () => add_relationship_with_partner(pid, partnerPid) as string,
+      catch: (error) => new Error(`Failed to add relationship with partner: ${error}`),
+    }),
+
+  removePerson: (pid: string) =>
+    Effect.try({
+      try: () => {
+        remove_person(pid);
+      },
+      catch: (error) => new Error(`Failed to remove person: ${error}`),
+    }),
+
+  mergePerson: (pid1: string, pid2: string) =>
+    Effect.try({
+      try: () => {
+        merge_person(pid1, pid2);
+      },
+      catch: (error) => new Error(`Failed to merge person: ${error}`),
     }),
 };

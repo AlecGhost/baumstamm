@@ -88,6 +88,9 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
   onSelectPerson,
 }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isActionView, setIsActionView] = useState(false);
+  const [actionState, setActionState] = useState<{type: "none"} | {type: "partner"} | {type: "merge"}>({type: "none"});
+  const [actionSearchQuery, setActionSearchQuery] = useState("");
   const [editForm, setEditForm] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [newKeyInput, setNewKeyInput] = useState("");
@@ -126,6 +129,9 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
   useEffect(() => {
     if (!isOpen) {
       setIsEditing(false);
+      setIsActionView(false);
+      setActionState({type: "none"});
+      setActionSearchQuery("");
       setNewKeyInput("");
       setNewValueInput("");
     }
@@ -182,6 +188,99 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
       setNewValueInput("");
     }
   };
+
+  const handleAddParent = async () => {
+    if (!person || !treeData) return;
+    const rel = treeData.relationships.find((r) =>
+      r.children.includes(person.id),
+    );
+    if (rel) {
+      try {
+        await Effect.runPromise(WasmServiceLive.addParent(rel.id));
+        onUpdate();
+        setIsActionView(false);
+      } catch (e) {
+        console.error("Failed to add parent:", e);
+      }
+    }
+  };
+
+  const handleAddChild = async (specificRelId?: string) => {
+    if (!person || !treeData) return;
+    const rels = treeData.relationships.filter((r) =>
+      r.parents.includes(person.id),
+    );
+    try {
+      if (specificRelId) {
+        await Effect.runPromise(WasmServiceLive.addChild(specificRelId));
+      } else if (rels.length === 0) {
+        const newRelId = await Effect.runPromise(
+          WasmServiceLive.addNewRelationship(person.id),
+        );
+        await Effect.runPromise(WasmServiceLive.addChild(newRelId));
+      } else if (rels.length === 1) {
+        await Effect.runPromise(WasmServiceLive.addChild(rels[0].id));
+      } else {
+        await Effect.runPromise(WasmServiceLive.addChild(rels[0].id));
+      }
+      onUpdate();
+      setIsActionView(false);
+    } catch (e) {
+      console.error("Failed to add child:", e);
+    }
+  };
+
+  const handleAddPartner = async (partnerId: string) => {
+    if (!person) return;
+    try {
+      await Effect.runPromise(
+        WasmServiceLive.addRelationshipWithPartner(person.id, partnerId),
+      );
+      onUpdate();
+      setIsActionView(false);
+      setActionState({ type: "none" });
+    } catch (e) {
+      console.error("Failed to add partner:", e);
+    }
+  };
+
+  const handleMergePerson = async (otherId: string) => {
+    if (!person) return;
+    try {
+      await Effect.runPromise(WasmServiceLive.mergePerson(person.id, otherId));
+      onUpdate();
+      setIsActionView(false);
+      setActionState({ type: "none" });
+    } catch (e) {
+      console.error("Failed to merge person:", e);
+    }
+  };
+
+  const handleRemovePerson = async () => {
+    if (!person) return;
+    try {
+      await Effect.runPromise(WasmServiceLive.removePerson(person.id));
+      onUpdate();
+      onClose();
+    } catch (e) {
+      console.error("Failed to remove person:", e);
+    }
+  };
+
+  const getPartnerName = (rel: any, currentPersonId: string) => {
+    if (!treeData) return "Unknown";
+    const partnerId = rel.parents.find(
+      (p: string | null) => p !== null && p !== currentPersonId,
+    );
+    if (!partnerId) return "Unknown";
+    const partner = treeData.persons.find((p) => p.id === partnerId);
+    return getPersonName(partner);
+  };
+
+  const parentRels =
+    treeData && person
+      ? treeData.relationships.filter((r) => r.parents.includes(person.id))
+      : [];
 
   const name = getPersonName(person);
 
@@ -241,7 +340,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
       >
         {/* Header/Image Section */}
         <div className="relative shrink-0">
-          {!isEditing ? (
+          {!isEditing && !isActionView ? (
             displayImage ? (
               <div className="w-full h-48 bg-muted flex items-center justify-center overflow-hidden">
                 <img
@@ -259,23 +358,53 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
             )
           ) : (
             <div className="w-full bg-primary/10 flex flex-col p-6 pt-12 pb-4 gap-2 border-b">
-              <label className="text-xs font-medium text-muted-foreground">
-                Image Path/URL (@image)
-              </label>
-              <input
-                autoFocus
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                value={editForm["@image"] || ""}
-                onChange={(e) =>
-                  setEditForm((prev) => ({ ...prev, "@image": e.target.value }))
-                }
-                placeholder="/path/to/image.jpg or https://..."
-              />
+              {isActionView ? (
+                <div className="flex items-center">
+                  <h2 className="text-xl font-bold tracking-tight">Actions</h2>
+                </div>
+              ) : (
+                <>
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Image Path/URL (@image)
+                  </label>
+                  <input
+                    autoFocus
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    value={editForm["@image"] || ""}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({ ...prev, "@image": e.target.value }))
+                    }
+                    placeholder="/path/to/image.jpg or https://..."
+                  />
+                </>
+              )}
             </div>
           )}
 
           <div className="absolute top-4 right-4 flex gap-2">
-            {!isEditing && (
+            {!isEditing && !isActionView && (
+              <button
+                onClick={() => setIsActionView(true)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                aria-label="Actions"
+              >
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 15 15"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M7.49991 1V7.5M7.49991 14V7.5M7.49991 7.5H14M7.49991 7.5H1"
+                    stroke="currentColor"
+                    strokeLinecap="round"
+                    strokeWidth="1.5"
+                  />
+                </svg>
+              </button>
+            )}
+            {!isEditing && !isActionView && (
               <button
                 onClick={() => setIsEditing(true)}
                 className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
@@ -300,10 +429,15 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
             <button
               onClick={() => {
                 if (isEditing) setIsEditing(false);
-                else onClose();
+                else if (isActionView) {
+                  setIsActionView(false);
+                  setActionState({ type: "none" });
+                } else onClose();
               }}
               className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label={isEditing ? "Cancel editing" : "Close modal"}
+              aria-label={
+                isEditing || isActionView ? "Cancel" : "Close modal"
+              }
             >
               <svg
                 width="15"
@@ -325,7 +459,126 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
 
         {/* Content Section */}
         <div className="p-6 overflow-y-auto">
-          {!isEditing ? (
+          {isActionView ? (
+            <div className="space-y-4">
+              {actionState.type === "none" ? (
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={handleAddParent}
+                    className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                  >
+                    Add Parent
+                  </button>
+                  {parentRels.length <= 1 ? (
+                    <button
+                      onClick={() => handleAddChild()}
+                      className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                    >
+                      Add Child
+                    </button>
+                  ) : (
+                    parentRels.map((rel) => (
+                      <button
+                        key={rel.id}
+                        onClick={() => handleAddChild(rel.id)}
+                        className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                      >
+                        Add Child (with {getPartnerName(rel, person.id)})
+                      </button>
+                    ))
+                  )}
+                  <button
+                    onClick={() => setActionState({ type: "partner" })}
+                    className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                  >
+                    Add New Partner...
+                  </button>
+                  <button
+                    onClick={() => setActionState({ type: "merge" })}
+                    className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                  >
+                    Merge Person...
+                  </button>
+                  <div className="pt-4 border-t mt-4">
+                    <button
+                      onClick={handleRemovePerson}
+                      className="w-full text-left px-4 py-3 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20 rounded-md transition-colors text-sm font-medium"
+                    >
+                      Remove Person
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <button
+                    onClick={() => {
+                      setActionState({ type: "none" });
+                      setActionSearchQuery("");
+                    }}
+                    className="text-xs text-muted-foreground hover:text-foreground underline flex items-center gap-1"
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 15 15"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        d="M6.85355 3.14645C7.04882 3.34171 7.04882 3.65829 6.85355 3.85355L3.70711 7H12.5C12.7761 7 13 7.22386 13 7.5C13 7.77614 12.7761 8 12.5 8H3.70711L6.85355 11.1464C7.04882 11.3417 7.04882 11.6583 6.85355 11.8536C6.65829 12.0488 6.34171 12.0488 6.14645 11.8536L2.14645 7.85355C1.95118 7.65829 1.95118 7.34171 2.14645 7.14645L6.14645 3.14645C6.34171 2.95118 6.65829 2.95118 6.85355 3.14645Z"
+                        fill="currentColor"
+                        fillRule="evenodd"
+                        clipRule="evenodd"
+                      ></path>
+                    </svg>
+                    Back to Actions
+                  </button>
+                  <h3 className="text-sm font-semibold">
+                    {actionState.type === "partner"
+                      ? "Select Partner"
+                      : "Select Person to Merge"}
+                  </h3>
+                  <input
+                    type="text"
+                    placeholder="Search by name..."
+                    autoFocus
+                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    value={actionSearchQuery}
+                    onChange={(e) => setActionSearchQuery(e.target.value)}
+                  />
+                  <div className="max-h-60 overflow-y-auto border rounded-md divide-y">
+                    {treeData?.persons
+                      .filter((p) => p.id !== person.id)
+                      .filter((p) =>
+                        getPersonName(p)
+                          .toLowerCase()
+                          .includes(actionSearchQuery.toLowerCase()),
+                      )
+                      .map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            if (actionState.type === "partner")
+                              handleAddPartner(p.id);
+                            else if (actionState.type === "merge")
+                              handleMergePerson(p.id);
+                          }}
+                          className="w-full text-left px-3 py-2 hover:bg-muted transition-colors text-sm"
+                        >
+                          {getPersonName(p)}
+                        </button>
+                      ))}
+                    {treeData?.persons.filter((p) => p.id !== person.id)
+                      .length === 0 && (
+                      <div className="px-3 py-2 text-sm text-muted-foreground">
+                        No other persons found.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : !isEditing ? (
             <>
               <h2 className="text-2xl font-bold font-sans tracking-tight mb-4">
                 {name}
