@@ -22,8 +22,34 @@ export const TreeGrid: React.FC<TreeGridProps> = ({
     return null;
   }
 
-  const rows = grid.length;
-  const cols = grid[0].length;
+  // A row is considered empty if every cell is either a bare empty cell or
+  // a Connections cell whose passing, ending, and crossing arrays are all empty.
+  const isEmptyRow = (row: (typeof grid)[number]) =>
+    row.every((cell) => {
+      if ("Person" in cell) return false;
+      if ("Connections" in cell) {
+        const c = cell.Connections;
+        return (
+          c.passing.length === 0 &&
+          c.ending.length === 0 &&
+          c.crossing.length === 0
+        );
+      }
+      return true; // empty cell
+    });
+
+  // Trim empty rows from the start and end
+  let startRow = 0;
+  while (startRow < grid.length && isEmptyRow(grid[startRow])) startRow++;
+  let endRow = grid.length - 1;
+  while (endRow > startRow && isEmptyRow(grid[endRow])) endRow--;
+
+  const trimmedGrid = grid.slice(startRow, endRow + 1);
+
+  const rows = trimmedGrid.length;
+  const cols = trimmedGrid.length > 0 ? trimmedGrid[0].length : 0;
+
+  if (rows === 0) return null;
 
   // Find person object by ID
   const getPerson = (id: string) => persons.find((p) => p.id === id);
@@ -36,9 +62,9 @@ export const TreeGrid: React.FC<TreeGridProps> = ({
         gridTemplateRows: `repeat(${rows}, auto)`,
       }}
     >
-      {grid.map((row, rowIndex) =>
+      {trimmedGrid.map((row, rowIndex) =>
         row.map((cell, colIndex) => {
-          const key = `${rowIndex}-${colIndex}`;
+          const key = `${startRow + rowIndex}-${colIndex}`;
 
           if ("Person" in cell) {
             return (
