@@ -111,7 +111,7 @@ pub fn get_person_indices(person_layers: &Grid<Pid>, row_length: usize) -> Grid<
 }
 
 const fn middle(a: usize, b: usize) -> usize {
-    let diff = if a <= b { b - a } else { a - b };
+    let diff = b.abs_diff(a);
     if diff % 2 == 0 {
         diff / 2
     } else {

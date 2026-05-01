@@ -181,7 +181,7 @@ impl Graph {
             .map(|level| level + 1)
     }
 
-    const fn walk_descendants(&self, rid: &Rid) -> DescendantWalker {
+    const fn walk_descendants(&self, rid: &Rid) -> DescendantWalker<'_> {
         DescendantWalker::new(self, *rid)
     }
 

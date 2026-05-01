@@ -122,12 +122,11 @@ pub fn get_tree_data() -> JResult {
 
 #[wasm_bindgen]
 pub fn get_sub_tree_data(root: &str, options: JsValue) -> JResult {
-    let state = STATE.lock().unwrap();
-    let root_pid = parse_pid(root)?;
-    let opts: ViewOptions = bind::from_value(options)
-        .map_err(|err| err.to_string())?;
+    let root = parse_pid(root)?;
+    let options: ViewOptions = bind::from_value(options).map_err(|err| err.to_string())?;
 
-    let view = View::new(&state.tree, root_pid, &opts).map_err(|err| err.to_string())?;
+    let state = STATE.lock().unwrap();
+    let view = View::new(&state.tree, root, &options).map_err(|err| err.to_string())?;
 
     let sub_tree = FamilyTree::from(view);
     let persons = sub_tree.get_persons();
@@ -141,6 +140,28 @@ pub fn get_sub_tree_data(root: &str, options: JsValue) -> JResult {
     };
 
     Ok(bind::to_value(&data)?)
+}
+
+#[wasm_bindgen]
+pub fn set_partial_view(root: &str, options: JsValue) -> JResult {
+    let mut state = STATE.lock().unwrap();
+    let root = parse_pid(root)?;
+    let options: ViewOptions = bind::from_value(options).map_err(|err| err.to_string())?;
+
+    state.view_selection = ViewSelection::Partial { root, options };
+    state.update_view();
+
+    Ok(JsValue::NULL)
+}
+
+#[wasm_bindgen]
+pub fn set_full_view() -> JResult {
+    let mut state = STATE.lock().unwrap();
+
+    state.view_selection = ViewSelection::Full;
+    state.update_view();
+
+    Ok(JsValue::NULL)
 }
 
 // adding nodes
