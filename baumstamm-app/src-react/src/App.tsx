@@ -34,7 +34,7 @@ function App() {
         yield* WasmServiceLive.loadTree(fileContent);
         const data = yield* WasmServiceLive.getTreeData();
         setTreeData(data);
-        setTreeKey(k => k + 1);
+        setTreeKey((k) => k + 1);
       }),
     ).catch((err) => {
       setError(`Failed to load tree: ${err.message}`);

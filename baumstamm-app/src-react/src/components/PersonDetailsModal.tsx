@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { Person, TreeData } from "@/lib/types";
 import { getPersonName } from "@/lib/types";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import { WasmServiceLive } from "@/lib/wasm";
 import { Effect } from "effect";
 import { TreeGrid } from "./TreeGrid";
+import { usePanZoom } from "@/hooks/use-pan-zoom";
 
 // ---------------------------------------------------------------------------
 // Embedded pan/zoom canvas for the sub-tree inside the modal
@@ -20,79 +21,24 @@ const EmbeddedTreeCanvas: React.FC<EmbeddedTreeCanvasProps> = ({
   selectedPersonId,
   onSelectPerson,
 }) => {
-  const canvasRef = useRef<HTMLDivElement>(null);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
-  const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
-
-  // Wheel zoom scoped to this canvas
-  useEffect(() => {
-    const container = canvasRef.current;
-    if (!container) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-
-      const zoomSensitivity = 0.001;
-      const delta = -e.deltaY * zoomSensitivity;
-
-      setZoom((prev) => {
-        const next = prev * Math.exp(delta);
-        return Math.min(Math.max(next, 0.1), 5);
-      });
-    };
-
-    container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => container.removeEventListener("wheel", handleWheel);
-  }, []);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    setIsDragging(true);
-    setLastPos({ x: e.clientX, y: e.clientY });
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    const dx = e.clientX - lastPos.x;
-    const dy = e.clientY - lastPos.y;
-    setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
-    setLastPos({ x: e.clientX, y: e.clientY });
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    setIsDragging(false);
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-  };
+  const { containerRef, pointerHandlers, transformStyle } = usePanZoom({ enabled: true });
 
   return (
     <div
-      ref={canvasRef}
+      ref={containerRef}
       className="w-full h-80 border rounded-xl overflow-hidden bg-muted/30 relative cursor-grab active:cursor-grabbing select-none"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      {...pointerHandlers}
     >
       <div
         className="absolute origin-center transition-transform duration-75 ease-out"
-        style={{
-          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-          left: "50%",
-          top: "50%",
-          translate: "-50% -50%",
-        }}
+        style={transformStyle}
       >
         <div className="p-8">
           <TreeGrid
             data={data}
             selectedPersonId={selectedPersonId}
             onSelectPerson={onSelectPerson}
-            onDoubleClickPerson={() => {}}
+            onDoubleClickPerson={() => { }}
           />
         </div>
       </div>
@@ -137,7 +83,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
         show_ancestor_siblings: false,
         descendent_gen_limit: { Limit: 1 },
         ancestor_gen_limit: { Limit: 1 },
-      })
+      }),
     )
       .then((data) => setSubTreeData(data))
       .catch((err) => console.error("Failed to fetch sub tree data:", err));

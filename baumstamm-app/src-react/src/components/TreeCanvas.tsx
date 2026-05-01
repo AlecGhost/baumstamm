@@ -1,7 +1,8 @@
-import React, { useRef, useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import type { TreeData } from "@/lib/types";
 import { TreeGrid } from "./TreeGrid";
 import { PersonDetailsModal } from "./PersonDetailsModal";
+import { usePanZoom } from "@/hooks/use-pan-zoom";
 
 interface TreeCanvasProps {
   data: TreeData | null;
@@ -9,14 +10,11 @@ interface TreeCanvasProps {
 }
 
 export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [isDragging, setIsDragging] = useState(false);
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
+  const { containerRef, setZoom, setPan, pointerHandlers, transformStyle } =
+    usePanZoom({ enabled: !isModalOpen });
 
   // Handle Enter key for selected person
   useEffect(() => {
@@ -28,57 +26,6 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedPersonId, isModalOpen]);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    setIsDragging(true);
-    setLastPos({ x: e.clientX, y: e.clientY });
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-
-    const dx = e.clientX - lastPos.x;
-    const dy = e.clientY - lastPos.y;
-
-    setPan((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
-    setLastPos({ x: e.clientX, y: e.clientY });
-  };
-
-  const handlePointerUp = (e: React.PointerEvent) => {
-    setIsDragging(false);
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    }
-  };
-
-  // Attach wheel event passively to prevent default scrolling
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      // When the modal is open, don't intercept wheel events on the background
-      if (isModalOpen) return;
-
-      // Prevent default browser zoom/scroll
-      e.preventDefault();
-
-      const zoomSensitivity = 0.001;
-      const delta = -e.deltaY * zoomSensitivity;
-
-      setZoom((prevZoom) => {
-        const newZoom = prevZoom * Math.exp(delta);
-        // Clamp zoom between 10% and 500%
-        return Math.min(Math.max(newZoom, 0.1), 5);
-      });
-    };
-
-    container.addEventListener("wheel", handleWheel, { passive: false });
-    return () => {
-      container.removeEventListener("wheel", handleWheel);
-    };
-  }, [data, isModalOpen]);
 
   if (!data) {
     return (
@@ -92,21 +39,11 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
     <div
       ref={containerRef}
       className="w-full h-full overflow-hidden bg-background relative cursor-grab active:cursor-grabbing select-none"
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
+      {...pointerHandlers}
     >
       <div
         className="absolute origin-center transition-transform duration-75 ease-out"
-        style={{
-          transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-          // Center the grid initially by adjusting origin or transforming from center
-          left: "50%",
-          top: "50%",
-          // Use a negative margin strategy to keep Transform Origin in the middle
-          translate: "-50% -50%",
-        }}
+        style={transformStyle}
       >
         <div className="p-16">
           <TreeGrid

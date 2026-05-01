@@ -9,7 +9,13 @@ import init, {
   insert_info,
   remove_info,
 } from "baumstamm-wasm";
-import type { Person, Relationship, Grid, TreeData, ViewOptions } from "./types";
+import type {
+  Person,
+  Relationship,
+  Grid,
+  TreeData,
+  ViewOptions,
+} from "./types";
 
 export interface WasmService {
   readonly init: Effect.Effect<void, Error>;
