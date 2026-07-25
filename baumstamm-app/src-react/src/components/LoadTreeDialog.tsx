@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 
 interface LoadTreeDialogProps {
-  onLoad: (fileContent: string) => void;
+  onLoad: (fileContent: string, fileName: string) => void;
 }
 
 export const LoadTreeDialog: React.FC<LoadTreeDialogProps> = ({ onLoad }) => {
@@ -21,7 +21,7 @@ export const LoadTreeDialog: React.FC<LoadTreeDialogProps> = ({ onLoad }) => {
     reader.onload = (event) => {
       const result = event.target?.result;
       if (typeof result === "string") {
-        onLoad(result);
+        onLoad(result, file.name);
       }
     };
     reader.readAsText(file);

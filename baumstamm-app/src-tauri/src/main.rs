@@ -4,10 +4,18 @@ use serde::{Deserialize, Serialize};
 use tauri::{api::dialog::FileDialogBuilder, CustomMenuItem, Manager, Menu, MenuItem, Submenu};
 
 const EVENT_MENU_OPEN: &str = "menu-open";
+const EVENT_MENU_SAVE: &str = "menu-save";
 const EVENT_MENU_SAVE_AS: &str = "menu-save-as";
 const EVENT_OPEN: &str = "open";
 const EVENT_OPEN_ERROR: &str = "open-error";
+const EVENT_SAVE: &str = "save";
 const EVENT_SAVE_AS: &str = "save-as";
+
+#[derive(Clone, Debug, Serialize)]
+struct OpenTreePayload {
+    path: String,
+    content: String,
+}
 
 fn main() {
     tauri::Builder::default()
@@ -21,9 +29,15 @@ fn main() {
                         .add_filter("Application", &["json"])
                         .pick_file(move |path| {
                             if let Some(path) = path {
-                                match std::fs::read_to_string(path) {
+                                match std::fs::read_to_string(&path) {
                                     Ok(content) => app
-                                        .emit_all(EVENT_OPEN, content)
+                                        .emit_all(
+                                            EVENT_OPEN,
+                                            OpenTreePayload {
+                                                path: path.to_string_lossy().into_owned(),
+                                                content,
+                                            },
+                                        )
                                         .expect("open event failed"),
                                     Err(err) => app
                                         .emit_all(EVENT_OPEN_ERROR, err.to_string())
@@ -32,15 +46,10 @@ fn main() {
                             }
                         });
                 }
+                EVENT_MENU_SAVE => app.emit_all(EVENT_SAVE, ()).expect("save event failed"),
                 EVENT_MENU_SAVE_AS => {
-                    FileDialogBuilder::new()
-                        .add_filter("Application", &["json"])
-                        .save_file(move |path| {
-                            if let Some(path) = path {
-                                app.emit_all(EVENT_SAVE_AS, path)
-                                    .expect("save-as event failed");
-                            }
-                        });
+                    app.emit_all(EVENT_SAVE_AS, ())
+                        .expect("save-as event failed");
                 }
                 _ => {}
             };
@@ -62,9 +71,13 @@ fn build_menu() -> Menu {
     );
 
     let open = CustomMenuItem::new(EVENT_MENU_OPEN, "Open").accelerator("cmdOrControl+O");
+    let save = CustomMenuItem::new(EVENT_MENU_SAVE, "Save").accelerator("cmdOrControl+S");
     let save_as =
         CustomMenuItem::new(EVENT_MENU_SAVE_AS, "Save As").accelerator("cmdOrControl+Shift+S");
-    let file = Submenu::new("File", Menu::new().add_item(open).add_item(save_as));
+    let file = Submenu::new(
+        "File",
+        Menu::new().add_item(open).add_item(save).add_item(save_as),
+    );
 
     let edit_menu = Submenu::new(
         "Edit",

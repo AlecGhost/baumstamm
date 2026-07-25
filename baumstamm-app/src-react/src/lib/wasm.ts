@@ -1,6 +1,7 @@
 import { Effect, Context } from "effect";
 import init, {
   load_tree,
+  save_tree,
   get_persons,
   get_relationships,
   get_grid,
@@ -26,6 +27,7 @@ import type {
 export interface WasmService {
   readonly init: Effect.Effect<void, Error>;
   readonly loadTree: (input: string) => Effect.Effect<void, Error>;
+  readonly saveTree: () => Effect.Effect<string, Error>;
   readonly getPersons: () => Effect.Effect<Person[], Error>;
   readonly getRelationships: () => Effect.Effect<Relationship[], Error>;
   readonly getGrid: () => Effect.Effect<Grid, Error>;
@@ -70,6 +72,12 @@ export const WasmServiceLive: WasmService = {
         load_tree(input);
       },
       catch: (error) => new Error(`Failed to load tree: ${error}`),
+    }),
+
+  saveTree: () =>
+    Effect.try({
+      try: () => save_tree() as string,
+      catch: (error) => new Error(`Failed to save tree: ${error}`),
     }),
 
   getPersons: () =>

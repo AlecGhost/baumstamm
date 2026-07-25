@@ -1,15 +1,53 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Effect } from "effect";
+import { save as showSaveDialog } from "@tauri-apps/api/dialog";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/tauri";
+import { Check, Download, LoaderCircle, Save } from "lucide-react";
 import { WasmServiceLive } from "@/lib/wasm";
 import type { TreeData } from "@/lib/types";
 import { LoadTreeDialog } from "@/components/LoadTreeDialog";
 import { TreeCanvas } from "@/components/TreeCanvas";
+import { Button } from "@/components/ui/button";
+
+type OpenTreePayload = {
+  path: string;
+  content: string;
+};
+
+type SaveStatus = "idle" | "saving" | "saved";
+
+const isTauri = () => typeof window !== "undefined" && "__TAURI__" in window;
+
+const fileNameFromPath = (path: string) =>
+  path.split(/[\\/]/).pop() || "family-tree.json";
+
+const withJsonExtension = (name: string) =>
+  name.toLowerCase().endsWith(".json") ? name : `${name}.json`;
+
+const downloadTree = (content: string, fileName: string) => {
+  const blob = new Blob([content], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = withJsonExtension(fileName);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
+};
 
 function App() {
   const [isWasmLoaded, setIsWasmLoaded] = useState<boolean>(false);
   const [treeData, setTreeData] = useState<TreeData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [treeKey, setTreeKey] = useState<number>(0);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const fileNameRef = useRef<string>("family-tree.json");
+  const currentPathRef = useRef<string | null>(null);
+  const hasTreeRef = useRef<boolean>(false);
+  const savingRef = useRef<boolean>(false);
+  const savedResetTimeoutRef = useRef<number | null>(null);
 
   // Initialise WASM on mount
   useEffect(() => {
@@ -24,22 +62,155 @@ function App() {
     });
   }, []);
 
-  const handleLoadTree = (fileContent: string) => {
-    if (!isWasmLoaded) return;
-    setError(null);
+  const resetSaveStatus = useCallback(() => {
+    if (savedResetTimeoutRef.current !== null) {
+      window.clearTimeout(savedResetTimeoutRef.current);
+      savedResetTimeoutRef.current = null;
+    }
+    setSaveStatus("idle");
+  }, []);
 
-    Effect.runPromise(
-      Effect.gen(function* () {
-        setTreeData(null);
-        yield* WasmServiceLive.loadTree(fileContent);
-        const data = yield* WasmServiceLive.getTreeData();
-        setTreeData(data);
-        setTreeKey((k) => k + 1);
+  const showSavedStatus = useCallback(() => {
+    if (savedResetTimeoutRef.current !== null) {
+      window.clearTimeout(savedResetTimeoutRef.current);
+    }
+    setSaveStatus("saved");
+    savedResetTimeoutRef.current = window.setTimeout(() => {
+      setSaveStatus("idle");
+      savedResetTimeoutRef.current = null;
+    }, 2000);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (savedResetTimeoutRef.current !== null) {
+        window.clearTimeout(savedResetTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  const handleLoadTree = useCallback(
+    (
+      fileContent: string,
+      loadedFileName = "family-tree.json",
+      path: string | null = null,
+    ) => {
+      if (!isWasmLoaded) return;
+      setError(null);
+      resetSaveStatus();
+      hasTreeRef.current = false;
+
+      Effect.runPromise(
+        Effect.gen(function* () {
+          setTreeData(null);
+          yield* WasmServiceLive.loadTree(fileContent);
+          const data = yield* WasmServiceLive.getTreeData();
+          setTreeData(data);
+          setTreeKey((k) => k + 1);
+          fileNameRef.current = withJsonExtension(loadedFileName);
+          currentPathRef.current = path;
+          hasTreeRef.current = true;
+        }),
+      ).catch((err) => {
+        setError(`Failed to load tree: ${err.message}`);
+      });
+    },
+    [isWasmLoaded, resetSaveStatus],
+  );
+
+  const handleSaveTree = useCallback(
+    async (saveAs = false) => {
+      if (!isWasmLoaded || !hasTreeRef.current) {
+        setError("Load a tree before saving.");
+        return;
+      }
+      if (savingRef.current) return;
+
+      setError(null);
+      resetSaveStatus();
+      savingRef.current = true;
+      setSaveStatus("saving");
+      try {
+        const content = await Effect.runPromise(WasmServiceLive.saveTree());
+
+        if (!isTauri()) {
+          downloadTree(content, fileNameRef.current);
+          showSavedStatus();
+          return;
+        }
+
+        let path = saveAs ? null : currentPathRef.current;
+        if (path === null) {
+          path = await showSaveDialog({
+            title: "Save Family Tree",
+            defaultPath: currentPathRef.current ?? fileNameRef.current,
+            filters: [{ name: "Family tree JSON", extensions: ["json"] }],
+          });
+        }
+        if (path === null) {
+          resetSaveStatus();
+          return;
+        }
+
+        path = withJsonExtension(path);
+        await invoke("save_as", { path, content });
+        currentPathRef.current = path;
+        fileNameRef.current = fileNameFromPath(path);
+        showSavedStatus();
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setError(`Failed to save tree: ${message}`);
+        resetSaveStatus();
+      } finally {
+        savingRef.current = false;
+      }
+    },
+    [isWasmLoaded, resetSaveStatus, showSavedStatus],
+  );
+
+  useEffect(() => {
+    if (!isTauri() || !isWasmLoaded) return;
+
+    let disposed = false;
+    const unlistenFunctions: UnlistenFn[] = [];
+    const addListener = async <T,>(
+      eventName: string,
+      handler: (payload: T) => void,
+    ) => {
+      const unlisten = await listen<T>(eventName, (event) =>
+        handler(event.payload),
+      );
+      if (disposed) {
+        unlisten();
+      } else {
+        unlistenFunctions.push(unlisten);
+      }
+    };
+
+    void Promise.all([
+      addListener<OpenTreePayload>("open", ({ path, content }) => {
+        handleLoadTree(content, fileNameFromPath(path), path);
       }),
-    ).catch((err) => {
-      setError(`Failed to load tree: ${err.message}`);
+      addListener<string>("open-error", (message) => {
+        setError(`Failed to open tree: ${message}`);
+      }),
+      addListener<void>("save", () => {
+        void handleSaveTree(false);
+      }),
+      addListener<void>("save-as", () => {
+        void handleSaveTree(true);
+      }),
+    ]).catch((err) => {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Failed to register desktop menu actions: ${message}`);
     });
-  };
+
+    return () => {
+      disposed = true;
+      unlistenFunctions.forEach((unlisten) => unlisten());
+    };
+  }, [handleLoadTree, handleSaveTree, isWasmLoaded]);
 
   const handleRefresh = () => {
     if (!isWasmLoaded) return;
@@ -100,6 +271,32 @@ function App() {
               {error}
             </span>
           )}
+          <Button
+            onClick={() => void handleSaveTree(false)}
+            variant="outline"
+            disabled={treeData === null || saveStatus === "saving"}
+            aria-live="polite"
+            className={
+              saveStatus === "saved"
+                ? "w-28 border-emerald-500 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400"
+                : "w-28"
+            }
+          >
+            {saveStatus === "saving" ? (
+              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+            ) : saveStatus === "saved" ? (
+              <Check className="mr-2 h-4 w-4" />
+            ) : isTauri() ? (
+              <Save className="mr-2 h-4 w-4" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {saveStatus === "saving"
+              ? "Saving…"
+              : saveStatus === "saved"
+                ? "Saved"
+                : "Save Tree"}
+          </Button>
           <LoadTreeDialog onLoad={handleLoadTree} />
         </div>
       </header>
