@@ -3,13 +3,20 @@ import type { TreeData } from "@/lib/types";
 import { TreeGrid } from "./TreeGrid";
 import { PersonDetailsModal } from "./PersonDetailsModal";
 import { usePanZoom } from "@/hooks/use-pan-zoom";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
 
 interface TreeCanvasProps {
   data: TreeData | null;
+  onCreate: () => void;
   onUpdate: () => void;
 }
 
-export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
+export const TreeCanvas: React.FC<TreeCanvasProps> = ({
+  data,
+  onCreate,
+  onUpdate,
+}) => {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -29,8 +36,14 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({ data, onUpdate }) => {
 
   if (!data) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-        <p>No tree loaded. Please load a family tree to begin.</p>
+      <div className="w-full h-full flex flex-col items-center justify-center gap-4">
+        <p className="text-muted-foreground">
+          No tree loaded. Create a new family tree or load an existing one.
+        </p>
+        <Button onClick={onCreate}>
+          <Plus className="h-4 w-4" />
+          Create New Tree
+        </Button>
       </div>
     );
   }

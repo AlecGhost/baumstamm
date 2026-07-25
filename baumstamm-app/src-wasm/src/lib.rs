@@ -67,6 +67,12 @@ pub fn load_tree(input: &str) -> JResult {
 }
 
 #[wasm_bindgen]
+pub fn new_tree() -> JResult {
+    *STATE.lock().unwrap() = State::default();
+    Ok(JsValue::NULL)
+}
+
+#[wasm_bindgen]
 pub fn save_tree() -> JResult {
     let string = STATE
         .lock()
