@@ -1,5 +1,21 @@
-import { useRef, useState, useEffect, type RefObject } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  useEffect,
+  type RefObject,
+} from "react";
 import type React from "react";
+
+interface Point {
+  x: number;
+  y: number;
+}
+
+interface ViewState {
+  pan: Point;
+  zoom: number;
+}
 
 interface UsePanZoomOptions {
   /** When false the wheel-zoom handler is disabled (pan still works). */
@@ -32,10 +48,26 @@ export function usePanZoom(options: UsePanZoomOptions): UsePanZoomReturn {
   const { enabled } = options;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
+  const [{ pan, zoom }, setView] = useState<ViewState>({
+    pan: { x: 0, y: 0 },
+    zoom: 1,
+  });
   const [isDragging, setIsDragging] = useState(false);
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
+
+  const setPan: UsePanZoomReturn["setPan"] = useCallback((action) => {
+    setView((previous) => ({
+      ...previous,
+      pan: typeof action === "function" ? action(previous.pan) : action,
+    }));
+  }, []);
+
+  const setZoom: UsePanZoomReturn["setZoom"] = useCallback((action) => {
+    setView((previous) => ({
+      ...previous,
+      zoom: typeof action === "function" ? action(previous.zoom) : action,
+    }));
+  }, []);
 
   // Wheel-to-zoom
   useEffect(() => {
@@ -51,10 +83,35 @@ export function usePanZoom(options: UsePanZoomOptions): UsePanZoomReturn {
       const zoomSensitivity = 0.001;
       const delta = -e.deltaY * zoomSensitivity;
 
-      setZoom((prev) => {
-        const next = prev * Math.exp(delta);
+      const bounds = container.getBoundingClientRect();
+      const pointer = {
+        x:
+          e.clientX -
+          bounds.left -
+          container.clientLeft -
+          container.clientWidth / 2,
+        y:
+          e.clientY -
+          bounds.top -
+          container.clientTop -
+          container.clientHeight / 2,
+      };
+
+      setView((previous) => {
+        const nextZoom = previous.zoom * Math.exp(delta);
         // Clamp between 10% and 500%
-        return Math.min(Math.max(next, 0.1), 5);
+        const clampedZoom = Math.min(Math.max(nextZoom, 0.1), 5);
+        const zoomRatio = clampedZoom / previous.zoom;
+
+        return {
+          zoom: clampedZoom,
+          // Keep the tree coordinate beneath the pointer at the same screen
+          // position as the scale changes.
+          pan: {
+            x: pointer.x - (pointer.x - previous.pan.x) * zoomRatio,
+            y: pointer.y - (pointer.y - previous.pan.y) * zoomRatio,
+          },
+        };
       });
     };
 
