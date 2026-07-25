@@ -68,7 +68,7 @@ export const TreeGrid: React.FC<TreeGridProps> = ({
 
           if ("Person" in cell) {
             return (
-              <div key={key} className="w-full h-full p-2">
+              <div key={key} className="w-full h-full">
                 <PersonCell
                   personId={cell.Person}
                   person={getPerson(cell.Person)}
