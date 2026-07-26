@@ -1,8 +1,39 @@
 use crate::{error::InputError, FamilyTree, Person, PersonId, Relationship};
 use itertools::Itertools;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 type Pid = PersonId;
+
+struct RelationshipIndex<'a> {
+    relationships: &'a [Relationship],
+    origin_by_child: HashMap<Pid, usize>,
+    partnerships_by_parent: HashMap<Pid, Vec<usize>>,
+}
+
+impl<'a> RelationshipIndex<'a> {
+    fn new(relationships: &'a [Relationship]) -> Self {
+        let mut origin_by_child = HashMap::new();
+        let mut partnerships_by_parent = HashMap::<Pid, Vec<usize>>::new();
+
+        for (index, relationship) in relationships.iter().enumerate() {
+            for child in &relationship.children {
+                origin_by_child.entry(*child).or_insert(index);
+            }
+            for parent in relationship.parents.iter().flatten() {
+                partnerships_by_parent
+                    .entry(*parent)
+                    .or_default()
+                    .push(index);
+            }
+        }
+
+        Self {
+            relationships,
+            origin_by_child,
+            partnerships_by_parent,
+        }
+    }
+}
 
 struct RelationshipCollector {
     relationships: Vec<Relationship>,
@@ -127,27 +158,24 @@ impl View<'_> {
         }
         let mut relationships =
             Self::filter_relationships(&root, tree.get_relationships(), options);
-        let parent_pids = relationships
+        let mut missing_parents = relationships
             .iter()
-            .flat_map(Relationship::parents)
-            .unique()
-            .collect_vec();
+            .flat_map(|relationship| relationship.parents.iter().flatten())
+            .copied()
+            .collect::<HashSet<_>>();
         let child_pids = relationships
             .iter()
-            .flat_map(|rel| &rel.children)
-            .unique()
-            .collect_vec();
-        let missing_parent = parent_pids
-            .iter()
-            .filter(|parent| !child_pids.contains(parent))
-            .collect_vec();
+            .flat_map(|relationship| relationship.children.iter())
+            .copied()
+            .collect::<HashSet<_>>();
+        missing_parents.retain(|parent| !child_pids.contains(parent));
         let missing_rels = tree
             .get_relationships()
             .iter()
             .filter(|rel| {
-                missing_parent
+                rel.children
                     .iter()
-                    .any(|parent| rel.children.contains(parent))
+                    .any(|child| missing_parents.contains(child))
             })
             .map(|rel| Relationship {
                 id: rel.id,
@@ -155,8 +183,10 @@ impl View<'_> {
                 children: rel
                     .children
                     .iter()
-                    .filter(|c| options.show_partner_siblings || missing_parent.contains(c))
-                    .cloned()
+                    .filter(|child| {
+                        options.show_partner_siblings || missing_parents.contains(child)
+                    })
+                    .copied()
                     .collect_vec(),
             });
         let mut collector = RelationshipCollector::new();
@@ -179,9 +209,10 @@ impl View<'_> {
     ) -> Vec<Relationship> {
         let mut collector = RelationshipCollector::new();
         let mut traversal = Traversal::default();
+        let index = RelationshipIndex::new(rels);
         Self::collect_ancestors(
             *root,
-            rels,
+            &index,
             options.ancestor_gen_limit,
             options.show_siblings,
             options.show_ancestor_siblings,
@@ -190,7 +221,7 @@ impl View<'_> {
         );
         Self::collect_descendents(
             *root,
-            rels,
+            &index,
             options.descendent_gen_limit,
             options.show_partners,
             &mut traversal,
@@ -201,18 +232,18 @@ impl View<'_> {
 
     fn collect_ancestors(
         root: Pid,
-        rels: &[Relationship],
+        index: &RelationshipIndex,
         limit: ViewLimit,
         show_siblings: bool,
         show_ancestor_siblings: bool,
         traversal: &mut Traversal,
         collector: &mut RelationshipCollector,
     ) {
-        let parent_rel = rels
-            .iter()
-            .find(|rel| rel.children.contains(&root))
-            .expect("Pid must be child of rel");
-        let parent_rel = match limit {
+        let parent_rel = &index.relationships[*index
+            .origin_by_child
+            .get(&root)
+            .expect("Pid must be child of rel")];
+        let selected_parent_rel = match limit {
             ViewLimit::Limit(0) => Relationship {
                 id: parent_rel.id,
                 parents: [None, None],
@@ -220,27 +251,28 @@ impl View<'_> {
                     .children
                     .iter()
                     .filter(|child| show_siblings || **child == root)
-                    .cloned()
+                    .copied()
                     .collect_vec(),
             },
             _ => Relationship {
+                id: parent_rel.id,
+                parents: parent_rel.parents,
                 children: parent_rel
                     .children
                     .iter()
                     .filter(|child| show_siblings || **child == root)
-                    .cloned()
+                    .copied()
                     .collect_vec(),
-                ..parent_rel.clone()
             },
         };
 
         if !matches!(limit, ViewLimit::Limit(0))
             && Traversal::should_expand(&mut traversal.ancestors, root, limit)
         {
-            for parent in parent_rel.parents() {
+            for parent in parent_rel.parents.iter().flatten() {
                 Self::collect_ancestors(
-                    parent,
-                    rels,
+                    *parent,
+                    index,
                     limit - 1,
                     show_ancestor_siblings,
                     show_ancestor_siblings,
@@ -249,12 +281,12 @@ impl View<'_> {
                 );
             }
         }
-        collector.insert(parent_rel);
+        collector.insert(selected_parent_rel);
     }
 
     fn collect_descendents(
         root: Pid,
-        rels: &[Relationship],
+        index: &RelationshipIndex,
         limit: ViewLimit,
         show_partners: bool,
         traversal: &mut Traversal,
@@ -266,29 +298,27 @@ impl View<'_> {
             return;
         }
 
-        let partnerships = rels
-            .iter()
-            .filter(|relationship| relationship.parents().contains(&root))
-            .map(|relationship| {
-                if show_partners {
-                    relationship.clone()
-                } else {
-                    Relationship {
-                        id: relationship.id,
-                        parents: [Some(root), None],
-                        children: relationship.children.clone(),
-                    }
+        for relationship_index in index
+            .partnerships_by_parent
+            .get(&root)
+            .into_iter()
+            .flatten()
+        {
+            let relationship = &index.relationships[*relationship_index];
+            let partnership = if show_partners {
+                relationship.clone()
+            } else {
+                Relationship {
+                    id: relationship.id,
+                    parents: [Some(root), None],
+                    children: relationship.children.clone(),
                 }
-            })
-            .collect_vec();
-
-        for partnership in partnerships {
-            let children = partnership.children.clone();
+            };
             collector.insert(partnership);
-            for child in children {
+            for child in &relationship.children {
                 Self::collect_descendents(
-                    child,
-                    rels,
+                    *child,
+                    index,
                     limit - 1,
                     show_partners,
                     traversal,
@@ -301,9 +331,15 @@ impl View<'_> {
     fn filter_persons<'a>(tree: &'a FamilyTree, rels: &[Relationship]) -> Vec<&'a Person> {
         let pids = rels
             .iter()
-            .flat_map(|rel| rel.persons())
-            .unique()
-            .collect_vec();
+            .flat_map(|relationship| {
+                relationship
+                    .parents
+                    .iter()
+                    .flatten()
+                    .chain(&relationship.children)
+            })
+            .copied()
+            .collect::<HashSet<_>>();
         tree.get_persons()
             .iter()
             .filter(|person| pids.contains(&person.id))
