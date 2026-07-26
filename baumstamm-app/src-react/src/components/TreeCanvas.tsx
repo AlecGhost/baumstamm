@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   getPersonName,
   type TreeData,
@@ -8,6 +8,10 @@ import {
   type ViewOptions,
 } from "@/lib/types";
 import { updateViewOption, viewLimitFromNumber } from "@/lib/view-options";
+import {
+  getTreeNavigationTarget,
+  type TreeNavigationDirection,
+} from "@/lib/tree-navigation";
 import { TreeGrid } from "./TreeGrid";
 import { PersonDetailsModal } from "./PersonDetailsModal";
 import { usePanZoom } from "@/hooks/use-pan-zoom";
@@ -86,22 +90,13 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewPanelExpanded, setIsViewPanelExpanded] = useState(true);
-  const navigationCycleRef = useRef<{
-    kind: "parents" | "children" | "siblings";
-    candidates: string[];
-  } | null>(null);
 
   const { containerRef, setZoom, setPan, pointerHandlers, transformStyle } =
     usePanZoom({ enabled: !isModalOpen });
 
   const selectPerson = useCallback((id: string | null) => {
-    navigationCycleRef.current = null;
     setSelectedPersonId(id);
   }, []);
-
-  useEffect(() => {
-    navigationCycleRef.current = null;
-  }, [data]);
 
   const centerSelectedPerson = useCallback(() => {
     if (!selectedPersonId) return false;
@@ -131,72 +126,21 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
     return true;
   }, [containerRef, selectedPersonId, setPan]);
 
-  const getNavigationCandidates = useCallback(
-    (personId: string, kind: "parents" | "children" | "siblings") => {
-      if (!data) return [];
+  const navigateSelection = useCallback(
+    (direction: TreeNavigationDirection) => {
+      if (!data || !selectedPersonId) return false;
 
-      const visiblePersonIds = new Set(data.persons.map((person) => person.id));
-      const candidates =
-        kind === "parents"
-          ? data.relationships
-              .filter((relationship) =>
-                relationship.children.includes(personId),
-              )
-              .flatMap((relationship) => relationship.parents)
-          : kind === "children"
-            ? data.relationships
-                .filter((relationship) =>
-                  relationship.parents.includes(personId),
-                )
-                .flatMap((relationship) => relationship.children)
-            : data.relationships
-                .filter((relationship) =>
-                  relationship.children.includes(personId),
-                )
-                .flatMap((relationship) => relationship.children);
-
-      return candidates.filter(
-        (candidate, index): candidate is string =>
-          candidate !== null &&
-          visiblePersonIds.has(candidate) &&
-          candidates.indexOf(candidate) === index,
+      const nextPersonId = getTreeNavigationTarget(
+        data,
+        selectedPersonId,
+        direction,
       );
-    },
-    [data],
-  );
+      if (!nextPersonId) return false;
 
-  const cycleSelection = useCallback(
-    (kind: "parents" | "children" | "siblings", direction: 1 | -1 = 1) => {
-      if (!selectedPersonId) return false;
-
-      let cycle = navigationCycleRef.current;
-      if (
-        cycle?.kind !== kind ||
-        !cycle.candidates.includes(selectedPersonId)
-      ) {
-        cycle = {
-          kind,
-          candidates: getNavigationCandidates(selectedPersonId, kind),
-        };
-      }
-
-      if (cycle.candidates.length === 0) return false;
-      const currentIndex = cycle.candidates.indexOf(selectedPersonId);
-      const nextIndex =
-        currentIndex === -1
-          ? direction === 1
-            ? 0
-            : cycle.candidates.length - 1
-          : (currentIndex + direction + cycle.candidates.length) %
-            cycle.candidates.length;
-      const nextPersonId = cycle.candidates[nextIndex];
-      if (nextPersonId === selectedPersonId) return false;
-
-      navigationCycleRef.current = cycle;
       setSelectedPersonId(nextPersonId);
       return true;
     },
-    [getNavigationCandidates, selectedPersonId],
+    [data, selectedPersonId],
   );
 
   // Handle keyboard navigation for the main tree.
@@ -226,10 +170,10 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
         e.preventDefault();
       } else {
         const navigationHandled =
-          (e.key === "ArrowUp" && cycleSelection("parents")) ||
-          (e.key === "ArrowDown" && cycleSelection("children")) ||
-          (e.key === "ArrowLeft" && cycleSelection("siblings", -1)) ||
-          (e.key === "ArrowRight" && cycleSelection("siblings", 1));
+          (e.key === "ArrowUp" && navigateSelection("up")) ||
+          (e.key === "ArrowDown" && navigateSelection("down")) ||
+          (e.key === "ArrowLeft" && navigateSelection("left")) ||
+          (e.key === "ArrowRight" && navigateSelection("right"));
         if (navigationHandled) {
           e.preventDefault();
         }
@@ -237,7 +181,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [centerSelectedPerson, cycleSelection, selectedPersonId, isModalOpen]);
+  }, [centerSelectedPerson, navigateSelection, selectedPersonId, isModalOpen]);
 
   if (!data) {
     return (
