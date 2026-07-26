@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { Effect } from "effect";
 import { save as showSaveDialog } from "@tauri-apps/api/dialog";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
@@ -11,7 +17,7 @@ import {
   Save,
   TableProperties,
 } from "lucide-react";
-import { WasmServiceLive } from "@/lib/wasm";
+import { wasmActivity, WasmServiceLive } from "@/lib/wasm";
 import {
   applyScopePreset,
   createDefaultViewOptions,
@@ -61,6 +67,11 @@ const downloadTree = (content: string, fileName: string) => {
 };
 
 function App() {
+  const isWasmBusy = useSyncExternalStore(
+    wasmActivity.subscribe,
+    wasmActivity.getSnapshot,
+    () => false,
+  );
   const [isWasmLoaded, setIsWasmLoaded] = useState<boolean>(false);
   const [treeData, setTreeData] = useState<TreeData | null>(null);
   const [fullTreePersons, setFullTreePersons] = useState<Person[]>([]);
@@ -135,11 +146,9 @@ function App() {
       Effect.runPromise(
         Effect.gen(function* () {
           setTreeData(null);
-          yield* WasmServiceLive.loadTree(fileContent);
-          const data = yield* WasmServiceLive.getTreeData();
-          const persons = yield* WasmServiceLive.getFullPersons();
-          setTreeData(data);
-          setFullTreePersons(persons);
+          const snapshot = yield* WasmServiceLive.loadTreeSnapshot(fileContent);
+          setTreeData(snapshot.treeData);
+          setFullTreePersons(snapshot.fullPersons);
           setTreeViewSelection(null);
           setTreeKey((k) => k + 1);
           fileNameRef.current = withJsonExtension(loadedFileName);
@@ -212,11 +221,9 @@ function App() {
 
     Effect.runPromise(
       Effect.gen(function* () {
-        yield* WasmServiceLive.newTree;
-        const data = yield* WasmServiceLive.getTreeData();
-        const persons = yield* WasmServiceLive.getFullPersons();
-        setTreeData(data);
-        setFullTreePersons(persons);
+        const snapshot = yield* WasmServiceLive.newTreeSnapshot;
+        setTreeData(snapshot.treeData);
+        setFullTreePersons(snapshot.fullPersons);
         setTreeViewSelection(null);
         setTreeKey((k) => k + 1);
         fileNameRef.current = "family-tree.json";
@@ -294,10 +301,9 @@ function App() {
     if (!isWasmLoaded) return;
     Effect.runPromise(
       Effect.gen(function* () {
-        const data = yield* WasmServiceLive.getTreeData();
-        const persons = yield* WasmServiceLive.getFullPersons();
-        setTreeData(data);
-        setFullTreePersons(persons);
+        const snapshot = yield* WasmServiceLive.getTreeSnapshot();
+        setTreeData(snapshot.treeData);
+        setFullTreePersons(snapshot.fullPersons);
       }),
     ).catch((err) => {
       console.error(err);
@@ -311,8 +317,7 @@ function App() {
 
     Effect.runPromise(
       Effect.gen(function* () {
-        yield* WasmServiceLive.setFullView;
-        const data = yield* WasmServiceLive.getTreeData();
+        const data = yield* WasmServiceLive.setFullViewSnapshot;
         setTreeData(data);
         setTreeViewSelection(null);
       }),
@@ -335,8 +340,10 @@ function App() {
 
       Effect.runPromise(
         Effect.gen(function* () {
-          yield* WasmServiceLive.setPartialView(root, options);
-          const data = yield* WasmServiceLive.getTreeData();
+          const data = yield* WasmServiceLive.setPartialViewSnapshot(
+            root,
+            options,
+          );
           setTreeData(data);
           setTreeViewSelection({ root, scope, options });
         }),
@@ -356,8 +363,10 @@ function App() {
       const { root, scope } = treeViewSelection;
       Effect.runPromise(
         Effect.gen(function* () {
-          yield* WasmServiceLive.setPartialView(root, options);
-          const data = yield* WasmServiceLive.getTreeData();
+          const data = yield* WasmServiceLive.setPartialViewSnapshot(
+            root,
+            options,
+          );
           setTreeData(data);
           setTreeViewSelection({ root, scope, options });
         }),
@@ -515,6 +524,16 @@ function App() {
           />
         )}
       </main>
+      {isWasmBusy && isWasmLoaded && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card/95 px-4 py-2 text-sm font-medium text-foreground shadow-lg backdrop-blur"
+        >
+          <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Updating tree…
+        </div>
+      )}
     </div>
   );
 }
