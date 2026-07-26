@@ -17,6 +17,7 @@ import init, {
   remove_person,
   save_tree,
   set_full_view,
+  set_grid_layout,
   set_partial_view,
 } from "baumstamm-wasm";
 import { SerialTaskQueue } from "../lib/serial-task-queue";
@@ -91,6 +92,9 @@ const execute = async (request: WasmRpcRequest): Promise<unknown> => {
       return set_full_view();
     case "setFullViewSnapshot":
       set_full_view();
+      return get_tree_data() as TreeData;
+    case "setGridLayoutSnapshot":
+      set_grid_layout(...request.args);
       return get_tree_data() as TreeData;
     case "insertInfo":
       return insert_info(...request.args);

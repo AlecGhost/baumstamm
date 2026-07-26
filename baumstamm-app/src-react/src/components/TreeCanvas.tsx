@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
   getPersonName,
+  type GridLayoutAlgorithm,
   type TreeData,
   type TreeViewScope,
   type TreeViewSelection,
@@ -22,10 +23,12 @@ interface TreeCanvasProps {
   data: TreeData | null;
   viewSelection: TreeViewSelection | null;
   viewOptions: ViewOptions;
+  gridLayoutAlgorithm: GridLayoutAlgorithm;
   onCreate: () => void;
   onUpdate: () => void;
   onSetPartialView: (root: string, scope: TreeViewScope) => void;
   onViewOptionsChange: (options: ViewOptions) => void;
+  onGridLayoutChange: (layoutAlgorithm: GridLayoutAlgorithm) => void;
 }
 
 interface GenerationLimitControlProps {
@@ -82,10 +85,12 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
   data,
   viewSelection,
   viewOptions,
+  gridLayoutAlgorithm,
   onCreate,
   onUpdate,
   onSetPartialView,
   onViewOptionsChange,
+  onGridLayoutChange,
 }) => {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -311,6 +316,22 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
 
           <fieldset className="mt-3 border-t border-border pt-3">
             <legend className="sr-only">Advanced tree view options</legend>
+            <label className="grid grid-cols-[minmax(0,1fr)_9rem] items-center gap-2 pb-3 text-xs">
+              <span>Grid layout</span>
+              <select
+                className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                value={gridLayoutAlgorithm}
+                aria-label="Grid layout algorithm"
+                onChange={(event) =>
+                  onGridLayoutChange(
+                    event.currentTarget.value as GridLayoutAlgorithm,
+                  )
+                }
+              >
+                <option value="Centered">Centered</option>
+                <option value="ForceDirected">Relationship forces</option>
+              </select>
+            </label>
             <div className="grid grid-cols-2 gap-x-3 gap-y-2">
               {(
                 [

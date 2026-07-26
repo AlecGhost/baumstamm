@@ -22,6 +22,8 @@ export type ViewOptions = {
 
 export type TreeViewScope = "ancestors" | "descendants" | "both";
 
+export type GridLayoutAlgorithm = "Centered" | "ForceDirected";
+
 export type TreeViewSelection = {
   root: string;
   scope: TreeViewScope;

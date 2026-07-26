@@ -14,6 +14,7 @@ struct State {
     tree: FamilyTree,
     view: Option<FamilyTree>,
     view_selection: ViewSelection,
+    layout_algorithm: baumstamm_grid::LayoutAlgorithm,
 }
 
 static STATE: Lazy<Mutex<State>> = Lazy::new(|| Mutex::new(State::default()));
@@ -62,8 +63,11 @@ type Rid = baumstamm_lib::RelationshipId;
 #[wasm_bindgen]
 pub fn load_tree(input: &str) -> JResult {
     let tree = FamilyTree::try_from(input).map_err(|err| err.to_string())?;
-    *STATE.lock().unwrap() = State {
+    let mut state = STATE.lock().unwrap();
+    let layout_algorithm = state.layout_algorithm;
+    *state = State {
         tree,
+        layout_algorithm,
         ..State::default()
     };
     Ok(JsValue::NULL)
@@ -71,7 +75,12 @@ pub fn load_tree(input: &str) -> JResult {
 
 #[wasm_bindgen]
 pub fn new_tree() -> JResult {
-    *STATE.lock().unwrap() = State::default();
+    let mut state = STATE.lock().unwrap();
+    let layout_algorithm = state.layout_algorithm;
+    *state = State {
+        layout_algorithm,
+        ..State::default()
+    };
     Ok(JsValue::NULL)
 }
 
@@ -114,7 +123,7 @@ pub fn get_relationships() -> JResult {
 pub fn get_grid() -> JResult {
     let state = STATE.lock().unwrap();
     let tree = state.get_view();
-    let grid = baumstamm_grid::generate(tree);
+    let grid = baumstamm_grid::generate_with_layout(tree, state.layout_algorithm);
     Ok(bind::to_value(&grid)?)
 }
 
@@ -124,7 +133,7 @@ pub fn get_tree_data() -> JResult {
     let tree = state.get_view();
     let persons = tree.get_persons();
     let relationships = tree.get_relationships();
-    let grid = baumstamm_grid::generate(tree);
+    let grid = baumstamm_grid::generate_with_layout(tree, state.layout_algorithm);
 
     let data = TreeData {
         persons,
@@ -146,7 +155,7 @@ pub fn get_sub_tree_data(root: &str, options: JsValue) -> JResult {
     let sub_tree = FamilyTree::from(view);
     let persons = sub_tree.get_persons();
     let relationships = sub_tree.get_relationships();
-    let grid = baumstamm_grid::generate(&sub_tree);
+    let grid = baumstamm_grid::generate_with_layout(&sub_tree, state.layout_algorithm);
 
     let data = TreeData {
         persons,
@@ -155,6 +164,14 @@ pub fn get_sub_tree_data(root: &str, options: JsValue) -> JResult {
     };
 
     Ok(bind::to_value(&data)?)
+}
+
+#[wasm_bindgen]
+pub fn set_grid_layout(layout_algorithm: JsValue) -> JResult {
+    let layout_algorithm: baumstamm_grid::LayoutAlgorithm =
+        bind::from_value(layout_algorithm).map_err(|err| err.to_string())?;
+    STATE.lock().unwrap().layout_algorithm = layout_algorithm;
+    Ok(JsValue::NULL)
 }
 
 #[wasm_bindgen]

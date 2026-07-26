@@ -1,5 +1,6 @@
 import type {
   Grid,
+  GridLayoutAlgorithm,
   Person,
   Relationship,
   TreeData,
@@ -38,6 +39,10 @@ export interface WasmRpcMethods {
   };
   setFullView: { args: []; result: void };
   setFullViewSnapshot: { args: []; result: TreeData };
+  setGridLayoutSnapshot: {
+    args: [layoutAlgorithm: GridLayoutAlgorithm];
+    result: TreeData;
+  };
   insertInfo: {
     args: [pid: string, key: string, value: string];
     result: void;

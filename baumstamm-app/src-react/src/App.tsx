@@ -24,6 +24,7 @@ import {
   getScopeToggleAction,
 } from "@/lib/view-options";
 import type {
+  GridLayoutAlgorithm,
   Person,
   TreeData,
   TreeViewScope,
@@ -82,6 +83,8 @@ function App() {
   const [viewOptions, setViewOptions] = useState<ViewOptions>(
     createDefaultViewOptions,
   );
+  const [gridLayoutAlgorithm, setGridLayoutAlgorithm] =
+    useState<GridLayoutAlgorithm>("Centered");
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [mainView, setMainView] = useState<MainView>("tree");
   const fileNameRef = useRef<string>("family-tree.json");
@@ -377,6 +380,23 @@ function App() {
     [isWasmLoaded, treeViewSelection],
   );
 
+  const handleGridLayoutChange = useCallback(
+    (layoutAlgorithm: GridLayoutAlgorithm) => {
+      if (!isWasmLoaded) return;
+      setError(null);
+
+      Effect.runPromise(WasmServiceLive.setGridLayoutSnapshot(layoutAlgorithm))
+        .then((data) => {
+          setTreeData(data);
+          setGridLayoutAlgorithm(layoutAlgorithm);
+        })
+        .catch((err) => {
+          setError(`Failed to update grid layout: ${err.message}`);
+        });
+    },
+    [isWasmLoaded],
+  );
+
   if (!isWasmLoaded && !error) {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-background">
@@ -507,10 +527,12 @@ function App() {
             data={treeData}
             viewSelection={treeViewSelection}
             viewOptions={viewOptions}
+            gridLayoutAlgorithm={gridLayoutAlgorithm}
             onCreate={handleCreateTree}
             onUpdate={handleRefresh}
             onSetPartialView={handleSetPartialView}
             onViewOptionsChange={handleViewOptionsChange}
+            onGridLayoutChange={handleGridLayoutChange}
           />
         ) : (
           <PersonTable

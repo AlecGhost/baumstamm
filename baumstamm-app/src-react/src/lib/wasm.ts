@@ -2,6 +2,7 @@ import { Context, Effect } from "effect";
 import { createDelayedActivitySource, type ActivitySource } from "./activity";
 import type {
   Grid,
+  GridLayoutAlgorithm,
   Person,
   Relationship,
   TreeData,
@@ -39,6 +40,9 @@ export interface WasmService {
   ) => Effect.Effect<TreeData, Error>;
   readonly setFullView: Effect.Effect<void, Error>;
   readonly setFullViewSnapshot: Effect.Effect<TreeData, Error>;
+  readonly setGridLayoutSnapshot: (
+    layoutAlgorithm: GridLayoutAlgorithm,
+  ) => Effect.Effect<TreeData, Error>;
   readonly insertInfo: (
     pid: string,
     key: string,
@@ -111,6 +115,8 @@ export const WasmServiceLive: WasmService = {
     rpcEffect("set partial view", "setPartialViewSnapshot", root, options),
   setFullView: rpcEffect("set full view", "setFullView"),
   setFullViewSnapshot: rpcEffect("set full view", "setFullViewSnapshot"),
+  setGridLayoutSnapshot: (layoutAlgorithm) =>
+    rpcEffect("set grid layout", "setGridLayoutSnapshot", layoutAlgorithm),
   insertInfo: (pid, key, value) =>
     rpcEffect("insert info", "insertInfo", pid, key, value),
   removeInfo: (pid, key) => rpcEffect("remove info", "removeInfo", pid, key),
