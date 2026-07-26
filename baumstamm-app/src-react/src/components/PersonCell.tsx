@@ -23,6 +23,7 @@ export const PersonCell: React.FC<PersonCellProps> = ({
   return (
     <div className="flex h-full min-h-[72px] w-full items-center justify-center px-2 sm:min-h-[80px] sm:px-4">
       <div
+        data-tree-person-id={personId}
         className={`flex h-full w-full cursor-pointer touch-manipulation flex-col items-center justify-center rounded-md border bg-card p-2 text-center text-sm font-medium text-card-foreground shadow-sm transition-colors hover:border-primary/50 sm:p-3 ${
           isSelected
             ? "border-primary ring-2 ring-primary/20 bg-primary/10"
@@ -41,6 +42,7 @@ export const PersonCell: React.FC<PersonCellProps> = ({
           lastPointerType.current = null;
         }}
         onDoubleClick={() => onDoubleClick(personId)}
+        title={`${name}. Select, then press Enter to open details or C to center.`}
       >
         {name}
       </div>

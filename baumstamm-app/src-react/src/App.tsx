@@ -19,7 +19,10 @@ import type {
   TreeViewSelection,
   ViewOptions,
 } from "@/lib/types";
-import { LoadTreeDialog } from "@/components/LoadTreeDialog";
+import {
+  LoadTreeDialog,
+  type LoadTreeDialogHandle,
+} from "@/components/LoadTreeDialog";
 import { PersonTable } from "@/components/PersonTable";
 import { TreeCanvas } from "@/components/TreeCanvas";
 import { Button } from "@/components/ui/button";
@@ -76,6 +79,7 @@ function App() {
   const hasTreeRef = useRef<boolean>(false);
   const savingRef = useRef<boolean>(false);
   const savedResetTimeoutRef = useRef<number | null>(null);
+  const loadTreeDialogRef = useRef<LoadTreeDialogHandle>(null);
 
   // Initialise WASM on mount
   useEffect(() => {
@@ -224,6 +228,25 @@ function App() {
       setError(`Failed to create tree: ${err.message}`);
     });
   }, [isWasmLoaded, resetSaveStatus]);
+
+  useEffect(() => {
+    if (isTauri()) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.altKey) return;
+
+      if (event.key.toLowerCase() === "o" && !event.shiftKey) {
+        event.preventDefault();
+        loadTreeDialogRef.current?.openPicker();
+      } else if (event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void handleSaveTree(event.shiftKey);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSaveTree]);
 
   useEffect(() => {
     if (!isTauri() || !isWasmLoaded) return;
@@ -418,8 +441,9 @@ function App() {
                 ? "Saving tree"
                 : saveStatus === "saved"
                   ? "Tree saved"
-                  : "Save tree"
+                  : "Save tree (Ctrl/Command+S; add Shift for Save As)"
             }
+            aria-keyshortcuts="Control+S Meta+S Control+Shift+S Meta+Shift+S"
           >
             {saveStatus === "saving" ? (
               <LoaderCircle className="h-4 w-4 animate-spin sm:mr-2" />
@@ -438,7 +462,7 @@ function App() {
                   : "Save Tree"}
             </span>
           </Button>
-          <LoadTreeDialog onLoad={handleLoadTree} />
+          <LoadTreeDialog ref={loadTreeDialogRef} onLoad={handleLoadTree} />
         </div>
       </header>
 

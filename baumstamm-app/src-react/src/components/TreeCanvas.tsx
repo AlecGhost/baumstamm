@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   getPersonName,
   type TreeData,
@@ -30,20 +30,158 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
 }) => {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigationCycleRef = useRef<{
+    kind: "parents" | "children" | "siblings";
+    candidates: string[];
+  } | null>(null);
 
   const { containerRef, setZoom, setPan, pointerHandlers, transformStyle } =
     usePanZoom({ enabled: !isModalOpen });
 
-  // Handle Enter key for selected person
+  const selectPerson = useCallback((id: string | null) => {
+    navigationCycleRef.current = null;
+    setSelectedPersonId(id);
+  }, []);
+
+  useEffect(() => {
+    navigationCycleRef.current = null;
+  }, [data]);
+
+  const centerSelectedPerson = useCallback(() => {
+    if (!selectedPersonId) return false;
+
+    const container = containerRef.current;
+    const personElement = container?.querySelector<HTMLElement>(
+      `[data-tree-person-id="${CSS.escape(selectedPersonId)}"]`,
+    );
+    if (!container || !personElement) return false;
+
+    const containerBounds = container.getBoundingClientRect();
+    const personBounds = personElement.getBoundingClientRect();
+    const delta = {
+      x:
+        containerBounds.left +
+        containerBounds.width / 2 -
+        (personBounds.left + personBounds.width / 2),
+      y:
+        containerBounds.top +
+        containerBounds.height / 2 -
+        (personBounds.top + personBounds.height / 2),
+    };
+    setPan((current) => ({
+      x: current.x + delta.x,
+      y: current.y + delta.y,
+    }));
+    return true;
+  }, [containerRef, selectedPersonId, setPan]);
+
+  const getNavigationCandidates = useCallback(
+    (personId: string, kind: "parents" | "children" | "siblings") => {
+      if (!data) return [];
+
+      const visiblePersonIds = new Set(data.persons.map((person) => person.id));
+      const candidates =
+        kind === "parents"
+          ? data.relationships
+              .filter((relationship) =>
+                relationship.children.includes(personId),
+              )
+              .flatMap((relationship) => relationship.parents)
+          : kind === "children"
+            ? data.relationships
+                .filter((relationship) =>
+                  relationship.parents.includes(personId),
+                )
+                .flatMap((relationship) => relationship.children)
+            : data.relationships
+                .filter((relationship) =>
+                  relationship.children.includes(personId),
+                )
+                .flatMap((relationship) => relationship.children);
+
+      return candidates.filter(
+        (candidate, index): candidate is string =>
+          candidate !== null &&
+          visiblePersonIds.has(candidate) &&
+          candidates.indexOf(candidate) === index,
+      );
+    },
+    [data],
+  );
+
+  const cycleSelection = useCallback(
+    (kind: "parents" | "children" | "siblings", direction: 1 | -1 = 1) => {
+      if (!selectedPersonId) return false;
+
+      let cycle = navigationCycleRef.current;
+      if (
+        cycle?.kind !== kind ||
+        !cycle.candidates.includes(selectedPersonId)
+      ) {
+        cycle = {
+          kind,
+          candidates: getNavigationCandidates(selectedPersonId, kind),
+        };
+      }
+
+      if (cycle.candidates.length === 0) return false;
+      const currentIndex = cycle.candidates.indexOf(selectedPersonId);
+      const nextIndex =
+        currentIndex === -1
+          ? direction === 1
+            ? 0
+            : cycle.candidates.length - 1
+          : (currentIndex + direction + cycle.candidates.length) %
+            cycle.candidates.length;
+      const nextPersonId = cycle.candidates[nextIndex];
+      if (nextPersonId === selectedPersonId) return false;
+
+      navigationCycleRef.current = cycle;
+      setSelectedPersonId(nextPersonId);
+      return true;
+    },
+    [getNavigationCandidates, selectedPersonId],
+  );
+
+  // Handle keyboard navigation for the main tree.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && selectedPersonId && !isModalOpen) {
+      if (isModalOpen) return;
+
+      const target = e.target;
+      if (
+        target instanceof HTMLElement &&
+        (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
+          target.isContentEditable ||
+          target.closest('[contenteditable="true"]'))
+      ) {
+        return;
+      }
+
+      if (e.key === "Enter" && selectedPersonId) {
+        e.preventDefault();
         setIsModalOpen(true);
+        return;
+      }
+
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+
+      if (e.key.toLowerCase() === "c" && centerSelectedPerson()) {
+        e.preventDefault();
+      } else {
+        const navigationHandled =
+          (e.key === "ArrowUp" && cycleSelection("parents")) ||
+          (e.key === "ArrowDown" && cycleSelection("children")) ||
+          (e.key === "ArrowLeft" && cycleSelection("siblings", -1)) ||
+          (e.key === "ArrowRight" && cycleSelection("siblings", 1));
+        if (navigationHandled) {
+          e.preventDefault();
+        }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [selectedPersonId, isModalOpen]);
+  }, [centerSelectedPerson, cycleSelection, selectedPersonId, isModalOpen]);
 
   if (!data) {
     return (
@@ -75,6 +213,8 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
     <div
       ref={containerRef}
       className="w-full h-full overflow-hidden bg-background relative cursor-grab active:cursor-grabbing select-none"
+      aria-label="Family tree. Select a person, use arrow keys to navigate relatives, C to center, and Enter to open details."
+      aria-keyshortcuts="C ArrowUp ArrowDown ArrowLeft ArrowRight Enter"
       {...pointerHandlers}
     >
       <div
@@ -86,10 +226,10 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
             data={data}
             selectedPersonId={selectedPersonId}
             onSelectPerson={(id: string) =>
-              setSelectedPersonId((prev) => (prev === id ? null : id))
+              selectPerson(selectedPersonId === id ? null : id)
             }
             onDoubleClickPerson={(id: string) => {
-              setSelectedPersonId(id);
+              selectPerson(id);
               setIsModalOpen(true);
             }}
           />
@@ -236,7 +376,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onUpdate={onUpdate}
-        onSelectPerson={setSelectedPersonId}
+        onSelectPerson={selectPerson}
       />
     </div>
   );

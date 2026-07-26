@@ -136,15 +136,22 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
       if (!isOpen) return;
 
       if (e.key === "Escape") {
+        e.preventDefault();
         handleCloseOrBack();
         return;
       }
 
-      // Ignore shortcuts if we're focused on an input or textarea
+      // Letter shortcuts should not interrupt text entry or modified commands.
+      const target = e.target;
       if (
-        document.activeElement?.tagName === "INPUT" ||
-        document.activeElement?.tagName === "TEXTAREA" ||
-        document.activeElement?.tagName === "SELECT"
+        e.altKey ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.shiftKey ||
+        (target instanceof HTMLElement &&
+          (["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName) ||
+            target.isContentEditable ||
+            target.closest('[contenteditable="true"]')))
       ) {
         return;
       }
@@ -446,6 +453,8 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                 onClick={() => setIsActionView(true)}
                 className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-ring sm:h-8 sm:w-8"
                 aria-label="Actions"
+                aria-keyshortcuts="A"
+                title="Actions (A)"
               >
                 <svg
                   width="15"
@@ -468,6 +477,8 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                 onClick={() => setIsEditing(true)}
                 className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-ring sm:h-8 sm:w-8"
                 aria-label="Edit person"
+                aria-keyshortcuts="E"
+                title="Edit person (E)"
               >
                 <svg
                   width="14"
@@ -489,6 +500,10 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
               onClick={handleCloseOrBack}
               className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-ring sm:h-8 sm:w-8"
               aria-label={isEditing || isActionView ? "Cancel" : "Close modal"}
+              aria-keyshortcuts="Escape"
+              title={
+                isEditing || isActionView ? "Back (Escape)" : "Close (Escape)"
+              }
             >
               <svg
                 width="15"
