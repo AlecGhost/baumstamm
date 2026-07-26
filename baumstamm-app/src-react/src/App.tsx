@@ -433,8 +433,8 @@ function App() {
             aria-live="polite"
             className={
               saveStatus === "saved"
-                ? "h-11 w-11 border-emerald-500 bg-emerald-500/10 px-0 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 sm:h-9 sm:w-28 sm:px-4"
-                : "h-11 w-11 px-0 sm:h-9 sm:w-28 sm:px-4"
+                ? "h-11 w-11 border-emerald-500 bg-emerald-500/10 px-0 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 sm:h-9 sm:w-auto sm:min-w-32 sm:px-4"
+                : "h-11 w-11 px-0 sm:h-9 sm:w-auto sm:min-w-32 sm:px-4"
             }
             title={
               saveStatus === "saving"
@@ -454,7 +454,7 @@ function App() {
             ) : (
               <Download className="h-4 w-4 sm:mr-2" />
             )}
-            <span className="sr-only sm:not-sr-only">
+            <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
               {saveStatus === "saving"
                 ? "Saving…"
                 : saveStatus === "saved"

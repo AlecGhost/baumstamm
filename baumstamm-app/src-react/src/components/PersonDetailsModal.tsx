@@ -409,7 +409,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                 <img
                   src={displayImage}
                   alt={name}
-                  className="w-full h-full object-cover"
+                  className="h-full w-full bg-muted object-contain"
                 />
               </div>
             ) : (
