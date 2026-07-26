@@ -9,6 +9,7 @@
     "lint:fix": "eslint src/ --fix",
     "format:check": "prettier src/ --check",
     "format:fix": "prettier src/ --write",
+    "test": "node --test src/lib/date-sort.test.ts",
     "fix": "npm run format:fix && npm run lint:fix",
     "build": "tsc -b && vite build && npm run format:check && npm run lint:check",
     "build:wasm": "cd ../src-wasm/ && wasm-pack build --target web --out-dir pkg",

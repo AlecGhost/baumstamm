@@ -17,6 +17,7 @@ import {
 } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PersonDetailsModal } from "@/components/PersonDetailsModal";
+import { compareDateValues } from "@/lib/date-sort";
 import { getInfoKeyLabel } from "@/lib/utils";
 
 interface PersonTableProps {
@@ -39,6 +40,10 @@ type Column = {
 
 const NAME_COLUMN_ID = "builtin:name";
 const infoColumnId = (key: string) => `info:${key}`;
+const dateColumnIds = new Set([
+  infoColumnId("@dateOfBirth"),
+  infoColumnId("@dateOfDeath"),
+]);
 const defaultColumnIds = [
   NAME_COLUMN_ID,
   infoColumnId("@dateOfBirth"),
@@ -156,12 +161,18 @@ export const PersonTable: React.FC<PersonTableProps> = ({
       if (!leftValue && rightValue) return 1;
       if (leftValue && !rightValue) return -1;
 
-      const result = leftValue.localeCompare(rightValue, undefined, {
-        numeric: true,
-        sensitivity: "base",
-      });
+      const result = dateColumnIds.has(effectiveSortColumn.id)
+        ? compareDateValues(leftValue, rightValue, sortDirection)
+        : leftValue.localeCompare(rightValue, undefined, {
+            numeric: true,
+            sensitivity: "base",
+          });
       if (result !== 0) {
-        return sortDirection === "ascending" ? result : -result;
+        return dateColumnIds.has(effectiveSortColumn.id)
+          ? result
+          : sortDirection === "ascending"
+            ? result
+            : -result;
       }
 
       const nameResult = getPersonName(left).localeCompare(
