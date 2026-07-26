@@ -20,6 +20,13 @@ export type ViewOptions = {
   ancestor_gen_limit: ViewLimit;
 };
 
+export type TreeViewScope = "ancestors" | "descendants" | "both";
+
+export type TreeViewSelection = {
+  root: string;
+  scope: TreeViewScope;
+};
+
 export type Fraction = {
   numerator: number;
   denominator: number;

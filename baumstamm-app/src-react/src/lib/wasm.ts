@@ -8,6 +8,8 @@ import init, {
   get_grid,
   get_tree_data,
   get_sub_tree_data,
+  set_partial_view,
+  set_full_view,
   insert_info,
   remove_info,
   add_parent,
@@ -38,6 +40,11 @@ export interface WasmService {
     root: string,
     options: ViewOptions,
   ) => Effect.Effect<TreeData, Error>;
+  readonly setPartialView: (
+    root: string,
+    options: ViewOptions,
+  ) => Effect.Effect<void, Error>;
+  readonly setFullView: Effect.Effect<void, Error>;
   readonly insertInfo: (
     pid: string,
     key: string,
@@ -134,6 +141,21 @@ export const WasmServiceLive: WasmService = {
       try: () => get_sub_tree_data(root, options) as TreeData,
       catch: (error) => new Error(`Failed to get sub tree data: ${error}`),
     }),
+
+  setPartialView: (root: string, options: ViewOptions) =>
+    Effect.try({
+      try: () => {
+        set_partial_view(root, options);
+      },
+      catch: (error) => new Error(`Failed to set partial view: ${error}`),
+    }),
+
+  setFullView: Effect.try({
+    try: () => {
+      set_full_view();
+    },
+    catch: (error) => new Error(`Failed to set full view: ${error}`),
+  }),
 
   addParent: (rid: string) =>
     Effect.try({

@@ -5,7 +5,12 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Check, Download, LoaderCircle, Save } from "lucide-react";
 import { WasmServiceLive } from "@/lib/wasm";
-import type { TreeData } from "@/lib/types";
+import type {
+  TreeData,
+  TreeViewScope,
+  TreeViewSelection,
+  ViewOptions,
+} from "@/lib/types";
 import { LoadTreeDialog } from "@/components/LoadTreeDialog";
 import { TreeCanvas } from "@/components/TreeCanvas";
 import { Button } from "@/components/ui/button";
@@ -16,6 +21,15 @@ type OpenTreePayload = {
 };
 
 type SaveStatus = "idle" | "saving" | "saved";
+
+const viewOptionsForScope = (scope: TreeViewScope): ViewOptions => ({
+  show_partners: true,
+  show_siblings: false,
+  show_partner_siblings: false,
+  show_ancestor_siblings: false,
+  ancestor_gen_limit: scope === "descendants" ? { Limit: 0 } : "Unlimited",
+  descendent_gen_limit: scope === "ancestors" ? { Limit: 0 } : "Unlimited",
+});
 
 const isTauri = () => typeof window !== "undefined" && "__TAURI__" in window;
 
@@ -42,6 +56,8 @@ function App() {
   const [treeData, setTreeData] = useState<TreeData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [treeKey, setTreeKey] = useState<number>(0);
+  const [treeViewSelection, setTreeViewSelection] =
+    useState<TreeViewSelection | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const fileNameRef = useRef<string>("family-tree.json");
   const currentPathRef = useRef<string | null>(null);
@@ -107,6 +123,7 @@ function App() {
           yield* WasmServiceLive.loadTree(fileContent);
           const data = yield* WasmServiceLive.getTreeData();
           setTreeData(data);
+          setTreeViewSelection(null);
           setTreeKey((k) => k + 1);
           fileNameRef.current = withJsonExtension(loadedFileName);
           currentPathRef.current = path;
@@ -181,6 +198,7 @@ function App() {
         yield* WasmServiceLive.newTree;
         const data = yield* WasmServiceLive.getTreeData();
         setTreeData(data);
+        setTreeViewSelection(null);
         setTreeKey((k) => k + 1);
         fileNameRef.current = "family-tree.json";
         currentPathRef.current = null;
@@ -246,6 +264,44 @@ function App() {
       setError(`Failed to refresh tree: ${err.message}`);
     });
   };
+
+  const handleSetPartialView = useCallback(
+    (root: string, scope: TreeViewScope) => {
+      if (!isWasmLoaded) return;
+      setError(null);
+
+      Effect.runPromise(
+        Effect.gen(function* () {
+          yield* WasmServiceLive.setPartialView(
+            root,
+            viewOptionsForScope(scope),
+          );
+          const data = yield* WasmServiceLive.getTreeData();
+          setTreeData(data);
+          setTreeViewSelection({ root, scope });
+        }),
+      ).catch((err) => {
+        setError(`Failed to filter tree: ${err.message}`);
+      });
+    },
+    [isWasmLoaded],
+  );
+
+  const handleSetFullView = useCallback(() => {
+    if (!isWasmLoaded) return;
+    setError(null);
+
+    Effect.runPromise(
+      Effect.gen(function* () {
+        yield* WasmServiceLive.setFullView;
+        const data = yield* WasmServiceLive.getTreeData();
+        setTreeData(data);
+        setTreeViewSelection(null);
+      }),
+    ).catch((err) => {
+      setError(`Failed to restore full tree: ${err.message}`);
+    });
+  }, [isWasmLoaded]);
 
   if (!isWasmLoaded && !error) {
     return (
@@ -328,8 +384,11 @@ function App() {
         <TreeCanvas
           key={treeKey}
           data={treeData}
+          viewSelection={treeViewSelection}
           onCreate={handleCreateTree}
           onUpdate={handleRefresh}
+          onSetPartialView={handleSetPartialView}
+          onSetFullView={handleSetFullView}
         />
       </main>
     </div>

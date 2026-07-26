@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from "react";
-import type { TreeData } from "@/lib/types";
+import {
+  getPersonName,
+  type TreeData,
+  type TreeViewScope,
+  type TreeViewSelection,
+} from "@/lib/types";
 import { TreeGrid } from "./TreeGrid";
 import { PersonDetailsModal } from "./PersonDetailsModal";
 import { usePanZoom } from "@/hooks/use-pan-zoom";
@@ -8,14 +13,20 @@ import { Plus } from "lucide-react";
 
 interface TreeCanvasProps {
   data: TreeData | null;
+  viewSelection: TreeViewSelection | null;
   onCreate: () => void;
   onUpdate: () => void;
+  onSetPartialView: (root: string, scope: TreeViewScope) => void;
+  onSetFullView: () => void;
 }
 
 export const TreeCanvas: React.FC<TreeCanvasProps> = ({
   data,
+  viewSelection,
   onCreate,
   onUpdate,
+  onSetPartialView,
+  onSetFullView,
 }) => {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -48,6 +59,18 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
     );
   }
 
+  const selectedPerson = selectedPersonId
+    ? data.persons.find((person) => person.id === selectedPersonId)
+    : undefined;
+  const viewRoot = viewSelection
+    ? data.persons.find((person) => person.id === viewSelection.root)
+    : undefined;
+  const scopeLabels: Record<TreeViewScope, string> = {
+    ancestors: "Ancestors",
+    descendants: "Descendants",
+    both: "Both",
+  };
+
   return (
     <div
       ref={containerRef}
@@ -70,6 +93,73 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
               setIsModalOpen(true);
             }}
           />
+        </div>
+      </div>
+
+      <div
+        className="absolute top-4 left-4 max-w-sm rounded-md border border-border bg-card p-3 shadow-sm"
+        onPointerDown={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium">Tree view</p>
+            <p className="text-xs text-muted-foreground" aria-live="polite">
+              {viewSelection
+                ? `${scopeLabels[viewSelection.scope]} of ${getPersonName(viewRoot)}`
+                : selectedPerson
+                  ? `Choose relatives of ${getPersonName(selectedPerson)}`
+                  : "Select a person to filter the tree"}
+            </p>
+          </div>
+          {viewSelection && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={onSetFullView}
+            >
+              Full tree
+            </Button>
+          )}
+        </div>
+        <div
+          className="mt-2 flex gap-1"
+          role="group"
+          aria-label={
+            selectedPerson
+              ? `Filter tree around ${getPersonName(selectedPerson)}`
+              : "Filter tree around selected person"
+          }
+        >
+          {(
+            [
+              ["ancestors", "Ancestors"],
+              ["descendants", "Descendants"],
+              ["both", "Both"],
+            ] as const
+          ).map(([scope, label]) => {
+            const isActive =
+              viewSelection?.root === selectedPersonId &&
+              viewSelection.scope === scope;
+            return (
+              <Button
+                key={scope}
+                type="button"
+                size="sm"
+                variant={isActive ? "default" : "outline"}
+                disabled={!selectedPersonId}
+                aria-pressed={isActive}
+                onClick={() => {
+                  if (selectedPersonId) {
+                    onSetPartialView(selectedPersonId, scope);
+                  }
+                }}
+              >
+                {label}
+              </Button>
+            );
+          })}
         </div>
       </div>
 
@@ -134,11 +224,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
       </div>
 
       <PersonDetailsModal
-        person={
-          selectedPersonId
-            ? data.persons.find((p) => p.id === selectedPersonId) || null
-            : null
-        }
+        person={selectedPerson ?? null}
         treeData={data}
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

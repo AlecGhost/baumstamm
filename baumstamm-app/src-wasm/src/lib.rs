@@ -62,7 +62,10 @@ type Rid = baumstamm_lib::RelationshipId;
 #[wasm_bindgen]
 pub fn load_tree(input: &str) -> JResult {
     let tree = FamilyTree::try_from(input).map_err(|err| err.to_string())?;
-    STATE.lock().unwrap().tree = tree;
+    *STATE.lock().unwrap() = State {
+        tree,
+        ..State::default()
+    };
     Ok(JsValue::NULL)
 }
 
