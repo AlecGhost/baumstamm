@@ -94,6 +94,12 @@ pub fn get_persons() -> JResult {
 }
 
 #[wasm_bindgen]
+pub fn get_full_persons() -> JResult {
+    let persons = STATE.lock().unwrap().tree.get_persons().to_vec();
+    Ok(bind::to_value(&persons)?)
+}
+
+#[wasm_bindgen]
 pub fn get_relationships() -> JResult {
     let persons = STATE
         .lock()

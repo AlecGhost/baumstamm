@@ -3,15 +3,24 @@ import { Effect } from "effect";
 import { save as showSaveDialog } from "@tauri-apps/api/dialog";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
-import { Check, Download, LoaderCircle, Save } from "lucide-react";
+import {
+  Check,
+  Download,
+  LoaderCircle,
+  Network,
+  Save,
+  TableProperties,
+} from "lucide-react";
 import { WasmServiceLive } from "@/lib/wasm";
 import type {
+  Person,
   TreeData,
   TreeViewScope,
   TreeViewSelection,
   ViewOptions,
 } from "@/lib/types";
 import { LoadTreeDialog } from "@/components/LoadTreeDialog";
+import { PersonTable } from "@/components/PersonTable";
 import { TreeCanvas } from "@/components/TreeCanvas";
 import { Button } from "@/components/ui/button";
 
@@ -21,6 +30,7 @@ type OpenTreePayload = {
 };
 
 type SaveStatus = "idle" | "saving" | "saved";
+type MainView = "tree" | "table";
 
 const viewOptionsForScope = (scope: TreeViewScope): ViewOptions => ({
   show_partners: true,
@@ -54,11 +64,13 @@ const downloadTree = (content: string, fileName: string) => {
 function App() {
   const [isWasmLoaded, setIsWasmLoaded] = useState<boolean>(false);
   const [treeData, setTreeData] = useState<TreeData | null>(null);
+  const [fullTreePersons, setFullTreePersons] = useState<Person[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [treeKey, setTreeKey] = useState<number>(0);
   const [treeViewSelection, setTreeViewSelection] =
     useState<TreeViewSelection | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [mainView, setMainView] = useState<MainView>("tree");
   const fileNameRef = useRef<string>("family-tree.json");
   const currentPathRef = useRef<string | null>(null);
   const hasTreeRef = useRef<boolean>(false);
@@ -122,7 +134,9 @@ function App() {
           setTreeData(null);
           yield* WasmServiceLive.loadTree(fileContent);
           const data = yield* WasmServiceLive.getTreeData();
+          const persons = yield* WasmServiceLive.getFullPersons();
           setTreeData(data);
+          setFullTreePersons(persons);
           setTreeViewSelection(null);
           setTreeKey((k) => k + 1);
           fileNameRef.current = withJsonExtension(loadedFileName);
@@ -197,7 +211,9 @@ function App() {
       Effect.gen(function* () {
         yield* WasmServiceLive.newTree;
         const data = yield* WasmServiceLive.getTreeData();
+        const persons = yield* WasmServiceLive.getFullPersons();
         setTreeData(data);
+        setFullTreePersons(persons);
         setTreeViewSelection(null);
         setTreeKey((k) => k + 1);
         fileNameRef.current = "family-tree.json";
@@ -257,7 +273,9 @@ function App() {
     Effect.runPromise(
       Effect.gen(function* () {
         const data = yield* WasmServiceLive.getTreeData();
+        const persons = yield* WasmServiceLive.getFullPersons();
         setTreeData(data);
+        setFullTreePersons(persons);
       }),
     ).catch((err) => {
       console.error(err);
@@ -349,6 +367,32 @@ function App() {
               {error}
             </span>
           )}
+          <div
+            className="flex rounded-md border border-border bg-background p-1"
+            role="group"
+            aria-label="Choose main view"
+          >
+            <Button
+              type="button"
+              size="sm"
+              variant={mainView === "tree" ? "secondary" : "ghost"}
+              aria-pressed={mainView === "tree"}
+              onClick={() => setMainView("tree")}
+            >
+              <Network className="h-4 w-4" />
+              Tree
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={mainView === "table" ? "secondary" : "ghost"}
+              aria-pressed={mainView === "table"}
+              onClick={() => setMainView("table")}
+            >
+              <TableProperties className="h-4 w-4" />
+              Table
+            </Button>
+          </div>
           <Button
             onClick={() => void handleSaveTree(false)}
             variant="outline"
@@ -381,15 +425,28 @@ function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 min-h-0 relative">
-        <TreeCanvas
-          key={treeKey}
-          data={treeData}
-          viewSelection={treeViewSelection}
-          onCreate={handleCreateTree}
-          onUpdate={handleRefresh}
-          onSetPartialView={handleSetPartialView}
-          onSetFullView={handleSetFullView}
-        />
+        {mainView === "tree" ? (
+          <TreeCanvas
+            key={treeKey}
+            data={treeData}
+            viewSelection={treeViewSelection}
+            onCreate={handleCreateTree}
+            onUpdate={handleRefresh}
+            onSetPartialView={handleSetPartialView}
+            onSetFullView={handleSetFullView}
+          />
+        ) : (
+          <PersonTable
+            key={treeKey}
+            data={treeData}
+            fullTreePersons={fullTreePersons}
+            viewSelection={treeViewSelection}
+            onCreate={handleCreateTree}
+            onUpdate={handleRefresh}
+            onSetPartialView={handleSetPartialView}
+            onSetFullView={handleSetFullView}
+          />
+        )}
       </main>
     </div>
   );

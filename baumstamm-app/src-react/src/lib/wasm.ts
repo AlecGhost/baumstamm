@@ -4,6 +4,7 @@ import init, {
   new_tree,
   save_tree,
   get_persons,
+  get_full_persons,
   get_relationships,
   get_grid,
   get_tree_data,
@@ -33,6 +34,7 @@ export interface WasmService {
   readonly newTree: Effect.Effect<void, Error>;
   readonly saveTree: () => Effect.Effect<string, Error>;
   readonly getPersons: () => Effect.Effect<Person[], Error>;
+  readonly getFullPersons: () => Effect.Effect<Person[], Error>;
   readonly getRelationships: () => Effect.Effect<Relationship[], Error>;
   readonly getGrid: () => Effect.Effect<Grid, Error>;
   readonly getTreeData: () => Effect.Effect<TreeData, Error>;
@@ -100,6 +102,12 @@ export const WasmServiceLive: WasmService = {
     Effect.try({
       try: () => get_persons() as Person[],
       catch: (error) => new Error(`Failed to get persons: ${error}`),
+    }),
+
+  getFullPersons: () =>
+    Effect.try({
+      try: () => get_full_persons() as Person[],
+      catch: (error) => new Error(`Failed to get full person list: ${error}`),
     }),
 
   getRelationships: () =>
