@@ -47,8 +47,8 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
 
   if (!data) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground">
+      <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="max-w-sm text-sm text-muted-foreground sm:text-base">
           No tree loaded. Create a new family tree or load an existing one.
         </p>
         <Button onClick={onCreate}>
@@ -81,7 +81,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
         className="absolute origin-center transition-transform duration-75 ease-out"
         style={transformStyle}
       >
-        <div className="p-16">
+        <div className="p-6 sm:p-16">
           <TreeGrid
             data={data}
             selectedPersonId={selectedPersonId}
@@ -97,14 +97,17 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
       </div>
 
       <div
-        className="absolute top-4 left-4 max-w-sm rounded-md border border-border bg-card p-3 shadow-sm"
+        className="absolute left-3 right-3 top-3 max-w-sm rounded-md border border-border bg-card p-3 shadow-sm sm:left-4 sm:right-auto sm:top-4"
         onPointerDown={(event) => event.stopPropagation()}
         onPointerUp={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between gap-4">
-          <div>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
             <p className="text-sm font-medium">Tree view</p>
-            <p className="text-xs text-muted-foreground" aria-live="polite">
+            <p
+              className="line-clamp-2 text-xs text-muted-foreground"
+              aria-live="polite"
+            >
               {viewSelection
                 ? `${scopeLabels[viewSelection.scope]} of ${getPersonName(viewRoot)}`
                 : selectedPerson
@@ -118,13 +121,14 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
               size="sm"
               variant="outline"
               onClick={onSetFullView}
+              className="h-10 shrink-0 sm:h-8"
             >
               Full tree
             </Button>
           )}
         </div>
         <div
-          className="mt-2 flex gap-1"
+          className="mt-2 grid grid-cols-3 gap-1"
           role="group"
           aria-label={
             selectedPerson
@@ -155,6 +159,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
                     onSetPartialView(selectedPersonId, scope);
                   }
                 }}
+                className="h-10 min-w-0 px-1 text-xs sm:h-8 sm:px-3 sm:text-sm"
               >
                 {label}
               </Button>
@@ -165,13 +170,14 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
 
       {/* Controls overlay */}
       <div
-        className="absolute bottom-4 right-4 flex gap-2 bg-card border border-border rounded-md shadow-sm p-1"
+        className="absolute bottom-3 right-3 flex gap-1 rounded-md border border-border bg-card p-1 shadow-sm sm:bottom-4 sm:right-4 sm:gap-2"
         onPointerDown={(e) => e.stopPropagation()}
         onPointerUp={(e) => e.stopPropagation()}
       >
         <button
           onClick={() => setZoom((z) => Math.max(z * 0.8, 0.1))}
-          className="p-2 hover:bg-muted rounded"
+          className="flex h-11 w-11 items-center justify-center rounded hover:bg-muted sm:h-auto sm:w-auto sm:p-2"
+          aria-label="Zoom out"
           title="Zoom Out"
         >
           <svg
@@ -195,7 +201,7 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
             setZoom(1);
             setPan({ x: 0, y: 0 });
           }}
-          className="p-2 hover:bg-muted rounded text-xs font-medium"
+          className="flex h-11 min-w-12 items-center justify-center rounded px-2 text-xs font-medium hover:bg-muted sm:h-auto sm:min-w-0 sm:p-2"
           title="Reset View"
         >
           100%
@@ -203,7 +209,8 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
         <div className="w-px bg-border my-1" />
         <button
           onClick={() => setZoom((z) => Math.min(z * 1.25, 5))}
-          className="p-2 hover:bg-muted rounded"
+          className="flex h-11 w-11 items-center justify-center rounded hover:bg-muted sm:h-auto sm:w-auto sm:p-2"
+          aria-label="Zoom in"
           title="Zoom In"
         >
           <svg

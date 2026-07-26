@@ -335,40 +335,50 @@ function App() {
   }
 
   return (
-    <div className="w-screen h-screen flex flex-col overflow-hidden bg-background text-foreground">
+    <div className="flex h-dvh w-screen flex-col overflow-hidden bg-background text-foreground">
       {/* Header */}
-      <header className="h-16 flex-none border-b border-border bg-card px-6 flex items-center justify-between shrink-0 z-10 shadow-sm relative">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-            <svg
-              className="w-5 h-5 text-primary"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
+      <header className="relative z-10 flex shrink-0 flex-none flex-col gap-2 border-b border-border bg-card px-3 py-2 shadow-sm sm:h-16 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6 sm:py-0">
+        <div className="flex min-w-0 items-center justify-between gap-2 sm:shrink-0">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <svg
+                className="h-5 w-5 text-primary"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate font-sans text-lg font-bold tracking-tight text-foreground/90 sm:text-xl">
+                Baumstamm
+              </h1>
+              <p className="hidden text-xs font-medium uppercase tracking-widest text-muted-foreground sm:block">
+                Family Tree Viewer
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold font-sans tracking-tight text-foreground/90">
-              Baumstamm
-            </h1>
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-widest">
-              Family Tree Viewer
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4">
           {error && (
-            <span className="text-sm font-medium text-destructive px-3 py-1 bg-destructive/10 rounded-full">
+            <span
+              className="max-w-[55vw] truncate rounded-full bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive sm:hidden"
+              title={error}
+            >
+              {error}
+            </span>
+          )}
+        </div>
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem_2.75rem] items-center gap-2 sm:flex sm:gap-4">
+          {error && (
+            <span className="hidden max-w-xs truncate rounded-full bg-destructive/10 px-3 py-1 text-sm font-medium text-destructive sm:block">
               {error}
             </span>
           )}
           <div
-            className="flex rounded-md border border-border bg-background p-1"
+            className="grid grid-cols-2 rounded-md border border-border bg-background p-1 sm:flex"
             role="group"
             aria-label="Choose main view"
           >
@@ -400,24 +410,33 @@ function App() {
             aria-live="polite"
             className={
               saveStatus === "saved"
-                ? "w-28 border-emerald-500 bg-emerald-500/10 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400"
-                : "w-28"
+                ? "h-11 w-11 border-emerald-500 bg-emerald-500/10 px-0 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-700 dark:text-emerald-400 sm:h-9 sm:w-28 sm:px-4"
+                : "h-11 w-11 px-0 sm:h-9 sm:w-28 sm:px-4"
+            }
+            title={
+              saveStatus === "saving"
+                ? "Saving tree"
+                : saveStatus === "saved"
+                  ? "Tree saved"
+                  : "Save tree"
             }
           >
             {saveStatus === "saving" ? (
-              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+              <LoaderCircle className="h-4 w-4 animate-spin sm:mr-2" />
             ) : saveStatus === "saved" ? (
-              <Check className="mr-2 h-4 w-4" />
+              <Check className="h-4 w-4 sm:mr-2" />
             ) : isTauri() ? (
-              <Save className="mr-2 h-4 w-4" />
+              <Save className="h-4 w-4 sm:mr-2" />
             ) : (
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="h-4 w-4 sm:mr-2" />
             )}
-            {saveStatus === "saving"
-              ? "Saving…"
-              : saveStatus === "saved"
-                ? "Saved"
-                : "Save Tree"}
+            <span className="sr-only sm:not-sr-only">
+              {saveStatus === "saving"
+                ? "Saving…"
+                : saveStatus === "saved"
+                  ? "Saved"
+                  : "Save Tree"}
+            </span>
           </Button>
           <LoadTreeDialog onLoad={handleLoadTree} />
         </div>

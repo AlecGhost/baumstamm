@@ -48,14 +48,14 @@ const EmbeddedTreeCanvas: React.FC<EmbeddedTreeCanvasProps> = ({
   return (
     <div
       ref={containerRef}
-      className="w-full h-80 border rounded-xl overflow-hidden bg-muted/30 relative cursor-grab active:cursor-grabbing select-none"
+      className="relative h-64 w-full cursor-grab select-none overflow-hidden rounded-xl border bg-muted/30 active:cursor-grabbing sm:h-80"
       {...pointerHandlers}
     >
       <div
         className="absolute origin-center transition-transform duration-75 ease-out"
         style={transformStyle}
       >
-        <div ref={contentRef} className="p-8">
+        <div ref={contentRef} className="p-4 sm:p-8">
           <TreeGrid
             data={data}
             selectedPersonId={selectedPersonId}
@@ -380,7 +380,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-0 backdrop-blur-sm animate-in fade-in duration-200 sm:p-4"
       onClick={() => {
         if (!isEditing) onClose();
       }}
@@ -388,7 +388,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
       onPointerUp={(e) => e.stopPropagation()}
     >
       <div
-        className="bg-card text-card-foreground border rounded-xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] animate-in zoom-in-95 duration-200"
+        className="flex h-dvh max-h-dvh w-full max-w-lg flex-col overflow-hidden border bg-card text-card-foreground shadow-2xl animate-in zoom-in-95 duration-200 sm:h-auto sm:max-h-[90vh] sm:rounded-xl"
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
         onPointerUp={(e) => e.stopPropagation()}
@@ -397,7 +397,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
         <div className="relative shrink-0">
           {!isEditing && !isActionView ? (
             displayImage ? (
-              <div className="w-full h-48 bg-muted flex items-center justify-center overflow-hidden">
+              <div className="flex h-36 w-full items-center justify-center overflow-hidden bg-muted sm:h-48">
                 <img
                   src={displayImage}
                   alt={name}
@@ -405,14 +405,14 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                 />
               </div>
             ) : (
-              <div className="w-full h-24 bg-primary/10 flex items-center justify-center">
+              <div className="flex h-20 w-full items-center justify-center bg-primary/10 sm:h-24">
                 <span className="text-4xl font-semibold text-primary/40">
                   {name.charAt(0)}
                 </span>
               </div>
             )
           ) : (
-            <div className="w-full bg-primary/10 flex flex-col p-6 pt-12 pb-4 gap-2 border-b">
+            <div className="flex w-full flex-col gap-2 border-b bg-primary/10 p-4 pb-3 pt-16 sm:p-6 sm:pb-4 sm:pt-12">
               {isActionView ? (
                 <div className="flex items-center">
                   <h2 className="text-xl font-bold tracking-tight">Actions</h2>
@@ -424,7 +424,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                   </label>
                   <input
                     autoFocus
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 sm:h-9"
                     value={editForm["@image"] || ""}
                     onChange={(e) =>
                       setEditForm((prev) => ({
@@ -439,11 +439,11 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
             </div>
           )}
 
-          <div className="absolute top-4 right-4 flex gap-2">
+          <div className="absolute right-3 top-3 flex gap-2 sm:right-4 sm:top-4">
             {!isEditing && !isActionView && (
               <button
                 onClick={() => setIsActionView(true)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-ring sm:h-8 sm:w-8"
                 aria-label="Actions"
               >
                 <svg
@@ -465,7 +465,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
             {!isEditing && !isActionView && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+                className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-ring sm:h-8 sm:w-8"
                 aria-label="Edit person"
               >
                 <svg
@@ -486,7 +486,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
             )}
             <button
               onClick={handleCloseOrBack}
-              className="w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+              className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-ring sm:h-8 sm:w-8"
               aria-label={isEditing || isActionView ? "Cancel" : "Close modal"}
             >
               <svg
@@ -508,21 +508,21 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
         </div>
 
         {/* Content Section */}
-        <div className="p-6 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
           {isActionView ? (
             <div className="space-y-4">
               {actionState.type === "none" ? (
                 <div className="flex flex-col gap-2">
                   <button
                     onClick={handleAddParent}
-                    className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                    className="min-h-11 w-full rounded-md border bg-muted px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/80"
                   >
                     Add Parent
                   </button>
                   {parentRels.length <= 1 ? (
                     <button
                       onClick={() => handleAddChild()}
-                      className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                      className="min-h-11 w-full rounded-md border bg-muted px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/80"
                     >
                       Add Child
                     </button>
@@ -531,7 +531,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                       <button
                         key={rel.id}
                         onClick={() => handleAddChild(rel.id)}
-                        className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                        className="min-h-11 w-full rounded-md border bg-muted px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/80"
                       >
                         Add Child (with {getPartnerName(rel, person.id)})
                       </button>
@@ -539,26 +539,26 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                   )}
                   <button
                     onClick={handleAddNewPartner}
-                    className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                    className="min-h-11 w-full rounded-md border bg-muted px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/80"
                   >
                     Add New Partner
                   </button>
                   <button
                     onClick={() => setActionState({ type: "partner" })}
-                    className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                    className="min-h-11 w-full rounded-md border bg-muted px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/80"
                   >
                     Add Existing Partner...
                   </button>
                   <button
                     onClick={() => setActionState({ type: "merge" })}
-                    className="w-full text-left px-4 py-3 bg-muted hover:bg-muted/80 rounded-md transition-colors text-sm font-medium border"
+                    className="min-h-11 w-full rounded-md border bg-muted px-4 py-3 text-left text-sm font-medium transition-colors hover:bg-muted/80"
                   >
                     Merge Person...
                   </button>
                   <div className="pt-4 border-t mt-4">
                     <button
                       onClick={handleRemovePerson}
-                      className="w-full text-left px-4 py-3 bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20 rounded-md transition-colors text-sm font-medium"
+                      className="min-h-11 w-full rounded-md border border-destructive/20 bg-destructive/10 px-4 py-3 text-left text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
                     >
                       Remove Person
                     </button>
@@ -571,7 +571,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                       setActionState({ type: "none" });
                       setActionSearchQuery("");
                     }}
-                    className="text-xs text-muted-foreground hover:text-foreground underline flex items-center gap-1"
+                    className="flex min-h-11 items-center gap-1 text-xs text-muted-foreground underline hover:text-foreground"
                   >
                     <svg
                       width="12"
@@ -598,7 +598,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                     type="text"
                     placeholder="Search by name..."
                     autoFocus
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
                     value={actionSearchQuery}
                     onChange={(e) => setActionSearchQuery(e.target.value)}
                   />
@@ -619,7 +619,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                             else if (actionState.type === "merge")
                               handleMergePerson(p.id);
                           }}
-                          className="w-full text-left px-3 py-2 hover:bg-muted transition-colors text-sm"
+                          className="min-h-11 w-full px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
                         >
                           {getPersonName(p)}
                         </button>
@@ -707,13 +707,13 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
             </>
           ) : (
             <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-muted-foreground">
                     First Name (@firstName)
                   </label>
                   <input
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
                     value={editForm["@firstName"] || ""}
                     onChange={(e) =>
                       setEditForm((prev) => ({
@@ -728,7 +728,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                     Last Name (@lastName)
                   </label>
                   <input
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
                     value={editForm["@lastName"] || ""}
                     onChange={(e) =>
                       setEditForm((prev) => ({
@@ -740,13 +740,13 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-muted-foreground">
                     Date of Birth (@dateOfBirth)
                   </label>
                   <input
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
                     value={editForm["@dateOfBirth"] || ""}
                     onChange={(e) =>
                       setEditForm((prev) => ({
@@ -762,7 +762,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                     Date of Death (@dateOfDeath)
                   </label>
                   <input
-                    className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
                     value={editForm["@dateOfDeath"] || ""}
                     onChange={(e) =>
                       setEditForm((prev) => ({
@@ -786,9 +786,9 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                       <label className="text-xs font-medium text-muted-foreground">
                         {key}
                       </label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-col gap-2 sm:flex-row">
                         <input
-                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                          className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
                           value={value as string}
                           onChange={(e) =>
                             setEditForm((prev) => ({
@@ -798,7 +798,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                           }
                         />
                         <button
-                          className="flex-shrink-0 h-9 px-3 text-destructive hover:bg-destructive/10 rounded-md transition-colors text-sm font-medium"
+                          className="h-11 flex-shrink-0 rounded-md px-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10 sm:h-9"
                           onClick={() =>
                             setEditForm((prev) => {
                               const next = { ...prev };
@@ -815,13 +815,13 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                   </div>
                 ))}
 
-                <div className="flex gap-2 items-end pt-2">
+                <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-end sm:gap-2">
                   <div className="flex-1 space-y-1">
                     <label className="text-xs font-medium text-muted-foreground">
                       New Key
                     </label>
                     <input
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
                       value={newKeyInput}
                       onChange={(e) => setNewKeyInput(e.target.value)}
                       placeholder="e.g. occupation"
@@ -832,7 +832,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                       Value
                     </label>
                     <input
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
                       value={newValueInput}
                       onChange={(e) => setNewValueInput(e.target.value)}
                       onKeyDown={(e) => {
@@ -842,7 +842,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                     />
                   </div>
                   <button
-                    className="h-9 px-4 bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md transition-colors text-sm font-medium bg-muted"
+                    className="h-11 rounded-md bg-muted px-4 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80 sm:h-9"
                     onClick={handleAddNewField}
                     disabled={!newKeyInput.trim() || !newValueInput.trim()}
                   >
@@ -856,17 +856,17 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
 
         {/* Footer */}
         {isEditing && (
-          <div className="p-4 border-t bg-muted/20 flex justify-end gap-2 shrink-0">
+          <div className="flex shrink-0 gap-2 border-t bg-muted/20 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:justify-end sm:p-4">
             <button
               onClick={() => setIsEditing(false)}
-              className="h-9 px-4 text-sm font-medium rounded-md hover:bg-accent hover:text-accent-foreground transition-colors disabled:opacity-50"
+              className="h-11 flex-1 rounded-md px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground disabled:opacity-50 sm:h-9 sm:flex-none"
               disabled={isSaving}
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
-              className="h-9 px-4 text-sm font-medium rounded-md bg-primary text-primary-foreground text-white hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
+              className="flex h-11 flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-white text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 sm:h-9 sm:flex-none"
               disabled={isSaving}
             >
               {isSaving && (

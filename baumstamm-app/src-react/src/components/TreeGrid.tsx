@@ -56,9 +56,9 @@ export const TreeGrid: React.FC<TreeGridProps> = ({
 
   return (
     <div
-      className="grid gap-0 place-items-center"
+      className="grid place-items-center gap-0 [--tree-cell-width:150px] sm:[--tree-cell-width:180px]"
       style={{
-        gridTemplateColumns: `repeat(${cols}, minmax(180px, 1fr))`,
+        gridTemplateColumns: `repeat(${cols}, minmax(var(--tree-cell-width), 1fr))`,
         gridTemplateRows: `repeat(${rows}, auto)`,
       }}
     >

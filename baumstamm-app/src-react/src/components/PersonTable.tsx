@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import {
   ArrowDown,
@@ -117,6 +117,7 @@ export const PersonTable: React.FC<PersonTableProps> = ({
   const [sortColumnId, setSortColumnId] = useState(NAME_COLUMN_ID);
   const [sortDirection, setSortDirection] =
     useState<SortDirection>("ascending");
+  const lastPointerType = useRef<string | null>(null);
 
   const columns = useMemo<Column[]>(() => {
     const usedInfoKeys = new Set<string>();
@@ -197,8 +198,8 @@ export const PersonTable: React.FC<PersonTableProps> = ({
 
   if (!data) {
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center gap-4">
-        <p className="text-muted-foreground">
+      <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="max-w-sm text-sm text-muted-foreground sm:text-base">
           No tree loaded. Create a new family tree or load an existing one.
         </p>
         <Button onClick={onCreate}>
@@ -253,10 +254,13 @@ export const PersonTable: React.FC<PersonTableProps> = ({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-background">
-      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border bg-card px-5 py-3">
-        <div>
+      <div className="flex flex-col gap-3 border-b border-border bg-card px-3 py-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between sm:px-5">
+        <div className="min-w-0">
           <p className="text-sm font-medium">People</p>
-          <p className="text-xs text-muted-foreground" aria-live="polite">
+          <p
+            className="line-clamp-2 text-xs text-muted-foreground"
+            aria-live="polite"
+          >
             {viewSelection
               ? `${scopeLabels[viewSelection.scope]} of ${getPersonName(viewRoot)} · ${data.persons.length} people`
               : selectedPerson
@@ -265,9 +269,9 @@ export const PersonTable: React.FC<PersonTableProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
           <div
-            className="flex gap-1"
+            className="col-span-2 grid grid-cols-3 gap-1 sm:col-auto sm:flex"
             role="group"
             aria-label={
               selectedPerson
@@ -298,6 +302,7 @@ export const PersonTable: React.FC<PersonTableProps> = ({
                       onSetPartialView(selectedPersonId, scope);
                     }
                   }}
+                  className="h-10 min-w-0 px-1 text-xs sm:h-8 sm:px-3 sm:text-sm"
                 >
                   {label}
                 </Button>
@@ -311,17 +316,18 @@ export const PersonTable: React.FC<PersonTableProps> = ({
               size="sm"
               variant="outline"
               onClick={onSetFullView}
+              className="h-11 sm:h-8"
             >
               Full tree
             </Button>
           )}
 
           <details className="relative">
-            <summary className="flex h-9 cursor-pointer list-none items-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
+            <summary className="flex h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:h-9 [&::-webkit-details-marker]:hidden">
               <Columns3 className="h-4 w-4" aria-hidden="true" />
               Columns
             </summary>
-            <fieldset className="absolute right-0 z-20 mt-2 max-h-72 min-w-56 overflow-auto rounded-md border border-border bg-popover p-3 text-popover-foreground shadow-lg">
+            <fieldset className="absolute right-0 z-20 mt-2 max-h-72 w-[min(14rem,calc(100vw-1.5rem))] overflow-auto rounded-md border border-border bg-popover p-3 text-popover-foreground shadow-lg sm:min-w-56">
               <legend className="sr-only">Visible table columns</legend>
               <p className="mb-2 text-xs font-medium text-muted-foreground">
                 Visible columns
@@ -332,7 +338,7 @@ export const PersonTable: React.FC<PersonTableProps> = ({
                   return (
                     <label
                       key={column.id}
-                      className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent"
+                      className="flex min-h-11 cursor-pointer items-center gap-3 rounded px-2 py-1.5 text-sm hover:bg-accent sm:min-h-0 sm:gap-2"
                     >
                       <input
                         type="checkbox"
@@ -358,7 +364,7 @@ export const PersonTable: React.FC<PersonTableProps> = ({
             <tr className="border-b border-border">
               <th
                 scope="col"
-                className="w-16 px-4 py-3 font-medium text-muted-foreground"
+                className="sticky left-0 z-20 w-14 bg-muted/95 px-3 py-3 font-medium text-muted-foreground backdrop-blur sm:w-16 sm:px-4"
               >
                 <span className="sr-only">Image</span>
               </th>
@@ -369,7 +375,7 @@ export const PersonTable: React.FC<PersonTableProps> = ({
                     key={column.id}
                     scope="col"
                     aria-sort={isSorted ? sortDirection : "none"}
-                    className="min-w-44 px-4 py-3 font-medium"
+                    className="min-w-40 px-3 py-3 font-medium sm:min-w-44 sm:px-4"
                   >
                     <button
                       type="button"
@@ -419,11 +425,19 @@ export const PersonTable: React.FC<PersonTableProps> = ({
                   className={`cursor-pointer border-b border-border transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${
                     isSelected ? "bg-primary/10" : ""
                   }`}
-                  onClick={() =>
-                    setSelectedPersonId((current) =>
-                      current === person.id ? null : person.id,
-                    )
-                  }
+                  onPointerDown={(event) => {
+                    lastPointerType.current = event.pointerType;
+                  }}
+                  onClick={() => {
+                    if (lastPointerType.current === "touch" && isSelected) {
+                      openPerson(person.id);
+                    } else {
+                      setSelectedPersonId((current) =>
+                        current === person.id ? null : person.id,
+                      );
+                    }
+                    lastPointerType.current = null;
+                  }}
                   onDoubleClick={() => openPerson(person.id)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
@@ -437,7 +451,11 @@ export const PersonTable: React.FC<PersonTableProps> = ({
                     }
                   }}
                 >
-                  <td className="px-4 py-2">
+                  <td
+                    className={`sticky left-0 z-[5] px-3 py-2 sm:px-4 ${
+                      isSelected ? "bg-primary/10" : "bg-background"
+                    }`}
+                  >
                     <PersonPreview person={person} />
                   </td>
                   {visibleColumns.map((column) => {
@@ -445,7 +463,7 @@ export const PersonTable: React.FC<PersonTableProps> = ({
                     return (
                       <td
                         key={column.id}
-                        className="max-w-80 px-4 py-3 text-card-foreground"
+                        className="max-w-80 px-3 py-3 text-card-foreground sm:px-4"
                       >
                         <span
                           className={

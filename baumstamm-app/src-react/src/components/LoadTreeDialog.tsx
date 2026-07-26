@@ -31,7 +31,7 @@ export const LoadTreeDialog: React.FC<LoadTreeDialogProps> = ({ onLoad }) => {
   };
 
   return (
-    <div>
+    <div className="flex">
       <input
         type="file"
         ref={fileInputRef}
@@ -39,9 +39,14 @@ export const LoadTreeDialog: React.FC<LoadTreeDialogProps> = ({ onLoad }) => {
         accept=".json"
         onChange={handleFileChange}
       />
-      <Button onClick={handleClick} variant="default">
-        <Upload className="mr-2 h-4 w-4" />
-        Load Tree
+      <Button
+        onClick={handleClick}
+        variant="default"
+        className="h-11 w-11 px-0 sm:h-9 sm:w-auto sm:px-4"
+        title="Load tree"
+      >
+        <Upload className="h-4 w-4 sm:mr-2" />
+        <span className="sr-only sm:not-sr-only">Load Tree</span>
       </Button>
     </div>
   );
