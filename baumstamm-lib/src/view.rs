@@ -64,8 +64,11 @@ impl View<'_> {
         {
             return Err(InputError::InvalidPersonId);
         }
-        let mut relationships =
-            Self::filter_relationships(&root, tree.get_relationships(), options);
+        let mut relationships = Self::consolidate_relationships(Self::filter_relationships(
+            &root,
+            tree.get_relationships(),
+            options,
+        ));
         let parent_pids = relationships
             .iter()
             .flat_map(Relationship::parents)
@@ -99,6 +102,7 @@ impl View<'_> {
                     .collect_vec(),
             });
         relationships.extend(missing_rels);
+        relationships = Self::consolidate_relationships(relationships);
         let persons = Self::filter_persons(tree, &relationships);
         Ok(View {
             relationships,
@@ -180,6 +184,33 @@ impl View<'_> {
         [ancestors, parent_rels, partnerships, descendents].concat()
     }
 
+    fn consolidate_relationships(relationships: Vec<Relationship>) -> Vec<Relationship> {
+        let mut consolidated: Vec<Relationship> = Vec::new();
+
+        for relationship in relationships {
+            if let Some(existing) = consolidated
+                .iter_mut()
+                .find(|existing| existing.id == relationship.id)
+            {
+                let Relationship {
+                    parents, children, ..
+                } = relationship;
+                for child in children {
+                    if !existing.children.contains(&child) {
+                        existing.children.push(child);
+                    }
+                }
+                if parents.iter().flatten().count() > existing.parents().len() {
+                    existing.parents = parents;
+                }
+            } else {
+                consolidated.push(relationship);
+            }
+        }
+
+        consolidated
+    }
+
     fn filter_persons<'a>(tree: &'a FamilyTree, rels: &[Relationship]) -> Vec<&'a Person> {
         let pids = rels
             .iter()
@@ -242,4 +273,24 @@ mod tests {
             show_partner_siblings: false,
        }
     );
+
+    #[test]
+    fn overlapping_ancestor_and_descendant_paths_have_unique_relationships() {
+        let tree = FamilyTree::try_from(include_str!("../../examples/royals/royals.json"))
+            .expect("Invalid tree data");
+        let root =
+            PersonId::try_from("21E21B70321109BB854E2BC594F5A7E8").expect("Invalid person id");
+
+        let view = View::new(&tree, root, &ViewOptions::default()).expect("Invalid root");
+        assert_eq!(
+            view.relationships.len(),
+            view.relationships
+                .iter()
+                .map(|relationship| relationship.id)
+                .unique()
+                .count()
+        );
+
+        let _ = FamilyTree::from(view);
+    }
 }
