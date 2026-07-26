@@ -1,0 +1,7 @@
+---
+source: baumstamm-lib/tests/validation_snapshots.rs
+expression: valid_output(balanced_tree(2))
+---
+Ok
+Relationships: 4
+Persons: 7

@@ -1,0 +1,6 @@
+---
+source: baumstamm-lib/tests/validation_snapshots.rs
+expression: "error_output(tree(vec![relationship(1, [None, None], &[1, 2])], &[1, 3],))"
+---
+Debug: UnmatchedQuantity
+Display: Relationships and persons do not match

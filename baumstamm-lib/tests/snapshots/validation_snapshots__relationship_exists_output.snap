@@ -1,0 +1,6 @@
+---
+source: baumstamm-lib/tests/validation_snapshots.rs
+expression: "error_output(tree(vec![relationship(1, [None, None], &[1, 2]),\nrelationship(2, [Some(1), Some(2)], &[3]),\nrelationship(3, [Some(2), Some(1)], &[4]),], &[1, 2, 3, 4],))"
+---
+Debug: RelationshipExists
+Display: More than one relationship with the same parents

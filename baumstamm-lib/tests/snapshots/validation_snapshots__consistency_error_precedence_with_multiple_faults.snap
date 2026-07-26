@@ -1,0 +1,35 @@
+---
+source: baumstamm-lib/tests/validation_snapshots.rs
+expression: "format!(\"\\\nrelationship id before person id:\n{relationship_id_before_person_id}\n\nduplicate parents before self reference:\n{duplicate_parents_before_self_reference}\n\nself reference before direct cycle:\n{self_reference_before_direct_cycle}\n\ndirect cycle before missing child:\n{direct_cycle_before_missing_child}\n\nmissing child before duplicate child:\n{missing_child_before_duplicate_child}\n\nduplicate child before unconnected:\n{duplicate_child_before_unconnected}\n\nunconnected before indirect cycle:\n{unconnected_before_indirect_cycle}\n\nperson id before person quantity:\n{person_id_before_quantity}\")"
+---
+relationship id before person id:
+Debug: RelationshipIdExists
+Display: More than one relationship with the same id
+
+duplicate parents before self reference:
+Debug: RelationshipExists
+Display: More than one relationship with the same parents
+
+self reference before direct cycle:
+Debug: SelfReference
+Display: Self referencing relationship
+
+direct cycle before missing child:
+Debug: DirectCycle
+Display: A Child cannot be its parent
+
+missing child before duplicate child:
+Debug: MustBeChild
+Display: Every person must be child of a relationship
+
+duplicate child before unconnected:
+Debug: MoreThanOnceChild
+Display: A Person is child of more than one relationship
+
+unconnected before indirect cycle:
+Debug: Unconnected
+Display: Not all nodes are connected
+
+person id before person quantity:
+Debug: PersonIdExists
+Display: Multiple persons with the same id

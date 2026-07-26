@@ -1,0 +1,6 @@
+---
+source: baumstamm-lib/tests/validation_snapshots.rs
+expression: "error_output(tree(vec![relationship(1, [Some(1), None], &[2]),\nrelationship(2, [Some(3), None], &[2]), relationship(3, [None, None], &[3]),],\n&[1, 2, 3],))"
+---
+Debug: MoreThanOnceChild
+Display: A Person is child of more than one relationship

@@ -1,0 +1,43 @@
+---
+source: baumstamm-lib/tests/validation_snapshots.rs
+expression: "family_tree.save().expect(\"tree must serialize\")"
+---
+{
+  "relationships": [
+    {
+      "id": "12",
+      "parents": [
+        "A",
+        null
+      ],
+      "children": [
+        "B",
+        "C"
+      ]
+    },
+    {
+      "id": "11",
+      "parents": [
+        null,
+        null
+      ],
+      "children": [
+        "A"
+      ]
+    }
+  ],
+  "persons": [
+    {
+      "id": "C",
+      "info": null
+    },
+    {
+      "id": "A",
+      "info": null
+    },
+    {
+      "id": "B",
+      "info": null
+    }
+  ]
+}

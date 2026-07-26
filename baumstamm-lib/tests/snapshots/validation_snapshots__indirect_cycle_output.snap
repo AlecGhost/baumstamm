@@ -1,0 +1,6 @@
+---
+source: baumstamm-lib/tests/validation_snapshots.rs
+expression: "error_output(tree(vec![relationship(1, [Some(1), None], &[2]),\nrelationship(2, [Some(2), None], &[3]),\nrelationship(3, [Some(3), None], &[1]),], &[1, 2, 3],))"
+---
+Debug: IndirectCycle
+Display: Cycle in family tree

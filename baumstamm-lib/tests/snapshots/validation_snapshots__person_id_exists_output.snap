@@ -1,0 +1,6 @@
+---
+source: baumstamm-lib/tests/validation_snapshots.rs
+expression: "error_output(tree(vec![relationship(1, [None, None], &[1, 2])], &[1, 1],))"
+---
+Debug: PersonIdExists
+Display: Multiple persons with the same id
