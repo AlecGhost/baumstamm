@@ -1,25 +1,18 @@
-use crate::{error::ConsistencyError, extract_persons, Person, PersonId, Relationship, TreeData};
-use itertools::Itertools;
-use std::{collections::HashMap, iter::FromIterator};
+use crate::{error::ConsistencyError, Person, PersonId, Relationship, TreeData};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 pub fn check(tree_data: &TreeData) -> Result<(), ConsistencyError> {
-    check_relationships(&tree_data.relationships)?;
+    let referenced_persons = check_relationships(&tree_data.relationships)?;
     check_persons(&tree_data.persons)?;
 
-    // turn into hash map for O(n) access
-    let persons_hashmap: HashMap<PersonId, ()> = HashMap::from_iter(
-        extract_persons(&tree_data.relationships)
-            .iter()
-            .map(|person_id| (*person_id, ())),
-    );
-    if tree_data.persons.len() != persons_hashmap.len() {
+    if tree_data.persons.len() != referenced_persons.len() {
         return Err(ConsistencyError::DifferentNumberOfPersons);
     }
     if tree_data
         .persons
         .iter()
         .map(|person| person.id)
-        .any(|person_id| !persons_hashmap.contains_key(&person_id))
+        .any(|person_id| !referenced_persons.contains(&person_id))
     {
         return Err(ConsistencyError::UnmatchedQuantity);
     }
@@ -27,100 +20,225 @@ pub fn check(tree_data: &TreeData) -> Result<(), ConsistencyError> {
     Ok(())
 }
 
-fn check_relationships(relationships: &[Relationship]) -> Result<(), ConsistencyError> {
-    if relationships.is_empty() {
-        return Ok(());
+struct RelationshipIndex {
+    referenced_persons: HashSet<PersonId>,
+    child_count: usize,
+    children_are_unique: bool,
+    relationships_by_person: HashMap<PersonId, Vec<usize>>,
+    children_by_parent: HashMap<PersonId, Vec<PersonId>>,
+}
+
+impl RelationshipIndex {
+    fn new(relationships: &[Relationship]) -> Self {
+        let person_reference_count = relationships
+            .iter()
+            .map(|relationship| {
+                relationship.children.len() + relationship.parents.iter().flatten().count()
+            })
+            .sum();
+        let mut referenced_persons = HashSet::with_capacity(person_reference_count);
+        let mut unique_children = HashSet::with_capacity(person_reference_count);
+        let mut child_count = 0;
+        let mut children_are_unique = true;
+        let mut relationships_by_person =
+            HashMap::<PersonId, Vec<usize>>::with_capacity(person_reference_count);
+        let mut children_by_parent = HashMap::<PersonId, Vec<PersonId>>::new();
+
+        for (relationship_index, relationship) in relationships.iter().enumerate() {
+            for person in relationship
+                .parents
+                .iter()
+                .flatten()
+                .chain(&relationship.children)
+            {
+                referenced_persons.insert(*person);
+                relationships_by_person
+                    .entry(*person)
+                    .or_default()
+                    .push(relationship_index);
+            }
+
+            child_count += relationship.children.len();
+            children_are_unique &= relationship
+                .children
+                .iter()
+                .all(|child| unique_children.insert(*child));
+            for parent in relationship.parents.iter().flatten() {
+                children_by_parent
+                    .entry(*parent)
+                    .or_default()
+                    .extend(relationship.children.iter().copied());
+            }
+        }
+
+        Self {
+            referenced_persons,
+            child_count,
+            children_are_unique,
+            relationships_by_person,
+            children_by_parent,
+        }
     }
 
-    if relationships.len() != relationships.iter().map(|rel| rel.id).unique().count() {
+    fn nr_connected_persons(&self, relationships: &[Relationship]) -> usize {
+        let Some(first_person) = relationships.first().and_then(|relationship| {
+            relationship
+                .parents
+                .iter()
+                .flatten()
+                .chain(&relationship.children)
+                .next()
+                .copied()
+        }) else {
+            return 0;
+        };
+
+        let mut visited_persons = HashSet::with_capacity(self.referenced_persons.len());
+        let mut visited_relationships = vec![false; relationships.len()];
+        let mut pending_persons = VecDeque::new();
+        visited_persons.insert(first_person);
+        pending_persons.push_back(first_person);
+
+        while let Some(person) = pending_persons.pop_front() {
+            let Some(related_relationships) = self.relationships_by_person.get(&person) else {
+                continue;
+            };
+            for &relationship_index in related_relationships {
+                if visited_relationships[relationship_index] {
+                    continue;
+                }
+                visited_relationships[relationship_index] = true;
+
+                let relationship = &relationships[relationship_index];
+                for related_person in relationship
+                    .parents
+                    .iter()
+                    .flatten()
+                    .chain(&relationship.children)
+                {
+                    if visited_persons.insert(*related_person) {
+                        pending_persons.push_back(*related_person);
+                    }
+                }
+            }
+        }
+
+        visited_persons.len()
+    }
+
+    fn has_cycle(&self) -> bool {
+        let mut indegrees = self
+            .referenced_persons
+            .iter()
+            .map(|person| (*person, 0_usize))
+            .collect::<HashMap<_, _>>();
+        for children in self.children_by_parent.values() {
+            for child in children {
+                *indegrees
+                    .get_mut(child)
+                    .expect("children are indexed as referenced persons") += 1;
+            }
+        }
+
+        let mut pending_persons = indegrees
+            .iter()
+            .filter_map(|(person, indegree)| (*indegree == 0).then_some(*person))
+            .collect::<VecDeque<_>>();
+        let mut visited = 0;
+
+        while let Some(person) = pending_persons.pop_front() {
+            visited += 1;
+            let Some(children) = self.children_by_parent.get(&person) else {
+                continue;
+            };
+            for child in children {
+                let indegree = indegrees
+                    .get_mut(child)
+                    .expect("children are indexed as referenced persons");
+                *indegree -= 1;
+                if *indegree == 0 {
+                    pending_persons.push_back(*child);
+                }
+            }
+        }
+
+        visited != self.referenced_persons.len()
+    }
+}
+
+fn check_relationships(
+    relationships: &[Relationship],
+) -> Result<HashSet<PersonId>, ConsistencyError> {
+    if relationships.is_empty() {
+        return Ok(HashSet::new());
+    }
+
+    let mut relationship_ids = HashSet::with_capacity(relationships.len());
+    if relationships
+        .iter()
+        .any(|relationship| !relationship_ids.insert(relationship.id))
+    {
         return Err(ConsistencyError::RelationshipIdExists);
     }
 
-    let parents = relationships
-        .iter()
-        .map(|rel| rel.parents())
-        .filter(|parents| parents.len() == 2)
-        .map(|mut parents| {
-            parents.sort();
-            parents
-        })
-        .collect_vec();
-    if parents.len() != parents.iter().unique().count() {
+    let mut parent_pairs = HashSet::with_capacity(relationships.len());
+    if relationships.iter().any(|relationship| {
+        let [Some(parent1), Some(parent2)] = relationship.parents else {
+            return false;
+        };
+        let pair = if parent1 <= parent2 {
+            [parent1, parent2]
+        } else {
+            [parent2, parent1]
+        };
+        !parent_pairs.insert(pair)
+    }) {
         return Err(ConsistencyError::RelationshipExists);
     }
 
     if relationships
         .iter()
-        .filter(|rel| !rel.parents().is_empty())
-        .any(|rel| rel.parents[0] == rel.parents[1])
+        .any(|relationship| matches!(relationship.parents, [Some(p1), Some(p2)] if p1 == p2))
     {
         return Err(ConsistencyError::SelfReference);
     }
 
-    if relationships.iter().any(|rel| {
-        rel.children
-            .iter()
-            .any(|child| rel.parents().iter().any(|parent| parent == child))
+    if relationships.iter().any(|relationship| {
+        relationship.children.iter().any(|child| {
+            relationship
+                .parents
+                .iter()
+                .flatten()
+                .any(|parent| parent == child)
+        })
     }) {
         return Err(ConsistencyError::DirectCycle);
     }
 
-    // Relationship.descendants() is safe to call after this check
-    let children = relationships
-        .iter()
-        .flat_map(|rel| rel.children.clone())
-        .collect::<Vec<PersonId>>();
+    let index = RelationshipIndex::new(relationships);
 
-    if children.len() != extract_persons(relationships).len() {
+    if index.child_count != index.referenced_persons.len() {
         return Err(ConsistencyError::MustBeChild);
     }
 
-    if children.len() != children.iter().unique().count() {
+    if !index.children_are_unique {
         return Err(ConsistencyError::MoreThanOnceChild);
     }
 
-    fn nr_connected_persons(relationships: &[Relationship]) -> usize {
-        let mut total_related_persons = relationships[0].persons();
-        let mut index = 0;
-
-        while index < total_related_persons.len() {
-            let current_person = total_related_persons[index];
-            relationships
-                .iter()
-                .filter(|rel| rel.persons().contains(&current_person))
-                .flat_map(|rel| rel.persons())
-                .unique()
-                .for_each(|person| {
-                    if !total_related_persons.contains(&person) {
-                        total_related_persons.push(person);
-                    }
-                });
-            index += 1;
-        }
-
-        total_related_persons.len()
-    }
-
-    let nr_persons = children.len();
-    if nr_connected_persons(relationships) != nr_persons {
+    if index.nr_connected_persons(relationships) != index.child_count {
         return Err(ConsistencyError::Unconnected);
     }
 
-    if relationships.iter().any(|rel| {
-        rel.parents()
-            .iter()
-            .any(|parent| rel.descendants(relationships).contains(parent))
-    }) {
+    if index.has_cycle() {
         return Err(ConsistencyError::IndirectCycle);
     }
 
-    Ok(())
+    Ok(index.referenced_persons)
 }
 
 fn check_persons(persons: &[Person]) -> Result<(), ConsistencyError> {
-    let person_ids: Vec<PersonId> = persons.iter().map(|person| person.id).collect();
-
-    if person_ids.len() != person_ids.iter().unique().count() {
+    let mut person_ids = HashSet::with_capacity(persons.len());
+    if persons.iter().any(|person| !person_ids.insert(person.id)) {
         return Err(ConsistencyError::PersonIdExists);
     }
 

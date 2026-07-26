@@ -1,4 +1,5 @@
 use error::InputError;
+#[cfg(any(test, debug_assertions))]
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
 use specta::Type;
@@ -74,27 +75,6 @@ impl Relationship {
             .chain(self.children.clone())
             .collect()
     }
-
-    fn descendants(&self, relationships: &[Self]) -> Vec<PersonId> {
-        let mut descendants = self.children.clone();
-        let mut index = 0;
-        while index < descendants.len() {
-            let descendant = descendants[index];
-            relationships
-                .iter()
-                .filter(|rel| rel.parents().contains(&descendant))
-                .flat_map(|rel| rel.children.clone())
-                .unique()
-                .for_each(|child| {
-                    if !descendants.contains(&child) {
-                        descendants.push(child)
-                    }
-                });
-
-            index += 1;
-        }
-        descendants
-    }
 }
 
 /// UUID for a `Person`, stored as u128.
@@ -159,6 +139,7 @@ impl From<View<'_>> for TreeData {
 }
 
 /// Extract all `PersonId`'s referenced in a slice of `Relationship`'s.
+#[cfg(any(test, debug_assertions))]
 fn extract_persons(relationships: &[Relationship]) -> Vec<PersonId> {
     let parents = relationships.iter().flat_map(|rel| rel.parents());
     let children = relationships.iter().flat_map(|rel| rel.children.to_vec());
