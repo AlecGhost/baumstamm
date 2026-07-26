@@ -1,0 +1,16 @@
+---
+source: baumstamm-lib/tests/view_snapshots.rs
+expression: "outputs.join(\"\\n\")"
+---
+ancestors=0, descendants=0
+{"relationships":[{"id":"103","parents":[null,null],"children":["6"]}],"persons":[{"id":"6","info":null}]}
+ancestors=0, descendants=1
+{"relationships":[{"id":"103","parents":[null,null],"children":["6"]},{"id":"105","parents":["6","10"],"children":["11","12"]},{"id":"107","parents":[null,null],"children":["10"]}],"persons":[{"id":"6","info":null},{"id":"10","info":null},{"id":"12","info":null},{"id":"11","info":null}]}
+ancestors=1, descendants=0
+{"relationships":[{"id":"102","parents":[null,null],"children":["3"]},{"id":"101","parents":[null,null],"children":["5"]},{"id":"103","parents":["3","5"],"children":["6"]}],"persons":[{"id":"6","info":null},{"id":"3","info":null},{"id":"5","info":null}]}
+ancestors=1, descendants=1
+{"relationships":[{"id":"102","parents":[null,null],"children":["3"]},{"id":"101","parents":[null,null],"children":["5"]},{"id":"103","parents":["3","5"],"children":["6"]},{"id":"105","parents":["6","10"],"children":["11","12"]},{"id":"107","parents":[null,null],"children":["10"]}],"persons":[{"id":"6","info":null},{"id":"10","info":null},{"id":"3","info":null},{"id":"12","info":null},{"id":"5","info":null},{"id":"11","info":null}]}
+ancestors=2, descendants=3
+{"relationships":[{"id":"101","parents":[null,null],"children":["1","2","5","13"]},{"id":"102","parents":["1","2"],"children":["3"]},{"id":"103","parents":["3","5"],"children":["6"]},{"id":"105","parents":["6","10"],"children":["11","12"]},{"id":"106","parents":["11","13"],"children":["14","15"]},{"id":"107","parents":[null,null],"children":["10"]}],"persons":[{"id":"6","info":null},{"id":"10","info":null},{"id":"1","info":null},{"id":"14","info":null},{"id":"3","info":null},{"id":"12","info":null},{"id":"5","info":null},{"id":"2","info":null},{"id":"15","info":null},{"id":"11","info":null},{"id":"13","info":null}]}
+ancestors=3, descendants=2
+{"relationships":[{"id":"101","parents":[null,null],"children":["1","2","5","13"]},{"id":"102","parents":["1","2"],"children":["3"]},{"id":"103","parents":["3","5"],"children":["6"]},{"id":"105","parents":["6","10"],"children":["11","12"]},{"id":"106","parents":["11","13"],"children":["14","15"]},{"id":"107","parents":[null,null],"children":["10"]}],"persons":[{"id":"6","info":null},{"id":"10","info":null},{"id":"1","info":null},{"id":"14","info":null},{"id":"3","info":null},{"id":"12","info":null},{"id":"5","info":null},{"id":"2","info":null},{"id":"15","info":null},{"id":"11","info":null},{"id":"13","info":null}]}
