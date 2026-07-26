@@ -25,6 +25,7 @@ export type TreeViewScope = "ancestors" | "descendants" | "both";
 export type TreeViewSelection = {
   root: string;
   scope: TreeViewScope;
+  options: ViewOptions;
 };
 
 export type Fraction = {

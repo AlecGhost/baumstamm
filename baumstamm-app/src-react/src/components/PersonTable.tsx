@@ -27,7 +27,6 @@ interface PersonTableProps {
   onCreate: () => void;
   onUpdate: () => void;
   onSetPartialView: (root: string, scope: TreeViewScope) => void;
-  onSetFullView: () => void;
 }
 
 type SortDirection = "ascending" | "descending";
@@ -100,7 +99,6 @@ export const PersonTable: React.FC<PersonTableProps> = ({
   onCreate,
   onUpdate,
   onSetPartialView,
-  onSetFullView,
 }) => {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -307,18 +305,6 @@ export const PersonTable: React.FC<PersonTableProps> = ({
               );
             })}
           </div>
-
-          {viewSelection && (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              onClick={onSetFullView}
-              className="h-11 sm:h-8"
-            >
-              Full tree
-            </Button>
-          )}
 
           <details className="relative">
             <summary className="flex h-11 cursor-pointer list-none items-center justify-center gap-2 rounded-md border border-input bg-background px-3 text-sm font-medium shadow-xs hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 sm:h-9 [&::-webkit-details-marker]:hidden">

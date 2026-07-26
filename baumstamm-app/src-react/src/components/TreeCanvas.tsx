@@ -4,32 +4,88 @@ import {
   type TreeData,
   type TreeViewScope,
   type TreeViewSelection,
+  type ViewLimit,
+  type ViewOptions,
 } from "@/lib/types";
+import { updateViewOption, viewLimitFromNumber } from "@/lib/view-options";
 import { TreeGrid } from "./TreeGrid";
 import { PersonDetailsModal } from "./PersonDetailsModal";
 import { usePanZoom } from "@/hooks/use-pan-zoom";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Network, Plus } from "lucide-react";
 
 interface TreeCanvasProps {
   data: TreeData | null;
   viewSelection: TreeViewSelection | null;
+  viewOptions: ViewOptions;
   onCreate: () => void;
   onUpdate: () => void;
   onSetPartialView: (root: string, scope: TreeViewScope) => void;
-  onSetFullView: () => void;
+  onViewOptionsChange: (options: ViewOptions) => void;
 }
+
+interface GenerationLimitControlProps {
+  label: string;
+  limit: ViewLimit;
+  onChange: (limit: ViewLimit) => void;
+}
+
+const GenerationLimitControl: React.FC<GenerationLimitControlProps> = ({
+  label,
+  limit,
+  onChange,
+}) => {
+  const isUnlimited = limit === "Unlimited";
+
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)_7rem] items-center gap-2">
+      <span className="text-xs">{label}</span>
+      <div className="grid gap-1">
+        <select
+          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+          value={isUnlimited ? "unlimited" : "limited"}
+          aria-label={`${label} limit type`}
+          onChange={(event) =>
+            onChange(
+              event.target.value === "unlimited"
+                ? "Unlimited"
+                : viewLimitFromNumber(0),
+            )
+          }
+        >
+          <option value="unlimited">Unlimited</option>
+          <option value="limited">Limit</option>
+        </select>
+        {!isUnlimited && (
+          <input
+            type="number"
+            min="0"
+            step="1"
+            value={limit.Limit}
+            aria-label={`${label} limit`}
+            className="h-8 min-w-0 rounded-md border border-input bg-background px-2 text-xs"
+            onChange={(event) =>
+              onChange(viewLimitFromNumber(event.currentTarget.valueAsNumber))
+            }
+          />
+        )}
+      </div>
+    </div>
+  );
+};
 
 export const TreeCanvas: React.FC<TreeCanvasProps> = ({
   data,
   viewSelection,
+  viewOptions,
   onCreate,
   onUpdate,
   onSetPartialView,
-  onSetFullView,
+  onViewOptionsChange,
 }) => {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewPanelExpanded, setIsViewPanelExpanded] = useState(true);
   const navigationCycleRef = useRef<{
     kind: "parents" | "children" | "siblings";
     candidates: string[];
@@ -236,77 +292,152 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
         </div>
       </div>
 
-      <div
-        className="absolute left-3 right-3 top-3 max-w-sm rounded-md border border-border bg-card p-3 shadow-sm sm:left-4 sm:right-auto sm:top-4"
-        onPointerDown={(event) => event.stopPropagation()}
-        onPointerUp={(event) => event.stopPropagation()}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-sm font-medium">Tree view</p>
-            <p
-              className="line-clamp-2 text-xs text-muted-foreground"
-              aria-live="polite"
-            >
-              {viewSelection
-                ? `${scopeLabels[viewSelection.scope]} of ${getPersonName(viewRoot)}`
-                : selectedPerson
-                  ? `Choose relatives of ${getPersonName(selectedPerson)}`
-                  : "Select a person to filter the tree"}
-            </p>
-          </div>
-          {viewSelection && (
+      {isViewPanelExpanded ? (
+        <div
+          className="absolute left-3 top-3 max-h-[calc(100%-1.5rem)] w-[calc(100%-1.5rem)] max-w-sm overflow-y-auto rounded-md border border-border bg-card p-3 shadow-sm sm:left-4 sm:top-4 sm:max-h-[calc(100%-2rem)]"
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-medium">Tree view</p>
+              <p
+                className="line-clamp-2 text-xs text-muted-foreground"
+                aria-live="polite"
+              >
+                {viewSelection
+                  ? `${scopeLabels[viewSelection.scope]} of ${getPersonName(viewRoot)}`
+                  : selectedPerson
+                    ? `Choose relatives of ${getPersonName(selectedPerson)}`
+                    : "Select a person to filter the tree"}
+              </p>
+            </div>
             <Button
               type="button"
-              size="sm"
-              variant="outline"
-              onClick={onSetFullView}
-              className="h-10 shrink-0 sm:h-8"
+              size="icon"
+              variant="ghost"
+              className="h-9 w-9 shrink-0"
+              aria-label="Collapse tree view options"
+              aria-expanded="true"
+              onClick={() => setIsViewPanelExpanded(false)}
             >
-              Full tree
+              <Network className="h-4 w-4" aria-hidden="true" />
             </Button>
-          )}
+          </div>
+
+          <div
+            className="mt-2 grid grid-cols-3 gap-1"
+            role="group"
+            aria-label={
+              selectedPerson
+                ? `Filter tree around ${getPersonName(selectedPerson)}`
+                : "Filter tree around selected person"
+            }
+          >
+            {(
+              [
+                ["ancestors", "Ancestors"],
+                ["descendants", "Descendants"],
+                ["both", "Both"],
+              ] as const
+            ).map(([scope, label]) => {
+              const isActive =
+                viewSelection?.root === selectedPersonId &&
+                viewSelection.scope === scope;
+              return (
+                <Button
+                  key={scope}
+                  type="button"
+                  size="sm"
+                  variant={isActive ? "default" : "outline"}
+                  disabled={!selectedPersonId}
+                  aria-pressed={isActive}
+                  onClick={() => {
+                    if (selectedPersonId) {
+                      onSetPartialView(selectedPersonId, scope);
+                    }
+                  }}
+                  className="h-10 min-w-0 px-1 text-xs sm:h-8 sm:px-3 sm:text-sm"
+                >
+                  {label}
+                </Button>
+              );
+            })}
+          </div>
+
+          <fieldset className="mt-3 border-t border-border pt-3">
+            <legend className="sr-only">Advanced tree view options</legend>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+              {(
+                [
+                  ["show_partners", "Partners"],
+                  ["show_siblings", "Siblings"],
+                  ["show_partner_siblings", "Partner siblings"],
+                  ["show_ancestor_siblings", "Ancestor siblings"],
+                ] as const
+              ).map(([key, label]) => (
+                <label
+                  key={key}
+                  className="flex min-h-8 items-center gap-2 text-xs"
+                >
+                  <input
+                    type="checkbox"
+                    checked={viewOptions[key]}
+                    onChange={(event) =>
+                      onViewOptionsChange(
+                        updateViewOption(
+                          viewOptions,
+                          key,
+                          event.currentTarget.checked,
+                        ),
+                      )
+                    }
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="mt-3 grid gap-3 border-t border-border pt-3">
+              <GenerationLimitControl
+                label="Ancestor generations"
+                limit={viewOptions.ancestor_gen_limit}
+                onChange={(limit) =>
+                  onViewOptionsChange(
+                    updateViewOption(viewOptions, "ancestor_gen_limit", limit),
+                  )
+                }
+              />
+              <GenerationLimitControl
+                label="Descendant generations"
+                limit={viewOptions.descendent_gen_limit}
+                onChange={(limit) =>
+                  onViewOptionsChange(
+                    updateViewOption(
+                      viewOptions,
+                      "descendent_gen_limit",
+                      limit,
+                    ),
+                  )
+                }
+              />
+            </div>
+          </fieldset>
         </div>
-        <div
-          className="mt-2 grid grid-cols-3 gap-1"
-          role="group"
-          aria-label={
-            selectedPerson
-              ? `Filter tree around ${getPersonName(selectedPerson)}`
-              : "Filter tree around selected person"
-          }
+      ) : (
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className="absolute left-3 top-3 h-11 w-11 bg-card shadow-sm sm:left-4 sm:top-4"
+          aria-label="Expand tree view options"
+          aria-expanded="false"
+          onClick={() => setIsViewPanelExpanded(true)}
+          onPointerDown={(event) => event.stopPropagation()}
+          onPointerUp={(event) => event.stopPropagation()}
         >
-          {(
-            [
-              ["ancestors", "Ancestors"],
-              ["descendants", "Descendants"],
-              ["both", "Both"],
-            ] as const
-          ).map(([scope, label]) => {
-            const isActive =
-              viewSelection?.root === selectedPersonId &&
-              viewSelection.scope === scope;
-            return (
-              <Button
-                key={scope}
-                type="button"
-                size="sm"
-                variant={isActive ? "default" : "outline"}
-                disabled={!selectedPersonId}
-                aria-pressed={isActive}
-                onClick={() => {
-                  if (selectedPersonId) {
-                    onSetPartialView(selectedPersonId, scope);
-                  }
-                }}
-                className="h-10 min-w-0 px-1 text-xs sm:h-8 sm:px-3 sm:text-sm"
-              >
-                {label}
-              </Button>
-            );
-          })}
-        </div>
-      </div>
+          <Network className="h-5 w-5" aria-hidden="true" />
+        </Button>
+      )}
 
       {/* Controls overlay */}
       <div

@@ -12,6 +12,11 @@ import {
   TableProperties,
 } from "lucide-react";
 import { WasmServiceLive } from "@/lib/wasm";
+import {
+  applyScopePreset,
+  createDefaultViewOptions,
+  getScopeToggleAction,
+} from "@/lib/view-options";
 import type {
   Person,
   TreeData,
@@ -34,15 +39,6 @@ type OpenTreePayload = {
 
 type SaveStatus = "idle" | "saving" | "saved";
 type MainView = "tree" | "table";
-
-const viewOptionsForScope = (scope: TreeViewScope): ViewOptions => ({
-  show_partners: true,
-  show_siblings: false,
-  show_partner_siblings: false,
-  show_ancestor_siblings: false,
-  ancestor_gen_limit: scope === "descendants" ? { Limit: 0 } : "Unlimited",
-  descendent_gen_limit: scope === "ancestors" ? { Limit: 0 } : "Unlimited",
-});
 
 const isTauri = () => typeof window !== "undefined" && "__TAURI__" in window;
 
@@ -72,6 +68,9 @@ function App() {
   const [treeKey, setTreeKey] = useState<number>(0);
   const [treeViewSelection, setTreeViewSelection] =
     useState<TreeViewSelection | null>(null);
+  const [viewOptions, setViewOptions] = useState<ViewOptions>(
+    createDefaultViewOptions,
+  );
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [mainView, setMainView] = useState<MainView>("tree");
   const fileNameRef = useRef<string>("family-tree.json");
@@ -306,28 +305,6 @@ function App() {
     });
   };
 
-  const handleSetPartialView = useCallback(
-    (root: string, scope: TreeViewScope) => {
-      if (!isWasmLoaded) return;
-      setError(null);
-
-      Effect.runPromise(
-        Effect.gen(function* () {
-          yield* WasmServiceLive.setPartialView(
-            root,
-            viewOptionsForScope(scope),
-          );
-          const data = yield* WasmServiceLive.getTreeData();
-          setTreeData(data);
-          setTreeViewSelection({ root, scope });
-        }),
-      ).catch((err) => {
-        setError(`Failed to filter tree: ${err.message}`);
-      });
-    },
-    [isWasmLoaded],
-  );
-
   const handleSetFullView = useCallback(() => {
     if (!isWasmLoaded) return;
     setError(null);
@@ -343,6 +320,53 @@ function App() {
       setError(`Failed to restore full tree: ${err.message}`);
     });
   }, [isWasmLoaded]);
+
+  const handleSetPartialView = useCallback(
+    (root: string, scope: TreeViewScope) => {
+      if (!isWasmLoaded) return;
+      if (getScopeToggleAction(treeViewSelection, root, scope) === "clear") {
+        handleSetFullView();
+        return;
+      }
+
+      setError(null);
+      const options = applyScopePreset(viewOptions, scope);
+      setViewOptions(options);
+
+      Effect.runPromise(
+        Effect.gen(function* () {
+          yield* WasmServiceLive.setPartialView(root, options);
+          const data = yield* WasmServiceLive.getTreeData();
+          setTreeData(data);
+          setTreeViewSelection({ root, scope, options });
+        }),
+      ).catch((err) => {
+        setError(`Failed to filter tree: ${err.message}`);
+      });
+    },
+    [handleSetFullView, isWasmLoaded, treeViewSelection, viewOptions],
+  );
+
+  const handleViewOptionsChange = useCallback(
+    (options: ViewOptions) => {
+      setViewOptions(options);
+      if (!isWasmLoaded || !treeViewSelection) return;
+
+      setError(null);
+      const { root, scope } = treeViewSelection;
+      Effect.runPromise(
+        Effect.gen(function* () {
+          yield* WasmServiceLive.setPartialView(root, options);
+          const data = yield* WasmServiceLive.getTreeData();
+          setTreeData(data);
+          setTreeViewSelection({ root, scope, options });
+        }),
+      ).catch((err) => {
+        setError(`Failed to update tree view: ${err.message}`);
+      });
+    },
+    [isWasmLoaded, treeViewSelection],
+  );
 
   if (!isWasmLoaded && !error) {
     return (
@@ -473,10 +497,11 @@ function App() {
             key={treeKey}
             data={treeData}
             viewSelection={treeViewSelection}
+            viewOptions={viewOptions}
             onCreate={handleCreateTree}
             onUpdate={handleRefresh}
             onSetPartialView={handleSetPartialView}
-            onSetFullView={handleSetFullView}
+            onViewOptionsChange={handleViewOptionsChange}
           />
         ) : (
           <PersonTable
@@ -487,7 +512,6 @@ function App() {
             onCreate={handleCreateTree}
             onUpdate={handleRefresh}
             onSetPartialView={handleSetPartialView}
-            onSetFullView={handleSetFullView}
           />
         )}
       </main>
