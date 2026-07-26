@@ -17,6 +17,7 @@ import {
 } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { PersonDetailsModal } from "@/components/PersonDetailsModal";
+import { getInfoKeyLabel } from "@/lib/utils";
 
 interface PersonTableProps {
   data: TreeData | null;
@@ -44,20 +45,6 @@ const defaultColumnIds = [
   infoColumnId("@dateOfDeath"),
 ];
 const reservedInfoKeys = new Set(["@firstName", "@lastName", "@image"]);
-
-const infoKeyLabel = (key: string) => {
-  if (key === "@dateOfBirth") return "Date of birth";
-  if (key === "@dateOfDeath") return "Date of death";
-
-  const words = key
-    .replace(/^@/, "")
-    .replace(/[_-]+/g, " ")
-    .replace(/([a-z\d])([A-Z])/g, "$1 $2")
-    .trim();
-  return words
-    ? `${words.charAt(0).toUpperCase()}${words.slice(1)}`
-    : "Unnamed property";
-};
 
 const displayImageSource = (person: Person) => {
   const source = person.info?.get("@image")?.trim();
@@ -131,13 +118,13 @@ export const PersonTable: React.FC<PersonTableProps> = ({
 
     const infoColumns = Array.from(usedInfoKeys)
       .sort((left, right) =>
-        infoKeyLabel(left).localeCompare(infoKeyLabel(right), undefined, {
+        getInfoKeyLabel(left).localeCompare(getInfoKeyLabel(right), undefined, {
           sensitivity: "base",
         }),
       )
       .map((key) => ({
         id: infoColumnId(key),
-        label: infoKeyLabel(key),
+        label: getInfoKeyLabel(key),
         getValue: (person: Person) => person.info?.get(key) ?? "",
       }));
 

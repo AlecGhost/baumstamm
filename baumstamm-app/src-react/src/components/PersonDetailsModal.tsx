@@ -6,6 +6,7 @@ import { WasmServiceLive } from "@/lib/wasm";
 import { Effect } from "effect";
 import { TreeGrid } from "./TreeGrid";
 import { usePanZoom } from "@/hooks/use-pan-zoom";
+import { getInfoKeyLabel } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Embedded pan/zoom canvas for the sub-tree inside the modal
@@ -420,7 +421,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
               ) : (
                 <>
                   <label className="text-xs font-medium text-muted-foreground">
-                    Image Path/URL (@image)
+                    Image path or URL
                   </label>
                   <input
                     autoFocus
@@ -683,16 +684,10 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                     </h3>
                     <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
                       {remainingEntries.map(([key, value]) => {
-                        const displayKey = key.startsWith("@")
-                          ? key.substring(1)
-                          : key;
-                        const formattedKey =
-                          displayKey.charAt(0).toUpperCase() +
-                          displayKey.slice(1).replace(/([A-Z])/g, " $1");
                         return (
                           <div key={key} className="break-words">
                             <dt className="text-xs text-muted-foreground font-medium mb-0.5">
-                              {formattedKey}
+                              {getInfoKeyLabel(key)}
                             </dt>
                             <dd className="text-sm">
                               {value as React.ReactNode}
@@ -710,7 +705,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-muted-foreground">
-                    First Name (@firstName)
+                    First name
                   </label>
                   <input
                     className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
@@ -725,7 +720,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-muted-foreground">
-                    Last Name (@lastName)
+                    Last name
                   </label>
                   <input
                     className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
@@ -743,7 +738,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-muted-foreground">
-                    Date of Birth (@dateOfBirth)
+                    Date of birth
                   </label>
                   <input
                     className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
@@ -759,7 +754,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-medium text-muted-foreground">
-                    Date of Death (@dateOfDeath)
+                    Date of death
                   </label>
                   <input
                     className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
@@ -784,7 +779,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                   <div key={key} className="flex gap-2 items-start">
                     <div className="flex-1 space-y-1">
                       <label className="text-xs font-medium text-muted-foreground">
-                        {key}
+                        {getInfoKeyLabel(key)}
                       </label>
                       <div className="flex flex-col gap-2 sm:flex-row">
                         <input
@@ -806,7 +801,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                               return next;
                             })
                           }
-                          title={`Remove ${key}`}
+                          title={`Remove ${getInfoKeyLabel(key)}`}
                         >
                           Remove
                         </button>
@@ -818,7 +813,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                 <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-end sm:gap-2">
                   <div className="flex-1 space-y-1">
                     <label className="text-xs font-medium text-muted-foreground">
-                      New Key
+                      Field name
                     </label>
                     <input
                       className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
@@ -829,7 +824,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
                   </div>
                   <div className="flex-1 space-y-1">
                     <label className="text-xs font-medium text-muted-foreground">
-                      Value
+                      Field value
                     </label>
                     <input
                       className="flex h-11 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring sm:h-9"
