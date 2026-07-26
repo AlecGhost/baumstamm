@@ -11,7 +11,7 @@ Usage:
   scripts/profile-cpu-samply.sh --help
 
 Options:
-  --output-dir DIR  Store the fixture, CLI output, and profile.json.gz in DIR.
+  --output-dir DIR  Store the fixture, CLI output, and profile.json in DIR.
                     By default a unique directory below
                     ${TMPDIR:-/tmp}/baumstamm-profile is used.
   -h, --help        Show this help.
@@ -89,7 +89,7 @@ mkdir -p -- "$output_dir"
 output_dir=$(CDPATH= cd -- "$output_dir" && pwd)
 fixture=$output_dir/workload.json
 view_output=$output_dir/view-output.json
-profile=$output_dir/profile.json.gz
+profile=$output_dir/profile.json
 
 for artifact in "$fixture" "$view_output" "$profile"; do
     [[ ! -e $artifact ]] ||

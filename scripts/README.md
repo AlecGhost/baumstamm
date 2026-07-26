@@ -20,7 +20,7 @@ Then run it from the repository root:
 scripts/profile-cpu-samply.sh
 ```
 
-By default, the fixture, captured CLI output, and `profile.json.gz` are written
+By default, the fixture, captured CLI output, and `profile.json` are written
 to a unique directory under `${TMPDIR:-/tmp}/baumstamm-profile`, keeping
 generated artifacts outside tracked source. Choose another location with:
 
@@ -29,7 +29,7 @@ scripts/profile-cpu-samply.sh --output-dir /tmp/my-baumstamm-profile
 ```
 
 The script passes `--save-only`, so samply writes the profile without opening a
-browser or starting its local server. Load `profile.json.gz` manually at
+browser or starting its local server. Load `profile.json` manually at
 [Firefox Profiler](https://profiler.firefox.com/) to inspect its flame graph,
 call tree, and timeline. The profile stays local unless you explicitly upload
 it.
