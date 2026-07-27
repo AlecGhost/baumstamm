@@ -55,6 +55,21 @@ const fileNameFromPath = (path: string) =>
 const withJsonExtension = (name: string) =>
   name.toLowerCase().endsWith(".json") ? name : `${name}.json`;
 
+const subTreeFileName = (sourceName: string, rootName: string) => {
+  const sourceStem = fileNameFromPath(sourceName).replace(/\.json$/i, "");
+  const safeRootName =
+    rootName
+      .trim()
+      .replace(/[<>:"/\\|?*]/g, "-")
+      .replace(/\s+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "") || "person";
+  return `${sourceStem}-${safeRootName}-subtree.json`;
+};
+
+const siblingPath = (sourcePath: string | null, fileName: string) =>
+  sourcePath?.replace(/[^\\/]+$/, fileName) ?? fileName;
+
 const downloadTree = (content: string, fileName: string) => {
   const blob = new Blob([content], { type: "application/json" });
   const url = URL.createObjectURL(blob);
@@ -84,13 +99,20 @@ function App() {
     createDefaultViewOptions,
   );
   const [gridLayoutAlgorithm, setGridLayoutAlgorithm] =
-    useState<GridLayoutAlgorithm>("Centered");
+    useState<GridLayoutAlgorithm>("ForceDirected");
+  const [isTreeViewUpdating, setIsTreeViewUpdating] = useState<boolean>(false);
+  const [isGridLayoutUpdating, setIsGridLayoutUpdating] =
+    useState<boolean>(false);
+  const [isSubTreeSaving, setIsSubTreeSaving] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [mainView, setMainView] = useState<MainView>("tree");
   const fileNameRef = useRef<string>("family-tree.json");
   const currentPathRef = useRef<string | null>(null);
   const hasTreeRef = useRef<boolean>(false);
   const savingRef = useRef<boolean>(false);
+  const treeViewUpdateRef = useRef<boolean>(false);
+  const gridLayoutUpdateRef = useRef<boolean>(false);
+  const subTreeSavingRef = useRef<boolean>(false);
   const savedResetTimeoutRef = useRef<number | null>(null);
   const loadTreeDialogRef = useRef<LoadTreeDialogHandle>(null);
 
@@ -215,6 +237,57 @@ function App() {
     [isWasmLoaded, resetSaveStatus, showSavedStatus],
   );
 
+  const handleSaveSubTree = useCallback(async () => {
+    if (!isWasmLoaded || !treeViewSelection) {
+      setError("Choose a sub-tree before saving it.");
+      return;
+    }
+    if (subTreeSavingRef.current || treeViewUpdateRef.current) return;
+
+    const { root, options } = treeViewSelection;
+    const rootPerson = fullTreePersons.find((person) => person.id === root);
+    const fileName = subTreeFileName(
+      fileNameRef.current,
+      rootPerson?.info
+        ? `${rootPerson.info.get("@firstName") ?? ""} ${
+            rootPerson.info.get("@lastName") ?? ""
+          }`.trim()
+        : "",
+    );
+
+    setError(null);
+    subTreeSavingRef.current = true;
+    setIsSubTreeSaving(true);
+    try {
+      const content = await Effect.runPromise(
+        WasmServiceLive.saveSubTree(root, options),
+      );
+
+      if (!isTauri()) {
+        downloadTree(content, fileName);
+        return;
+      }
+
+      const path = await showSaveDialog({
+        title: "Save Sub-tree",
+        defaultPath: siblingPath(currentPathRef.current, fileName),
+        filters: [{ name: "Family tree JSON", extensions: ["json"] }],
+      });
+      if (path === null) return;
+
+      await invoke("save_as", {
+        path: withJsonExtension(path),
+        content,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setError(`Failed to save sub-tree: ${message}`);
+    } finally {
+      subTreeSavingRef.current = false;
+      setIsSubTreeSaving(false);
+    }
+  }, [fullTreePersons, isWasmLoaded, treeViewSelection]);
+
   const handleCreateTree = useCallback(() => {
     if (!isWasmLoaded) return;
 
@@ -315,86 +388,118 @@ function App() {
   };
 
   const handleSetFullView = useCallback(() => {
-    if (!isWasmLoaded) return;
-    setError(null);
+    if (!isWasmLoaded || treeViewUpdateRef.current) return;
+    const previousSelection = treeViewSelection;
 
-    Effect.runPromise(
-      Effect.gen(function* () {
-        const data = yield* WasmServiceLive.setFullViewSnapshot;
+    setError(null);
+    treeViewUpdateRef.current = true;
+    setIsTreeViewUpdating(true);
+    setTreeViewSelection(null);
+
+    Effect.runPromise(WasmServiceLive.setFullViewSnapshot)
+      .then((data) => {
         setTreeData(data);
-        setTreeViewSelection(null);
-      }),
-    ).catch((err) => {
-      setError(`Failed to restore full tree: ${err.message}`);
-    });
-  }, [isWasmLoaded]);
+      })
+      .catch((err) => {
+        setTreeViewSelection(previousSelection);
+        setError(`Failed to restore full tree: ${err.message}`);
+      })
+      .finally(() => {
+        treeViewUpdateRef.current = false;
+        setIsTreeViewUpdating(false);
+      });
+  }, [isWasmLoaded, treeViewSelection]);
 
   const handleSetPartialView = useCallback(
     (root: string, scope: TreeViewScope) => {
-      if (!isWasmLoaded) return;
+      if (!isWasmLoaded || treeViewUpdateRef.current) return;
       if (getScopeToggleAction(treeViewSelection, root, scope) === "clear") {
         handleSetFullView();
         return;
       }
 
+      const previousOptions = viewOptions;
+      const previousSelection = treeViewSelection;
       setError(null);
       const options = applyScopePreset(viewOptions, scope);
+      treeViewUpdateRef.current = true;
+      setIsTreeViewUpdating(true);
       setViewOptions(options);
+      setTreeViewSelection({ root, scope, options });
 
-      Effect.runPromise(
-        Effect.gen(function* () {
-          const data = yield* WasmServiceLive.setPartialViewSnapshot(
-            root,
-            options,
-          );
+      Effect.runPromise(WasmServiceLive.setPartialViewSnapshot(root, options))
+        .then((data) => {
           setTreeData(data);
-          setTreeViewSelection({ root, scope, options });
-        }),
-      ).catch((err) => {
-        setError(`Failed to filter tree: ${err.message}`);
-      });
+        })
+        .catch((err) => {
+          setViewOptions(previousOptions);
+          setTreeViewSelection(previousSelection);
+          setError(`Failed to filter tree: ${err.message}`);
+        })
+        .finally(() => {
+          treeViewUpdateRef.current = false;
+          setIsTreeViewUpdating(false);
+        });
     },
     [handleSetFullView, isWasmLoaded, treeViewSelection, viewOptions],
   );
 
   const handleViewOptionsChange = useCallback(
     (options: ViewOptions) => {
-      setViewOptions(options);
-      if (!isWasmLoaded || !treeViewSelection) return;
+      if (treeViewUpdateRef.current) return;
+      const previousOptions = viewOptions;
+      const previousSelection = treeViewSelection;
 
+      setViewOptions(options);
+      if (!isWasmLoaded || !previousSelection) return;
+
+      const { root, scope } = previousSelection;
       setError(null);
-      const { root, scope } = treeViewSelection;
-      Effect.runPromise(
-        Effect.gen(function* () {
-          const data = yield* WasmServiceLive.setPartialViewSnapshot(
-            root,
-            options,
-          );
+      treeViewUpdateRef.current = true;
+      setIsTreeViewUpdating(true);
+      setTreeViewSelection({ root, scope, options });
+
+      Effect.runPromise(WasmServiceLive.setPartialViewSnapshot(root, options))
+        .then((data) => {
           setTreeData(data);
-          setTreeViewSelection({ root, scope, options });
-        }),
-      ).catch((err) => {
-        setError(`Failed to update tree view: ${err.message}`);
-      });
+        })
+        .catch((err) => {
+          setViewOptions(previousOptions);
+          setTreeViewSelection(previousSelection);
+          setError(`Failed to update tree view: ${err.message}`);
+        })
+        .finally(() => {
+          treeViewUpdateRef.current = false;
+          setIsTreeViewUpdating(false);
+        });
     },
-    [isWasmLoaded, treeViewSelection],
+    [isWasmLoaded, treeViewSelection, viewOptions],
   );
 
   const handleGridLayoutChange = useCallback(
     (layoutAlgorithm: GridLayoutAlgorithm) => {
-      if (!isWasmLoaded) return;
+      if (!isWasmLoaded || gridLayoutUpdateRef.current) return;
+      const previousLayoutAlgorithm = gridLayoutAlgorithm;
+
       setError(null);
+      gridLayoutUpdateRef.current = true;
+      setIsGridLayoutUpdating(true);
+      setGridLayoutAlgorithm(layoutAlgorithm);
 
       Effect.runPromise(WasmServiceLive.setGridLayoutSnapshot(layoutAlgorithm))
         .then((data) => {
           setTreeData(data);
-          setGridLayoutAlgorithm(layoutAlgorithm);
         })
         .catch((err) => {
+          setGridLayoutAlgorithm(previousLayoutAlgorithm);
           setError(`Failed to update grid layout: ${err.message}`);
+        })
+        .finally(() => {
+          gridLayoutUpdateRef.current = false;
+          setIsGridLayoutUpdating(false);
         });
     },
-    [isWasmLoaded],
+    [gridLayoutAlgorithm, isWasmLoaded],
   );
 
   if (!isWasmLoaded && !error) {
@@ -528,11 +633,15 @@ function App() {
             viewSelection={treeViewSelection}
             viewOptions={viewOptions}
             gridLayoutAlgorithm={gridLayoutAlgorithm}
+            isTreeViewUpdating={isTreeViewUpdating}
+            isGridLayoutUpdating={isGridLayoutUpdating}
+            isSubTreeSaving={isSubTreeSaving}
             onCreate={handleCreateTree}
             onUpdate={handleRefresh}
             onSetPartialView={handleSetPartialView}
             onViewOptionsChange={handleViewOptionsChange}
             onGridLayoutChange={handleGridLayoutChange}
+            onSaveSubTree={handleSaveSubTree}
           />
         ) : (
           <PersonTable

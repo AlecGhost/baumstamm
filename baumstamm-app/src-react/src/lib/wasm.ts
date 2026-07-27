@@ -20,6 +20,10 @@ export interface WasmService {
   readonly newTree: Effect.Effect<void, Error>;
   readonly newTreeSnapshot: Effect.Effect<TreeSnapshot, Error>;
   readonly saveTree: () => Effect.Effect<string, Error>;
+  readonly saveSubTree: (
+    root: string,
+    options: ViewOptions,
+  ) => Effect.Effect<string, Error>;
   readonly getPersons: () => Effect.Effect<Person[], Error>;
   readonly getFullPersons: () => Effect.Effect<Person[], Error>;
   readonly getRelationships: () => Effect.Effect<Relationship[], Error>;
@@ -101,6 +105,8 @@ export const WasmServiceLive: WasmService = {
   newTree: rpcEffect("create tree", "newTree"),
   newTreeSnapshot: rpcEffect("create tree", "newTreeSnapshot"),
   saveTree: () => rpcEffect("save tree", "saveTree"),
+  saveSubTree: (root, options) =>
+    rpcEffect("save sub-tree", "saveSubTree", root, options),
   getPersons: () => rpcEffect("get persons", "getPersons"),
   getFullPersons: () => rpcEffect("get full person list", "getFullPersons"),
   getRelationships: () => rpcEffect("get relationships", "getRelationships"),

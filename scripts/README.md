@@ -25,7 +25,7 @@ to a unique directory under `${TMPDIR:-/tmp}/baumstamm-profile`, keeping
 generated artifacts outside tracked source. Choose another location with:
 
 ```sh
-scripts/profile-cpu-samply.sh --output-dir /tmp/my-baumstamm-profile
+scripts/profile-cpu-samply.sh --output-dir ./tmp/my-baumstamm-profile
 ```
 
 The script passes `--save-only`, so samply writes the profile without opening a

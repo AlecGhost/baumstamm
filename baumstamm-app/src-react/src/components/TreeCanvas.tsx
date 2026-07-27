@@ -5,10 +5,9 @@ import {
   type TreeData,
   type TreeViewScope,
   type TreeViewSelection,
-  type ViewLimit,
   type ViewOptions,
 } from "@/lib/types";
-import { updateViewOption, viewLimitFromNumber } from "@/lib/view-options";
+import { updateViewOption } from "@/lib/view-options";
 import {
   getTreeNavigationTarget,
   type TreeNavigationDirection,
@@ -17,84 +16,43 @@ import { TreeGrid } from "./TreeGrid";
 import { PersonDetailsModal } from "./PersonDetailsModal";
 import { usePanZoom } from "@/hooks/use-pan-zoom";
 import { Button } from "@/components/ui/button";
-import { Network, Plus } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { LoaderCircle, Network, Plus, Save } from "lucide-react";
 
 interface TreeCanvasProps {
   data: TreeData | null;
   viewSelection: TreeViewSelection | null;
   viewOptions: ViewOptions;
   gridLayoutAlgorithm: GridLayoutAlgorithm;
+  isTreeViewUpdating: boolean;
+  isGridLayoutUpdating: boolean;
+  isSubTreeSaving: boolean;
   onCreate: () => void;
   onUpdate: () => void;
   onSetPartialView: (root: string, scope: TreeViewScope) => void;
   onViewOptionsChange: (options: ViewOptions) => void;
   onGridLayoutChange: (layoutAlgorithm: GridLayoutAlgorithm) => void;
+  onSaveSubTree: () => void;
 }
-
-interface GenerationLimitControlProps {
-  label: string;
-  limit: ViewLimit;
-  onChange: (limit: ViewLimit) => void;
-}
-
-const GenerationLimitControl: React.FC<GenerationLimitControlProps> = ({
-  label,
-  limit,
-  onChange,
-}) => {
-  const isUnlimited = limit === "Unlimited";
-
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)_7rem] items-center gap-2">
-      <span className="text-xs">{label}</span>
-      <div className="grid gap-1">
-        <select
-          className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-          value={isUnlimited ? "unlimited" : "limited"}
-          aria-label={`${label} limit type`}
-          onChange={(event) =>
-            onChange(
-              event.target.value === "unlimited"
-                ? "Unlimited"
-                : viewLimitFromNumber(0),
-            )
-          }
-        >
-          <option value="unlimited">Unlimited</option>
-          <option value="limited">Limit</option>
-        </select>
-        {!isUnlimited && (
-          <input
-            type="number"
-            min="0"
-            step="1"
-            value={limit.Limit}
-            aria-label={`${label} limit`}
-            className="h-8 min-w-0 rounded-md border border-input bg-background px-2 text-xs"
-            onChange={(event) =>
-              onChange(viewLimitFromNumber(event.currentTarget.valueAsNumber))
-            }
-          />
-        )}
-      </div>
-    </div>
-  );
-};
 
 export const TreeCanvas: React.FC<TreeCanvasProps> = ({
   data,
   viewSelection,
   viewOptions,
   gridLayoutAlgorithm,
+  isTreeViewUpdating,
+  isGridLayoutUpdating,
+  isSubTreeSaving,
   onCreate,
   onUpdate,
   onSetPartialView,
   onViewOptionsChange,
   onGridLayoutChange,
+  onSaveSubTree,
 }) => {
   const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isViewPanelExpanded, setIsViewPanelExpanded] = useState(true);
+  const [isViewPanelExpanded, setIsViewPanelExpanded] = useState(false);
 
   const { containerRef, setZoom, setPan, pointerHandlers, transformStyle } =
     usePanZoom({ enabled: !isModalOpen });
@@ -274,65 +232,53 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
             </Button>
           </div>
 
-          <div
-            className="mt-2 grid grid-cols-3 gap-1"
-            role="group"
-            aria-label={
-              selectedPerson
-                ? `Filter tree around ${getPersonName(selectedPerson)}`
-                : "Filter tree around selected person"
-            }
+          <fieldset
+            className="mt-2 disabled:cursor-wait disabled:opacity-60"
+            disabled={isTreeViewUpdating}
+            aria-busy={isTreeViewUpdating}
           >
-            {(
-              [
-                ["ancestors", "Ancestors"],
-                ["descendants", "Descendants"],
-                ["both", "Both"],
-              ] as const
-            ).map(([scope, label]) => {
-              const isActive =
-                viewSelection?.root === selectedPersonId &&
-                viewSelection.scope === scope;
-              return (
-                <Button
-                  key={scope}
-                  type="button"
-                  size="sm"
-                  variant={isActive ? "default" : "outline"}
-                  disabled={!selectedPersonId}
-                  aria-pressed={isActive}
-                  onClick={() => {
-                    if (selectedPersonId) {
-                      onSetPartialView(selectedPersonId, scope);
-                    }
-                  }}
-                  className="h-10 min-w-0 px-1 text-xs sm:h-8 sm:px-3 sm:text-sm"
-                >
-                  {label}
-                </Button>
-              );
-            })}
-          </div>
+            <legend className="sr-only">Tree relationship options</legend>
+            <div
+              className="grid grid-cols-3 gap-1"
+              role="group"
+              aria-label={
+                selectedPerson
+                  ? `Filter tree around ${getPersonName(selectedPerson)}`
+                  : "Filter tree around selected person"
+              }
+            >
+              {(
+                [
+                  ["ancestors", "Ancestors"],
+                  ["descendants", "Descendants"],
+                  ["both", "Both"],
+                ] as const
+              ).map(([scope, label]) => {
+                const isActive =
+                  viewSelection?.root === selectedPersonId &&
+                  viewSelection.scope === scope;
+                return (
+                  <Button
+                    key={scope}
+                    type="button"
+                    size="sm"
+                    variant={isActive ? "default" : "outline"}
+                    disabled={!selectedPersonId}
+                    aria-pressed={isActive}
+                    onClick={() => {
+                      if (selectedPersonId) {
+                        onSetPartialView(selectedPersonId, scope);
+                      }
+                    }}
+                    className="h-10 min-w-0 px-1 text-xs sm:h-8 sm:px-3 sm:text-sm"
+                  >
+                    {label}
+                  </Button>
+                );
+              })}
+            </div>
 
-          <fieldset className="mt-3 border-t border-border pt-3">
-            <legend className="sr-only">Advanced tree view options</legend>
-            <label className="grid grid-cols-[minmax(0,1fr)_9rem] items-center gap-2 pb-3 text-xs">
-              <span>Grid layout</span>
-              <select
-                className="h-8 rounded-md border border-input bg-background px-2 text-xs"
-                value={gridLayoutAlgorithm}
-                aria-label="Grid layout algorithm"
-                onChange={(event) =>
-                  onGridLayoutChange(
-                    event.currentTarget.value as GridLayoutAlgorithm,
-                  )
-                }
-              >
-                <option value="Centered">Centered</option>
-                <option value="ForceDirected">Relationship forces</option>
-              </select>
-            </label>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+            <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-border pt-3">
               {(
                 [
                   ["show_partners", "Partners"],
@@ -362,30 +308,59 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
                 </label>
               ))}
             </div>
-            <div className="mt-3 grid gap-3 border-t border-border pt-3">
-              <GenerationLimitControl
-                label="Ancestor generations"
-                limit={viewOptions.ancestor_gen_limit}
-                onChange={(limit) =>
-                  onViewOptionsChange(
-                    updateViewOption(viewOptions, "ancestor_gen_limit", limit),
-                  )
-                }
-              />
-              <GenerationLimitControl
-                label="Descendant generations"
-                limit={viewOptions.descendent_gen_limit}
-                onChange={(limit) =>
-                  onViewOptionsChange(
-                    updateViewOption(
-                      viewOptions,
-                      "descendent_gen_limit",
-                      limit,
-                    ),
-                  )
-                }
-              />
-            </div>
+
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="mt-3 w-full"
+              disabled={!viewSelection || isSubTreeSaving}
+              onClick={onSaveSubTree}
+            >
+              {isSubTreeSaving ? (
+                <LoaderCircle
+                  className="h-4 w-4 animate-spin"
+                  aria-hidden="true"
+                />
+              ) : (
+                <Save className="h-4 w-4" aria-hidden="true" />
+              )}
+              {isSubTreeSaving ? "Saving sub-tree…" : "Save sub-tree"}
+            </Button>
+          </fieldset>
+
+          <Separator className="my-3" />
+
+          <fieldset
+            disabled={isGridLayoutUpdating}
+            aria-busy={isGridLayoutUpdating}
+            className="disabled:cursor-wait disabled:opacity-60"
+          >
+            <legend className="sr-only">Grid layout options</legend>
+            <label className="grid grid-cols-[minmax(0,1fr)_9rem] items-center gap-2 text-xs">
+              <span>Grid layout</span>
+              <span className="relative">
+                <select
+                  className="h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                  value={gridLayoutAlgorithm}
+                  aria-label="Grid layout algorithm"
+                  onChange={(event) =>
+                    onGridLayoutChange(
+                      event.currentTarget.value as GridLayoutAlgorithm,
+                    )
+                  }
+                >
+                  <option value="Centered">Centered</option>
+                  <option value="ForceDirected">Relationship forces</option>
+                </select>
+                {isGridLayoutUpdating && (
+                  <LoaderCircle
+                    className="pointer-events-none absolute right-7 top-2 h-4 w-4 animate-spin"
+                    aria-hidden="true"
+                  />
+                )}
+              </span>
+            </label>
           </fieldset>
         </div>
       ) : (

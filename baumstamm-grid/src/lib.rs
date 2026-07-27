@@ -16,13 +16,13 @@ type Grid<T> = Vec<Vec<T>>;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub enum LayoutAlgorithm {
-    #[default]
     Centered,
+    #[default]
     ForceDirected,
 }
 
 pub fn generate(tree: &FamilyTree) -> Grid<GridItem> {
-    generate_with_layout(tree, LayoutAlgorithm::Centered)
+    generate_with_layout(tree, LayoutAlgorithm::default())
 }
 
 pub fn generate_with_layout(
@@ -134,6 +134,21 @@ mod tests {
         view::{View, ViewLimit, ViewOptions},
         PersonId,
     };
+
+    #[test]
+    fn relationship_forces_are_the_default_layout() {
+        let tree = FamilyTree::try_from(include_str!("../../examples/got/got.json"))
+            .expect("valid example tree");
+
+        assert_eq!(LayoutAlgorithm::default(), LayoutAlgorithm::ForceDirected);
+        assert_eq!(
+            format!("{:?}", generate(&tree)),
+            format!(
+                "{:?}",
+                generate_with_layout(&tree, LayoutAlgorithm::ForceDirected)
+            )
+        );
+    }
 
     #[test]
     fn force_layout_preserves_real_tree_generations_and_is_deterministic() {

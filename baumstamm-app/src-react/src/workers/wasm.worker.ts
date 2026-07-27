@@ -15,6 +15,7 @@ import init, {
   new_tree,
   remove_info,
   remove_person,
+  save_sub_tree,
   save_tree,
   set_full_view,
   set_grid_layout,
@@ -69,6 +70,8 @@ const execute = async (request: WasmRpcRequest): Promise<unknown> => {
       return getTreeSnapshot();
     case "saveTree":
       return save_tree() as string;
+    case "saveSubTree":
+      return save_sub_tree(...request.args) as string;
     case "getPersons":
       return get_persons() as Person[];
     case "getFullPersons":

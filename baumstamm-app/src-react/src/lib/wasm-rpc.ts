@@ -19,6 +19,10 @@ export interface WasmRpcMethods {
   newTree: { args: []; result: void };
   newTreeSnapshot: { args: []; result: TreeSnapshot };
   saveTree: { args: []; result: string };
+  saveSubTree: {
+    args: [root: string, options: ViewOptions];
+    result: string;
+  };
   getPersons: { args: []; result: Person[] };
   getFullPersons: { args: []; result: Person[] };
   getRelationships: { args: []; result: Relationship[] };

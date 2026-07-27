@@ -95,6 +95,20 @@ pub fn save_tree() -> JResult {
     Ok(JsValue::from(string))
 }
 
+#[wasm_bindgen]
+pub fn save_sub_tree(root: &str, options: JsValue) -> JResult {
+    let root = parse_pid(root)?;
+    let options: ViewOptions = bind::from_value(options).map_err(|err| err.to_string())?;
+
+    let state = STATE.lock().unwrap();
+    let view = View::new(&state.tree, root, &options).map_err(|err| err.to_string())?;
+    let string = FamilyTree::from(view)
+        .save()
+        .map_err(|err| err.to_string())?;
+
+    Ok(JsValue::from(string))
+}
+
 // get datastructures
 #[wasm_bindgen]
 pub fn get_persons() -> JResult {
