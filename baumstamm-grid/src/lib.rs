@@ -10,6 +10,7 @@ use crate::items::Orientation;
 
 mod indices;
 mod items;
+mod lexicographic;
 mod lines;
 
 type Grid<T> = Vec<Vec<T>>;
@@ -19,6 +20,7 @@ pub enum LayoutAlgorithm {
     Centered,
     #[default]
     ForceDirected,
+    Lexicographic,
 }
 
 pub fn generate(tree: &FamilyTree) -> Grid<GridItem> {
@@ -33,14 +35,18 @@ pub fn generate_with_layout(
     let graph = Graph::new(rels).cut();
     let layers = graph.layers();
     let person_layers = graph.person_layers(rels);
-    let row_length = person_layers
+    let widest_generation = person_layers
         .iter()
         .map(|layer| layer.len())
         .max()
         .unwrap_or_default();
-    if row_length == 0 {
+    if widest_generation == 0 {
         return Vec::new();
     }
+    let row_length = match layout_algorithm {
+        LayoutAlgorithm::Lexicographic => widest_generation.saturating_mul(5).saturating_add(3) / 4,
+        LayoutAlgorithm::Centered | LayoutAlgorithm::ForceDirected => widest_generation,
+    };
     let person_indices = indices::get_person_indices_with_relationship_layers(
         &person_layers,
         &layers,
@@ -224,5 +230,85 @@ mod tests {
             .count();
 
         assert_eq!(grid_person_count, view_tree.get_persons().len());
+    }
+
+    #[test]
+    fn lexicographic_layout_uses_twenty_five_percent_breathing_room() {
+        let tree = FamilyTree::try_from(include_str!("../../examples/lotr/lotr.json"))
+            .expect("valid example tree");
+        let relationships = tree.get_relationships();
+        let graph = Graph::new(relationships).cut();
+        let widest_generation = graph
+            .person_layers(relationships)
+            .iter()
+            .map(Vec::len)
+            .max()
+            .expect("non-empty example");
+        let expected_width = (widest_generation * 5).div_ceil(4);
+
+        let grid = generate_with_layout(&tree, LayoutAlgorithm::Lexicographic);
+
+        assert!(!grid.is_empty());
+        assert!(grid.iter().all(|row| row.len() == expected_width));
+    }
+
+    #[test]
+    fn lexicographic_layout_is_deterministic_and_preserves_occurrences() {
+        let tree = FamilyTree::try_from(include_str!("../../examples/lotr/lotr.json"))
+            .expect("valid example tree");
+        let centered = generate_with_layout(&tree, LayoutAlgorithm::Centered);
+        let lexicographic = generate_with_layout(&tree, LayoutAlgorithm::Lexicographic);
+
+        let people_by_row = |grid: &Grid<GridItem>| {
+            grid.iter()
+                .map(|row| {
+                    row.iter()
+                        .filter_map(|item| match item {
+                            GridItem::Person(person) => Some(*person),
+                            GridItem::Connections(_) => None,
+                        })
+                        .sorted()
+                        .collect_vec()
+                })
+                .collect_vec()
+        };
+
+        assert_eq!(people_by_row(&centered), people_by_row(&lexicographic));
+        assert_eq!(
+            format!("{lexicographic:?}"),
+            format!(
+                "{:?}",
+                generate_with_layout(&tree, LayoutAlgorithm::Lexicographic)
+            )
+        );
+    }
+
+    #[test]
+    fn lexicographic_large_layout_is_bounded_and_complete() {
+        let tree = FamilyTree::try_from(include_str!("../../examples/got/got.json"))
+            .expect("valid example tree");
+        let relationships = tree.get_relationships();
+        let graph = Graph::new(relationships).cut();
+        let widest_generation = graph
+            .person_layers(relationships)
+            .iter()
+            .map(Vec::len)
+            .max()
+            .expect("non-empty example");
+        let expected_width = (widest_generation * 5).div_ceil(4);
+
+        let grid = generate_with_layout(&tree, LayoutAlgorithm::Lexicographic);
+        let displayed_people = grid
+            .iter()
+            .flatten()
+            .filter_map(|item| match item {
+                GridItem::Person(person) => Some(*person),
+                GridItem::Connections(_) => None,
+            })
+            .unique()
+            .count();
+
+        assert!(grid.iter().all(|row| row.len() == expected_width));
+        assert_eq!(displayed_people, tree.get_persons().len());
     }
 }

@@ -22,7 +22,10 @@ export type ViewOptions = {
 
 export type TreeViewScope = "ancestors" | "descendants" | "both";
 
-export type GridLayoutAlgorithm = "Centered" | "ForceDirected";
+export type GridLayoutAlgorithm =
+  | "Centered"
+  | "ForceDirected"
+  | "Lexicographic";
 
 export type TreeViewSelection = {
   root: string;

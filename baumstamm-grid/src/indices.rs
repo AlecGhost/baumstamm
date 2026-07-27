@@ -133,6 +133,12 @@ pub(super) fn get_person_indices_with_relationship_layers(
             relationships,
             row_length,
         ),
+        LayoutAlgorithm::Lexicographic => crate::lexicographic::get_person_indices(
+            person_layers,
+            relationship_layers,
+            relationships,
+            row_length,
+        ),
     }
 }
 
