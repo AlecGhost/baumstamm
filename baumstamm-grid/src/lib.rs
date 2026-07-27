@@ -130,6 +130,10 @@ fn fill_grid(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use baumstamm_lib::{
+        view::{View, ViewLimit, ViewOptions},
+        PersonId,
+    };
 
     #[test]
     fn force_layout_preserves_real_tree_generations_and_is_deterministic() {
@@ -173,5 +177,32 @@ mod tests {
                 generate_with_layout(&tree, LayoutAlgorithm::ForceDirected)
             )
         );
+    }
+
+    #[test]
+    fn got_aenys_descendant_view_generates_a_grid() {
+        let tree = FamilyTree::try_from(include_str!("../../examples/got/got.json"))
+            .expect("valid example tree");
+        let root =
+            PersonId::try_from("D22A2ABE9989009EFF43E7FD01BD033B").expect("valid Aenys I id");
+        let options = ViewOptions {
+            ancestor_gen_limit: ViewLimit::Limit(0),
+            ..ViewOptions::default()
+        };
+        let view = View::new(&tree, root, &options).expect("valid descendant view");
+        let view_tree = FamilyTree::from(view);
+
+        let grid = generate(&view_tree);
+        let grid_person_count = grid
+            .iter()
+            .flatten()
+            .filter_map(|item| match item {
+                GridItem::Person(person) => Some(person),
+                GridItem::Connections(_) => None,
+            })
+            .unique()
+            .count();
+
+        assert_eq!(grid_person_count, view_tree.get_persons().len());
     }
 }

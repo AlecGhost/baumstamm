@@ -304,6 +304,8 @@ impl Graph {
                                     && graph.is_descendant_of(parent, &anc_b).is_some()
                             })
                         })
+                        // The walker yields once per path, but this check counts nodes.
+                        .unique()
                         .collect_vec();
                     if common_descs.len() >= 2 {
                         Some(DoubleInheritance {
