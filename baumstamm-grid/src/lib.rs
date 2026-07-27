@@ -41,8 +41,13 @@ pub fn generate_with_layout(
     if row_length == 0 {
         return Vec::new();
     }
-    let person_indices =
-        indices::get_person_indices(&person_layers, rels, row_length, layout_algorithm);
+    let person_indices = indices::get_person_indices_with_relationship_layers(
+        &person_layers,
+        &layers,
+        rels,
+        row_length,
+        layout_algorithm,
+    );
     let rel_indices = indices::get_rel_indices(&layers, rels, &person_indices);
 
     fill_grid(&person_indices, &rel_indices, row_length)

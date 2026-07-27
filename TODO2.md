@@ -1,0 +1,11 @@
+- Move algorithm selection out of tree view panel
+- limit is a bit weird
+- relationship forces algorithm is pretty bad
+  - can we compute the optimal solution?
+  - can we at least check if a given solution is optimal?
+  - that might help analysing the algorithm
+- tree walk with arrows is not really ideal–can't go to other parent, can't go to partners
+- there should be an info thing with hotkeys explained
+- tree-view button freezes while recomputing
+  - show optimistic update immediately, but block further updates until change is complete
+- tree view calculation can still take very long

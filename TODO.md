@@ -1,0 +1,29 @@
+- better grid algorithms
+  - current centering algorithm should remain selectable
+  - new floating settings under tree view settings, that let the user select the algorithm
+  - new force-based algorithm:
+    - "generation", i.e. y coordinate, has to stay unchanged, this algorithm is only for grid layout
+    - there may be space between persons in the same generation, but each person has to be on a discreet slot
+    - to remain compact, the maximum horizontal width should be the amount of persons in the largest generation
+    - the goal is that tighter relations are closer together
+    - marriage > siblings
+    - children should be close to their parents
+    - need some iterations, because changes in one generation affect the distance to both the previous and next generation
+    - irregardless of iterations, simple problems must always be solved in the final step:
+      - gen1: p1 p2, gen2: c1 c2 (spouse to c1) -> gen1: p1 p2, gen2: c2 c1 (spouse to c1)
+      - gen1: x p1 p2, gen2: c1 (spouse to c1) y -> gen1: x p1 p2, gen2: (spouse to c1) c1 y
+      - probably others....
+- performance analysis
+  - first, we need some tooling
+  - whole-program analysis with flame-graph etc to figure out where the most time is spent
+  - external tools should be called from scripts saved in a scripts folder, in order to be reproducable
+  - then we need benchmarks for specific functions/algorithms identified as expensive. This should be implemented in rust
+- performance optimization
+  - prio number 1: ui should never freeze from expensive computations, ui has to be fully decoupled from computations. Figure out if this is the case! Expensive computations should happen on the rust side
+  - based on this analysis, functions can be tweaked
+  - which parts are sequential vs parallel? Can we make use of existing rust libraries for parallelisation, like rayon? does it help?
+  - Can existing algorithms be replaced with cheaper ones? Do they have the same optimal solution?
+  - are there any memory issues? are we cloning things repeatedly that could be avoided? what about cache misses?
+  - would other datastructures help performance? arena allocation vs linked list?
+  - Some operations are currently repeated. Can we speed things up by caching intermediate results?
+  - is the wasm boundary a bottleneck? if so, how could it be optimized?
