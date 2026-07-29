@@ -1,6 +1,6 @@
 [package]
 name = "baumstamm-cli"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Alec Ghost"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/AlecGhost/baumstamm"

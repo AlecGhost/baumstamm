@@ -1,6 +1,6 @@
 [package]
 name = "baumstamm-grid"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Alec Ghost"]
 license = "Apache-2.0"
 repository = "https://github.com/AlecGhost/baumstamm"
