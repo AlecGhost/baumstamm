@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Install Rust toolchain dependencies
         shell: bash
@@ -25,7 +25,7 @@ jobs:
           cargo install wasm-bindgen-cli
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
           node-version: 18
 
@@ -41,7 +41,7 @@ jobs:
         working-directory: ./baumstamm-app
 
       - name: Upload Artifacts
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: 'baumstamm-app/build/'
 
@@ -60,4 +60,4 @@ jobs:
     steps:
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4

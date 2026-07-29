@@ -33,7 +33,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
 
       - name: Install toolchain dependencies
         if: matrix.container == 'ubuntu:18.04'
@@ -52,7 +52,7 @@ jobs:
           cargo install -f wasm-bindgen-cli --version 0.2.91
 
       - name: Install Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v6
         with:
           node-version: lts/*
 
