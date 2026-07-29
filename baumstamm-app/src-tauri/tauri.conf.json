@@ -3,7 +3,7 @@
         "beforeBuildCommand": "cd src-react && npm run build",
         "beforeDevCommand": "cd src-react && npm run dev",
         "devPath": "http://localhost:5173",
-        "distDir": "build",
+        "distDir": "../src-react/dist",
         "withGlobalTauri": true
     },
     "package": {

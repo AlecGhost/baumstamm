@@ -1,53 +1,75 @@
-name: Deploy to GitHub Pages
+name: Deploy web app
 
 on:
   push:
-    branches: 'gh-pages'
+    branches: [gh-pages]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
-  build_site:
+  build:
+    name: Build React app
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
-      - name: Install Rust toolchain dependencies
-        shell: bash
-        run: |
-          apt-get update && apt-get install -y build-essential curl
-          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --profile minimal --default-toolchain none -y
-          echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
 
-      - name: Install Rust toolchain
-        run: |
-          rustup update --no-self-update stable
-          rustup target add wasm32-unknown-unknown
-          cargo install wasm-bindgen-cli
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.13
 
       - name: Install Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: 18
+          node-version: 22
+          cache: npm
+          cache-dependency-path: baumstamm-app/src-react/package-lock.json
 
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./baumstamm-app
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: baumstamm-app/src-react
 
-      - name: build
+      - name: Build WASM package
+        run: npm run build:wasm
+        working-directory: baumstamm-app/src-react
+
+      - name: Test frontend
+        run: npm test
+        working-directory: baumstamm-app/src-react
+
+      - name: Build frontend
         env:
-          BASE_PATH: '/${{ github.event.repository.name }}'
-        run: |
-          npm run build
-        working-directory: ./baumstamm-app
+          BASE_PATH: /${{ github.event.repository.name }}/
+        run: npm run build
+        working-directory: baumstamm-app/src-react
 
-      - name: Upload Artifacts
+      - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'baumstamm-app/build/'
+          path: baumstamm-app/src-react/dist
 
   deploy:
-    needs: build_site
+    name: Deploy to GitHub Pages
+    needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     permissions:
       pages: write

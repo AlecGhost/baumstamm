@@ -1,95 +1,98 @@
-name: Release
+name: Release desktop app
 
 on:
-  push:
-    branches: [ "master" ]
   release:
     types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.release.tag_name || github.ref }}
+  cancel-in-progress: false
 
 jobs:
   build:
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.platform }}
+    timeout-minutes: 60
+
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            code-target: win32-x64
-          - os: macos-11
-            target: x86_64-apple-darwin
-            code-target: darwin-x64
-          - os: macos-11
-            target: aarch64-apple-darwin
-            code-target: darwin-arm64
-          - os: ubuntu-latest
+          - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-            code-target: linux-x64
-            container: ubuntu:18.04
-    name: dist (${{ matrix.target }})
-    runs-on: ${{ matrix.os }}
-    
-    env:
-      RA_TARGET: ${{ matrix.target }}
+          - platform: windows-latest
+            target: x86_64-pc-windows-msvc
+          - platform: macos-latest
+            target: aarch64-apple-darwin
+          - platform: macos-latest
+            target: x86_64-apple-darwin
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
-      - name: Install toolchain dependencies
-        if: matrix.container == 'ubuntu:18.04'
-        shell: bash
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
         run: |
-          apt-get update && apt-get install -y build-essential curl
-          curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -fsSL "https://sh.rustup.rs" | sh -s -- --profile minimal --default-toolchain none -y
-          echo "${CARGO_HOME:-$HOME/.cargo}/bin" >> $GITHUB_PATH
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            file \
+            libayatana-appindicator3-dev \
+            libgtk-3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.0-dev \
+            patchelf
 
-      - name: Install Rust toolchain
-        run: |
-          rustup update --no-self-update stable
-          rustup target add ${{ matrix.target }}
-          rustup target add wasm32-unknown-unknown
-          cargo install tauri-cli
-          cargo install -f wasm-bindgen-cli --version 0.2.91
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown,${{ matrix.target }}
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install Rust build tools
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack@0.13,tauri-cli@1
 
       - name: Install Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: lts/*
+          node-version: 22
+          cache: npm
+          cache-dependency-path: baumstamm-app/src-react/package-lock.json
 
-      - name: Install dependencies
-        run: npm install
-        working-directory: ./baumstamm-app
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: baumstamm-app/src-react
 
-      - name: Build
-        run: cargo tauri build --target ${{ matrix.target }}
+      - name: Build WASM package
+        run: npm run build:wasm
+        working-directory: baumstamm-app/src-react
 
-      - name: Rename binary (ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: mv target/${{ matrix.target }}/release/baumstamm target/${{ matrix.target }}/release/baumstamm-${{ matrix.target }}
+      - name: Test frontend
+        run: npm test
+        working-directory: baumstamm-app/src-react
 
-      - name: Attach to release (ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            target/${{ matrix.target }}/release/baumstamm-${{ matrix.target }}
+      - name: Build and upload Tauri bundles
+        uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Attach to release (macos)
-        if: matrix.os == 'macos-11'
-        uses: softprops/action-gh-release@v1
         with:
-          files: |
-            target/${{ matrix.target }}/release/bundle/dmg/Baumstamm*.dmg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Attach to release (windows)
-        if: matrix.os == 'windows-latest'
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            target/${{ matrix.target }}/release/baumstamm.exe
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          projectPath: baumstamm-app
+          tauriScript: cargo tauri
+          args: --target ${{ matrix.target }}
+          releaseId: ${{ github.event.release.id || '' }}
+          tagName: ${{ github.event.release.tag_name || '' }}
+          releaseDraft: false
+          prerelease: ${{ github.event.release.prerelease || false }}
+          uploadWorkflowArtifacts: true
