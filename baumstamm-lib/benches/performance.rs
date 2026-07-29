@@ -1,9 +1,9 @@
 use baumstamm_lib::{
-    view::{View, ViewOptions},
     FamilyTree, Person, PersonId, Relationship, RelationshipId, TreeData,
+    view::{View, ViewOptions},
 };
-use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use std::time::Duration;
+use criterion::{BenchmarkId, Criterion, Throughput, criterion_group, criterion_main};
+use std::{hint::black_box, time::Duration};
 
 const FAMILY_COUNTS: [usize; 3] = [31, 127, 511];
 

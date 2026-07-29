@@ -1,4 +1,4 @@
-use crate::{error::InputError, FamilyTree, Person, PersonId, Relationship};
+use crate::{FamilyTree, Person, PersonId, Relationship, error::InputError};
 use itertools::Itertools;
 use std::collections::{HashMap, HashSet};
 
@@ -365,7 +365,7 @@ mod tests {
     }
 
     macro_rules! test_files {
-        ($($name:ident with $options:expr),*) => {
+        ($($name:ident with $options:expr_2021),*) => {
             $(
                 #[test]
                 fn $name() {

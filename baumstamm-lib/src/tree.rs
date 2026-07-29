@@ -1,9 +1,8 @@
 use crate::{
-    consistency,
+    Person, PersonId, Relationship, RelationshipId, TreeData, consistency,
     error::{Error, InputError, MergeConflict},
     io,
     view::View,
-    Person, PersonId, Relationship, RelationshipId, TreeData,
 };
 use itertools::Itertools;
 use specta::Type;

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { convertFileSrc } from "@tauri-apps/api/tauri";
 import {
   ArrowDown,
@@ -181,16 +181,6 @@ export const PersonTable: React.FC<PersonTableProps> = ({
       return nameResult || left.id.localeCompare(right.id);
     });
   }, [data, effectiveSortColumn, sortDirection]);
-
-  useEffect(() => {
-    if (
-      selectedPersonId &&
-      !fullTreePersons.some((person) => person.id === selectedPersonId)
-    ) {
-      setSelectedPersonId(null);
-      setIsModalOpen(false);
-    }
-  }, [fullTreePersons, selectedPersonId]);
 
   if (!data) {
     return (
@@ -476,7 +466,7 @@ export const PersonTable: React.FC<PersonTableProps> = ({
       <PersonDetailsModal
         person={selectedPerson ?? null}
         treeData={data}
-        isOpen={isModalOpen}
+        isOpen={isModalOpen && selectedPerson !== undefined}
         onClose={() => setIsModalOpen(false)}
         onUpdate={onUpdate}
         onSelectPerson={setSelectedPersonId}

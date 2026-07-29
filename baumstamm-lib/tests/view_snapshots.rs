@@ -1,6 +1,6 @@
 use baumstamm_lib::{
-    view::{View, ViewLimit, ViewOptions},
     FamilyTree, Person, PersonId, Relationship, RelationshipId, TreeData,
+    view::{View, ViewLimit, ViewOptions},
 };
 
 fn person_id(value: u128) -> PersonId {

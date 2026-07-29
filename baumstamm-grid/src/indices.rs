@@ -1104,13 +1104,7 @@ fn attractions(relationship_layers: &Grid<Rid>, relationships: &[Relationship]) 
                     weight: MARRIAGE_WEIGHT,
                 });
             }
-            for [first, second] in relationship
-                .children
-                .iter()
-                .copied()
-                .tuple_combinations()
-                .map(|(first, second)| [first, second])
-            {
+            for [first, second] in relationship.children.iter().copied().array_combinations() {
                 attractions.push(Attraction {
                     people: [
                         PersonLocation {
@@ -1469,7 +1463,7 @@ const fn middle(a: usize, b: usize) -> usize {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use baumstamm_lib::{graph::Graph, FamilyTree, PersonId, RelationshipId};
+    use baumstamm_lib::{FamilyTree, PersonId, RelationshipId, graph::Graph};
 
     fn pid(value: u128) -> PersonId {
         value.into()

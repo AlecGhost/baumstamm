@@ -1,4 +1,4 @@
-use crate::{error::ConsistencyError, Person, PersonId, Relationship, TreeData};
+use crate::{Person, PersonId, Relationship, TreeData, error::ConsistencyError};
 use std::collections::{HashMap, HashSet, VecDeque};
 
 pub fn check(tree_data: &TreeData) -> Result<(), ConsistencyError> {

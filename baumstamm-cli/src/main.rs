@@ -1,7 +1,7 @@
 use baumstamm_lib::{
+    FamilyTree, PersonId, RelationshipId,
     graph::Graph,
     view::{View, ViewLimit},
-    FamilyTree, PersonId, RelationshipId,
 };
 use clap::{Args, Parser, Subcommand};
 use std::{error::Error, fs, path::Path};
@@ -87,17 +87,17 @@ enum Show {
 #[derive(Args)]
 struct ViewOptions {
     root: String,
-    #[arg(short='p', long)]
+    #[arg(short = 'p', long)]
     show_partners: bool,
-    #[arg(short='s', long)]
+    #[arg(short = 's', long)]
     show_siblings: bool,
-    #[arg(short='u', long)]
+    #[arg(short = 'u', long)]
     show_ancestor_siblings: bool,
-    #[arg(short='v', long)]
+    #[arg(short = 'v', long)]
     show_partner_siblings: bool,
-    #[arg(short='d', long)]
+    #[arg(short = 'd', long)]
     descendent_gen_limit: Option<usize>,
-    #[arg(short='a', long)]
+    #[arg(short = 'a', long)]
     ancestor_gen_limit: Option<usize>,
 }
 

@@ -1,6 +1,6 @@
 use baumstamm_lib::{
-    error::{ConsistencyError, Error},
     FamilyTree, Person, PersonId, Relationship, RelationshipId, TreeData,
+    error::{ConsistencyError, Error},
 };
 
 fn person_id(value: u128) -> PersonId {

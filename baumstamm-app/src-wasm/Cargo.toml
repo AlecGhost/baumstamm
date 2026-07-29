@@ -5,15 +5,16 @@ description = "Baumstamm App (Wasm-Backend)"
 authors = ["Alec Ghost"]
 license = "GPL-3.0-or-later"
 repository = "https://github.com/AlecGhost/baumstamm"
-edition = "2021"
+edition.workspace = true
+rust-version.workspace = true
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
-wasm-bindgen = "0.2.89"
+wasm-bindgen = "0.2.126"
 baumstamm-lib = { path = "../../baumstamm-lib" }
 baumstamm-grid = { path = "../../baumstamm-grid" }
-serde-wasm-bindgen = "0.6.3"
-serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6.5"
+serde = { version = "1.0.229", features = ["derive"] }
 once_cell = "1.21.4"

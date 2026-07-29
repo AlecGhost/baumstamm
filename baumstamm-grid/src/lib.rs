@@ -1,4 +1,4 @@
-use baumstamm_lib::{graph::Graph, FamilyTree};
+use baumstamm_lib::{FamilyTree, graph::Graph};
 use indices::{PersonIndex, RelIndices};
 use itertools::Itertools;
 use serde::{Deserialize, Serialize};
@@ -142,8 +142,8 @@ fn fill_grid(
 mod tests {
     use super::*;
     use baumstamm_lib::{
-        view::{View, ViewLimit, ViewOptions},
         PersonId,
+        view::{View, ViewLimit, ViewOptions},
     };
 
     #[test]

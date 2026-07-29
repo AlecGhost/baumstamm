@@ -1,4 +1,4 @@
-use crate::{error::Error, TreeData};
+use crate::{TreeData, error::Error};
 
 pub fn read(json_str: &str) -> Result<TreeData, Error> {
     let tree_data = serde_json::from_str(json_str)?;
@@ -12,7 +12,7 @@ pub fn write(tree_data: &TreeData) -> Result<String, Error> {
 
 #[cfg(test)]
 mod test {
-    use crate::{extract_persons, Person, PersonId, Relationship, RelationshipId, TreeData};
+    use crate::{Person, PersonId, Relationship, RelationshipId, TreeData, extract_persons};
     use std::{error::Error, fs};
 
     fn read(file_name: &str) -> Result<TreeData, Box<dyn Error>> {

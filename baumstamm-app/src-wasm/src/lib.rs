@@ -1,8 +1,8 @@
 use std::sync::Mutex;
 
 use baumstamm_lib::{
-    view::{View, ViewOptions},
     FamilyTree, Person, Relationship,
+    view::{View, ViewOptions},
 };
 use once_cell::sync::Lazy;
 use serde_wasm_bindgen as bind;

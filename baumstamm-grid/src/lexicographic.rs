@@ -1,4 +1,4 @@
-use crate::{indices::PersonIndex, Grid};
+use crate::{Grid, indices::PersonIndex};
 use baumstamm_lib::{PersonId, Relationship, RelationshipId};
 use std::{
     cmp::Ordering,

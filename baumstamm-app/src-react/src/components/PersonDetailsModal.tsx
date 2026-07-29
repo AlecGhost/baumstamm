@@ -101,6 +101,27 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
 
   const [subTreeData, setSubTreeData] = useState<TreeData | null>(null);
 
+  const resetTransientState = React.useCallback(() => {
+    setIsEditing(false);
+    setIsActionView(false);
+    setActionState({ type: "none" });
+    setActionSearchQuery("");
+    setNewKeyInput("");
+    setNewValueInput("");
+  }, []);
+
+  const closeModal = React.useCallback(() => {
+    resetTransientState();
+    onClose();
+  }, [onClose, resetTransientState]);
+
+  const beginEditing = React.useCallback(() => {
+    if (!person) return;
+
+    setEditForm(person.info ? Object.fromEntries(person.info.entries()) : {});
+    setIsEditing(true);
+  }, [person]);
+
   useEffect(() => {
     if (!person || !isOpen) return;
 
@@ -126,9 +147,9 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
       setActionState({ type: "none" });
       setActionSearchQuery("");
     } else {
-      onClose();
+      closeModal();
     }
-  }, [isEditing, isActionView, onClose]);
+  }, [isEditing, isActionView, closeModal]);
 
   // Handle keyboard shortcuts
   useEffect(() => {
@@ -162,36 +183,13 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
           setIsActionView(true);
         } else if (e.key === "e" || e.key === "E") {
           e.preventDefault();
-          setIsEditing(true);
+          beginEditing();
         }
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, handleCloseOrBack, isEditing, isActionView]);
-
-  useEffect(() => {
-    if (!isOpen) {
-      setIsEditing(false);
-      setIsActionView(false);
-      setActionState({ type: "none" });
-      setActionSearchQuery("");
-      setNewKeyInput("");
-      setNewValueInput("");
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (isEditing && person) {
-      const initialForm: Record<string, string> = {};
-      if (person.info) {
-        for (const [key, value] of person.info.entries()) {
-          initialForm[key] = value;
-        }
-      }
-      setEditForm(initialForm);
-    }
-  }, [isEditing, person]);
+  }, [isOpen, handleCloseOrBack, isEditing, isActionView, beginEditing]);
 
   if (!isOpen || !person) return null;
 
@@ -322,7 +320,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
     try {
       await Effect.runPromise(WasmServiceLive.removePerson(person.id));
       onUpdate();
-      onClose();
+      closeModal();
     } catch (e) {
       console.error("Failed to remove person:", e);
     }
@@ -390,7 +388,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-0 backdrop-blur-sm animate-in fade-in duration-200 sm:p-4"
       onClick={() => {
-        if (!isEditing) onClose();
+        if (!isEditing) closeModal();
       }}
       onPointerDown={(e) => e.stopPropagation()}
       onPointerUp={(e) => e.stopPropagation()}
@@ -474,7 +472,7 @@ export const PersonDetailsModal: React.FC<PersonDetailsModalProps> = ({
             )}
             {!isEditing && !isActionView && (
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={beginEditing}
                 className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-black/50 text-white transition-colors hover:bg-black/70 focus:outline-none focus:ring-2 focus:ring-ring sm:h-8 sm:w-8"
                 aria-label="Edit person"
                 aria-keyshortcuts="E"

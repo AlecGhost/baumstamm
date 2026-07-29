@@ -287,8 +287,8 @@ impl Graph {
                 .nodes
                 .iter()
                 .map(|node| node.value)
-                .tuple_combinations()
-                .filter_map(|(anc_a, anc_b)| {
+                .array_combinations()
+                .filter_map(|[anc_a, anc_b]| {
                     if graph.is_descendant_of(&anc_a, &anc_b).is_some()
                         || graph.is_descendant_of(&anc_b, &anc_a).is_some()
                     {

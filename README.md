@@ -26,7 +26,7 @@ and [npm](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm) ins
 Furthermore, you need the Tauri CLI.
 
 ```sh
-cargo install tauri-cli
+cargo install tauri-cli --version 1.6.6 --locked
 ```
 
 Start the manual installation by cloning this repository.
