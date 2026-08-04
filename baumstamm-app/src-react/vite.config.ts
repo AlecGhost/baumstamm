@@ -15,6 +15,7 @@ export default defineConfig({
     server: {
         fs: {
             allow: [
+                "index.html",
                 "src",
                 "../src-wasm/pkg"
             ]

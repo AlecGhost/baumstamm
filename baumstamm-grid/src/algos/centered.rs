@@ -1,16 +1,19 @@
-use super::PersonIndexInput;
-use crate::{
-    Grid,
-    indices::{PersonIndex, middle},
-};
+use super::{PersonIndexInput, PersonIndexOutput};
+use crate::indices::{PersonIndex, middle};
 use itertools::Itertools;
 
-pub fn get_person_indices(input: PersonIndexInput<'_>) -> Grid<PersonIndex> {
-    input
+pub fn get_person_indices(input: PersonIndexInput<'_>) -> PersonIndexOutput {
+    let row_length = input
+        .person_layers
+        .iter()
+        .map(Vec::len)
+        .max()
+        .unwrap_or_default();
+    let person_indices = input
         .person_layers
         .iter()
         .map(|layer| {
-            let start_index = middle(layer.len(), input.row_length);
+            let start_index = middle(layer.len(), row_length);
             layer
                 .iter()
                 .enumerate()
@@ -20,7 +23,11 @@ pub fn get_person_indices(input: PersonIndexInput<'_>) -> Grid<PersonIndex> {
                 })
                 .collect_vec()
         })
-        .collect_vec()
+        .collect_vec();
+    PersonIndexOutput {
+        person_indices,
+        row_length,
+    }
 }
 
 #[cfg(test)]
@@ -45,15 +52,15 @@ mod tests {
     #[test]
     fn centered_layout_remains_available() {
         let layers = vec![vec![pid(1), pid(2)], vec![pid(3)]];
-        let indices = get_person_indices(PersonIndexInput {
+        let output = get_person_indices(PersonIndexInput {
             person_layers: &layers,
             relationship_layers: &vec![],
             relationships: &[],
-            row_length: 2,
             layout_algorithm: LayoutAlgorithm::Centered,
         });
 
-        assert_eq!(slots(&indices[0]), vec![(1, 0), (2, 1)]);
-        assert_eq!(slots(&indices[1]), vec![(3, 0)]);
+        assert_eq!(output.row_length, 2);
+        assert_eq!(slots(&output.person_indices[0]), vec![(1, 0), (2, 1)]);
+        assert_eq!(slots(&output.person_indices[1]), vec![(3, 0)]);
     }
 }

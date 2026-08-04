@@ -351,10 +351,11 @@ export const TreeCanvas: React.FC<TreeCanvasProps> = ({
                   }
                 >
                   <option value="Centered">Centered</option>
-                  <option value="ForceDirected">Relationship forces</option>
-                  <option value="Lexicographic">
-                    Crossings and connectors
+                  <option value="ConnectionOptimized">
+                    Connection optimized
                   </option>
+                  <option value="ForceDirected">Relationship forces</option>
+                  <option value="KinshipExpansion">Kinship expansion</option>
                 </select>
                 {isGridLayoutUpdating && (
                   <LoaderCircle
