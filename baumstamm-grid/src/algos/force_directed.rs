@@ -1,4 +1,4 @@
-use super::centered;
+use super::{PersonIndexInput, centered};
 use crate::{Grid, indices::PersonIndex};
 use baumstamm_lib::Relationship;
 use itertools::Itertools;
@@ -31,17 +31,12 @@ const EXACT_TRANSITION_LIMIT: usize = 10_000_000;
 const MAX_SWAP_PASSES: usize = 32;
 const MAX_TRANSLATION_WIDTH: usize = 64;
 
-pub(super) fn get_person_indices(
-    person_layers: &Grid<Pid>,
-    relationship_layers: &Grid<Rid>,
-    relationships: &[Relationship],
-    row_length: usize,
-) -> Grid<PersonIndex> {
-    let attractions = attractions(relationship_layers, relationships);
-    let mut positions = exact_layered_layout(person_layers, row_length, &attractions)
-        .unwrap_or_else(|| heuristic_layout(person_layers, row_length, &attractions));
+pub(super) fn get_person_indices(input: PersonIndexInput<'_>) -> Grid<PersonIndex> {
+    let attractions = attractions(input.relationship_layers, input.relationships);
+    let mut positions = exact_layered_layout(input.person_layers, input.row_length, &attractions)
+        .unwrap_or_else(|| heuristic_layout(input, &attractions));
 
-    resolve_child_spouse_order(&mut positions, relationships, &attractions);
+    resolve_child_spouse_order(&mut positions, input.relationships, &attractions);
     positions
 }
 
@@ -241,11 +236,11 @@ fn cross_layer_edge_score(
 const BARYCENTRIC_SWEEPS: usize = 12;
 
 fn barycentric_layout(
-    person_layers: &Grid<Pid>,
-    row_length: usize,
+    input: PersonIndexInput<'_>,
     attractions: &[Attraction],
 ) -> Grid<PersonIndex> {
-    let mut positions = centered::get_person_indices(person_layers, row_length);
+    let row_length = input.row_length;
+    let mut positions = centered::get_person_indices(input);
     let mut best = positions.clone();
     let mut best_score = layout_score(&best, attractions);
     let mut neighbours = HashMap::<PersonLocation, Vec<(PersonLocation, usize)>>::new();
@@ -398,12 +393,9 @@ fn project_distinct_positions(targets: &[f64], row_length: usize) -> Vec<usize> 
     positions
 }
 
-fn heuristic_layout(
-    person_layers: &Grid<Pid>,
-    row_length: usize,
-    attractions: &[Attraction],
-) -> Grid<PersonIndex> {
-    let mut positions = barycentric_layout(person_layers, row_length, attractions);
+fn heuristic_layout(input: PersonIndexInput<'_>, attractions: &[Attraction]) -> Grid<PersonIndex> {
+    let row_length = input.row_length;
+    let mut positions = barycentric_layout(input, attractions);
     let incident_attractions = incident_attractions(attractions);
 
     if row_length > 24 {
@@ -1334,12 +1326,13 @@ mod tests {
         row_length: usize,
     ) -> Grid<PersonIndex> {
         let relationship_layers = infer_relationship_layers(person_layers, relationships);
-        super::get_person_indices(
+        super::get_person_indices(PersonIndexInput {
             person_layers,
-            &relationship_layers,
+            relationship_layers: &relationship_layers,
             relationships,
             row_length,
-        )
+            layout_algorithm: super::super::LayoutAlgorithm::ForceDirected,
+        })
     }
 
     #[test]
@@ -1465,7 +1458,13 @@ mod tests {
         let relationship_layers = infer_relationship_layers(&layers, &relationships);
         let attractions = attractions(&relationship_layers, &relationships);
         let incident = incident_attractions(&attractions);
-        let mut indices = centered::get_person_indices(&layers, 6);
+        let mut indices = centered::get_person_indices(PersonIndexInput {
+            person_layers: &layers,
+            relationship_layers: &relationship_layers,
+            relationships: &relationships,
+            row_length: 6,
+            layout_algorithm: super::super::LayoutAlgorithm::Centered,
+        });
 
         refine_swaps(&mut indices, 6, &attractions, &incident);
         assert_eq!(layout_score(&indices, &attractions), 4 * MARRIAGE_WEIGHT);
@@ -1575,8 +1574,13 @@ mod tests {
             vec![RelationshipId::from(2)],
         ];
         let attractions = attractions(&relationship_layers, &relationships);
-        let indices =
-            super::get_person_indices(&person_layers, &relationship_layers, &relationships, 2);
+        let indices = super::get_person_indices(PersonIndexInput {
+            person_layers: &person_layers,
+            relationship_layers: &relationship_layers,
+            relationships: &relationships,
+            row_length: 2,
+            layout_algorithm: super::super::LayoutAlgorithm::ForceDirected,
+        });
         let positions = position_map(&indices);
 
         assert_eq!(positions.len(), 5);
@@ -1618,12 +1622,13 @@ mod tests {
             .product::<u128>();
         let exact = exact_layered_layout(&person_layers, row_length, &attractions)
             .expect("six-column tree should use exact layered optimization");
-        let indices = super::get_person_indices(
-            &person_layers,
-            &relationship_layers,
+        let indices = super::get_person_indices(PersonIndexInput {
+            person_layers: &person_layers,
+            relationship_layers: &relationship_layers,
             relationships,
             row_length,
-        );
+            layout_algorithm: super::super::LayoutAlgorithm::ForceDirected,
+        });
 
         // Every relationship independently attains its mathematical lower
         // bound in the known six-column layout.
@@ -1646,12 +1651,13 @@ mod tests {
 
         #[cfg(not(debug_assertions))]
         let started = std::time::Instant::now();
-        let mut indices = super::get_person_indices(
-            &person_layers,
-            &relationship_layers,
+        let mut indices = super::get_person_indices(PersonIndexInput {
+            person_layers: &person_layers,
+            relationship_layers: &relationship_layers,
             relationships,
             row_length,
-        );
+            layout_algorithm: super::super::LayoutAlgorithm::ForceDirected,
+        });
         #[cfg(not(debug_assertions))]
         assert!(
             started.elapsed() < std::time::Duration::from_millis(500),

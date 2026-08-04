@@ -38,8 +38,13 @@ pub fn generate_with_layout(
         LayoutAlgorithm::Lexicographic => widest_generation.saturating_mul(5).saturating_add(3) / 4,
         LayoutAlgorithm::Centered | LayoutAlgorithm::ForceDirected => widest_generation,
     };
-    let person_indices =
-        algos::get_person_indices(&person_layers, &layers, rels, row_length, layout_algorithm);
+    let person_indices = algos::get_person_indices(algos::PersonIndexInput {
+        person_layers: &person_layers,
+        relationship_layers: &layers,
+        relationships: rels,
+        row_length,
+        layout_algorithm,
+    });
     let rel_indices = indices::get_rel_indices(&layers, rels, &person_indices);
 
     fill_grid(&person_indices, &rel_indices, row_length)

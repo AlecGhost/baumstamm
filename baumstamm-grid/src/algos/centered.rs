@@ -1,18 +1,16 @@
+use super::PersonIndexInput;
 use crate::{
     Grid,
     indices::{PersonIndex, middle},
 };
-use baumstamm_lib::PersonId;
 use itertools::Itertools;
 
-pub(super) fn get_person_indices(
-    person_layers: &Grid<PersonId>,
-    row_length: usize,
-) -> Grid<PersonIndex> {
-    person_layers
+pub(super) fn get_person_indices(input: PersonIndexInput<'_>) -> Grid<PersonIndex> {
+    input
+        .person_layers
         .iter()
         .map(|layer| {
-            let start_index = middle(layer.len(), row_length);
+            let start_index = middle(layer.len(), input.row_length);
             layer
                 .iter()
                 .enumerate()
@@ -28,6 +26,8 @@ pub(super) fn get_person_indices(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::algos::LayoutAlgorithm;
+    use baumstamm_lib::PersonId;
 
     fn pid(value: u128) -> PersonId {
         value.into()
@@ -45,7 +45,13 @@ mod tests {
     #[test]
     fn centered_layout_remains_available() {
         let layers = vec![vec![pid(1), pid(2)], vec![pid(3)]];
-        let indices = get_person_indices(&layers, 2);
+        let indices = get_person_indices(PersonIndexInput {
+            person_layers: &layers,
+            relationship_layers: &vec![],
+            relationships: &[],
+            row_length: 2,
+            layout_algorithm: LayoutAlgorithm::Centered,
+        });
 
         assert_eq!(slots(&indices[0]), vec![(1, 0), (2, 1)]);
         assert_eq!(slots(&indices[1]), vec![(3, 0)]);

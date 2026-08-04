@@ -1,3 +1,4 @@
+use super::PersonIndexInput;
 use crate::{Grid, indices::PersonIndex};
 use baumstamm_lib::{PersonId, Relationship, RelationshipId};
 use std::{
@@ -434,19 +435,14 @@ impl Evaluator {
 /// Standalone placement engine for the lexicographic objective. It deliberately
 /// shares neither initialization, attraction weights, nor refinement machinery
 /// with the centered and relationship-force layouts.
-pub(super) fn get_person_indices(
-    person_layers: &Grid<Pid>,
-    relationship_layers: &Grid<Rid>,
-    relationships: &[Relationship],
-    row_length: usize,
-) -> Grid<PersonIndex> {
+pub(super) fn get_person_indices(input: PersonIndexInput<'_>) -> Grid<PersonIndex> {
     let evaluator = Evaluator::new(
-        person_layers,
-        relationship_layers,
-        relationships,
-        row_length,
+        input.person_layers,
+        input.relationship_layers,
+        input.relationships,
+        input.row_length,
     );
-    let mut indices = initial_positions(person_layers, row_length);
+    let mut indices = initial_positions(input.person_layers, input.row_length);
     let mut positions = position_layers(&indices);
     let mut score = evaluator.score(&positions);
 
@@ -811,7 +807,13 @@ mod tests {
             relationship(2, [Some(2), None], &[3]),
         ];
         let relationship_layers = vec![vec![], vec![rid(1), rid(2)]];
-        let indices = get_person_indices(&person_layers, &relationship_layers, &relationships, 3);
+        let indices = get_person_indices(PersonIndexInput {
+            person_layers: &person_layers,
+            relationship_layers: &relationship_layers,
+            relationships: &relationships,
+            row_length: 3,
+            layout_algorithm: super::super::LayoutAlgorithm::Lexicographic,
+        });
         let evaluator = Evaluator::new(&person_layers, &relationship_layers, &relationships, 3);
 
         assert_eq!(evaluator.score(&position_layers(&indices)).crossings, 0);
