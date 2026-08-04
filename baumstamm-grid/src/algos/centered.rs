@@ -5,7 +5,7 @@ use crate::{
 };
 use itertools::Itertools;
 
-pub(super) fn get_person_indices(input: PersonIndexInput<'_>) -> Grid<PersonIndex> {
+pub fn get_person_indices(input: PersonIndexInput<'_>) -> Grid<PersonIndex> {
     input
         .person_layers
         .iter()

@@ -16,7 +16,7 @@ pub enum LayoutAlgorithm {
 }
 
 #[derive(Clone, Copy)]
-pub(super) struct PersonIndexInput<'a> {
+pub struct PersonIndexInput<'a> {
     pub person_layers: &'a Grid<PersonId>,
     pub relationship_layers: &'a Grid<RelationshipId>,
     pub relationships: &'a [Relationship],
@@ -24,7 +24,7 @@ pub(super) struct PersonIndexInput<'a> {
     pub layout_algorithm: LayoutAlgorithm,
 }
 
-pub(super) fn get_person_indices(input: PersonIndexInput<'_>) -> Grid<PersonIndex> {
+pub fn get_person_indices(input: PersonIndexInput<'_>) -> Grid<PersonIndex> {
     match input.layout_algorithm {
         LayoutAlgorithm::Centered => centered::get_person_indices(input),
         LayoutAlgorithm::ForceDirected => force_directed::get_person_indices(input),
