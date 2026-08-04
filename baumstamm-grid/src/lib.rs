@@ -1,27 +1,18 @@
 use baumstamm_lib::{FamilyTree, graph::Graph};
 use indices::{PersonIndex, RelIndices};
 use itertools::Itertools;
-use serde::{Deserialize, Serialize};
-use specta::Type;
 
+pub use algos::LayoutAlgorithm;
 pub use items::GridItem;
 
 use crate::items::Orientation;
 
+mod algos;
 mod indices;
 mod items;
-mod lexicographic;
 mod lines;
 
 type Grid<T> = Vec<Vec<T>>;
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
-pub enum LayoutAlgorithm {
-    Centered,
-    #[default]
-    ForceDirected,
-    Lexicographic,
-}
 
 pub fn generate(tree: &FamilyTree) -> Grid<GridItem> {
     generate_with_layout(tree, LayoutAlgorithm::default())
@@ -47,13 +38,8 @@ pub fn generate_with_layout(
         LayoutAlgorithm::Lexicographic => widest_generation.saturating_mul(5).saturating_add(3) / 4,
         LayoutAlgorithm::Centered | LayoutAlgorithm::ForceDirected => widest_generation,
     };
-    let person_indices = indices::get_person_indices_with_relationship_layers(
-        &person_layers,
-        &layers,
-        rels,
-        row_length,
-        layout_algorithm,
-    );
+    let person_indices =
+        algos::get_person_indices(&person_layers, &layers, rels, row_length, layout_algorithm);
     let rel_indices = indices::get_rel_indices(&layers, rels, &person_indices);
 
     fill_grid(&person_indices, &rel_indices, row_length)
