@@ -1,20 +1,32 @@
-use super::{PersonIndexInput, PersonIndexOutput, common::project_to_slots};
-use crate::{
-    indices::{self, PersonIndex},
-    lines,
-};
+use super::{PersonIndexInput, PersonIndexOutput};
+use crate::indices::PersonIndex;
+use baumstamm_lib::PersonId;
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 
-const MAX_PASSES: usize = 6;
-const REPEATED_PERSON_TARGET_WEIGHT: f64 = 4.0;
-const PARENT_CHILD_TARGET_WEIGHT: f64 = 12.0;
-const SPOUSE_TARGET_WEIGHT: f64 = 16.0;
+type Pid = PersonId;
 
-/// Places fixed-layer person occurrences by minimizing the horizontal
-/// connections produced by the same model that renders the grid.
+const REPEATED_PERSON_WEIGHT: u128 = 4;
+const PARENT_CHILD_WEIGHT: u128 = 12;
+const SPOUSE_WEIGHT: u128 = 16;
+
+// These limits keep the combinatorial search predictable. Each round may keep
+// a temporarily worse layout, which permits two-step staging moves, while the
+// best strict objective seen over the entire search is returned.
+const BEAM_WIDTH: usize = 2;
+const SEARCH_ROUNDS: usize = 4;
+const MAX_LAYER_PROPOSALS: usize = 16;
+const MAX_BLOCK_PROPOSALS: usize = 32;
+const MAX_SUBTREE_PAIR_PROPOSALS: usize = 24;
+const BARYCENTRIC_SWEEPS: usize = 4;
+
+/// Places fixed-generation occurrences by optimizing the horizontal segments
+/// produced by the renderer. Generation/y coordinates never change.
 ///
-/// Candidate layouts are ordered by pairwise horizontal-segment congestion,
-/// total horizontal length, and family-center alignment. Stable occurrence
-/// coordinates provide deterministic tie-breaking after those objectives.
+/// The objective is lexicographic: maximum simultaneous point occupation, a
+/// descending occupation histogram, pair-overlap area, horizontal length, and
+/// parent/child center alignment. A canonical occurrence coordinate key breaks
+/// remaining ties and makes source layer order irrelevant.
 pub(super) fn get_person_indices(input: PersonIndexInput<'_>) -> PersonIndexOutput {
     let widest_layer = input
         .person_layers
@@ -29,481 +41,874 @@ pub(super) fn get_person_indices(input: PersonIndexInput<'_>) -> PersonIndexOutp
         };
     }
 
-    // More columns cannot improve the secondary length objective and made
-    // large trees unnecessarily sparse. Use the smallest collision-free
-    // width, but start from the relationship-aware force layout rather than a
-    // centered block.
-    let row_length = widest_layer;
-    let force_seed = compact_force_seed(&input, row_length);
-    let centered = centered_indices(input.person_layers, row_length);
-    let mut person_indices =
-        if score(&input, &force_seed, row_length) < score(&input, &centered, row_length) {
-            force_seed
-        } else {
-            centered
-        };
-    optimize(&input, &mut person_indices, row_length);
+    let model = Model::new(&input);
+    let widest_allowed = widest_layer
+        .checked_add(widest_layer.div_ceil(8))
+        .expect("connection layout width exceeds addressable memory");
+    let mut best: Option<ScoredLayout> = None;
 
+    for row_length in widest_layer..=widest_allowed {
+        let candidate = optimize(&model, row_length);
+        if best.as_ref().is_none_or(|current| {
+            (
+                &candidate.score,
+                candidate.row_length,
+                &candidate.coordinates,
+            ) < (&current.score, current.row_length, &current.coordinates)
+        }) {
+            best = Some(candidate);
+        }
+    }
+
+    let best = best.expect("a non-empty compact width band");
     PersonIndexOutput {
-        person_indices,
+        person_indices: model.to_person_indices(&best.layout),
+        row_length: best.row_length,
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct Score {
+    max_occupation: u128,
+    /// Counts of occupied points, ordered from the model's maximum possible
+    /// occupation down to two. Occupation one is represented by length.
+    occupation_histogram: Vec<u128>,
+    pair_overlap_area: u128,
+    length: u128,
+    family_alignment: u128,
+}
+
+#[derive(Clone)]
+struct ScoredLayout {
+    layout: Vec<usize>,
+    score: Score,
+    row_length: usize,
+    coordinates: Vec<usize>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+struct OccurrenceKey {
+    pid: Pid,
+    layer: usize,
+    repeat_ordinal: usize,
+}
+
+#[derive(Clone, Copy)]
+struct Occurrence {
+    key: OccurrenceKey,
+}
+
+#[derive(Clone)]
+struct RenderedRelationship {
+    parents: [Option<usize>; 2],
+    children: Vec<usize>,
+    has_declared_children: bool,
+}
+
+#[derive(Clone)]
+struct FamilyBlock {
+    people: Vec<usize>,
+}
+
+#[derive(Clone)]
+struct Subtree {
+    root_layer: usize,
+    pids: BTreeSet<Pid>,
+}
+
+struct SubtreeRoot {
+    layer: usize,
+    parents: [Option<Pid>; 2],
+    children: Vec<Pid>,
+}
+
+struct Model {
+    occurrences: Vec<Occurrence>,
+    layers: Vec<Vec<usize>>,
+    rows: Vec<Vec<RenderedRelationship>>,
+    neighbours: Vec<Vec<(usize, u128)>>,
+    family_blocks: Vec<FamilyBlock>,
+    subtrees: Vec<Subtree>,
+    max_channel_lines: usize,
+}
+
+impl Model {
+    fn new(input: &PersonIndexInput<'_>) -> Self {
+        let mut occurrences = Vec::new();
+        let mut layers = Vec::with_capacity(input.person_layers.len());
+        let mut first_at = BTreeMap::<(usize, Pid), usize>::new();
+        let mut by_pid = BTreeMap::<Pid, Vec<usize>>::new();
+
+        for (layer, source_people) in input.person_layers.iter().enumerate() {
+            let mut sorted = source_people.clone();
+            sorted.sort();
+            let mut ordinals = BTreeMap::<Pid, usize>::new();
+            let mut layer_occurrences = Vec::with_capacity(sorted.len());
+            for pid in sorted {
+                let repeat_ordinal = ordinals.entry(pid).or_default();
+                let occurrence = occurrences.len();
+                occurrences.push(Occurrence {
+                    key: OccurrenceKey {
+                        pid,
+                        layer,
+                        repeat_ordinal: *repeat_ordinal,
+                    },
+                });
+                *repeat_ordinal += 1;
+                first_at.entry((layer, pid)).or_insert(occurrence);
+                by_pid.entry(pid).or_default().push(occurrence);
+                layer_occurrences.push(occurrence);
+            }
+            layers.push(layer_occurrences);
+        }
+
+        let relationships = input
+            .relationships
+            .iter()
+            .map(|relationship| (relationship.id, relationship))
+            .collect::<HashMap<_, _>>();
+        let mut rows = Vec::with_capacity(input.relationship_layers.len());
+        let mut family_blocks = Vec::new();
+        let mut child_edges = BTreeMap::<Pid, BTreeSet<Pid>>::new();
+        let mut subtree_roots = Vec::new();
+
+        for (layer, relationship_ids) in input.relationship_layers.iter().enumerate() {
+            let mut ids = relationship_ids.clone();
+            ids.sort_by_key(|id| id.0);
+            let mut row = Vec::with_capacity(ids.len());
+            for relationship_id in ids {
+                let relationship = relationships
+                    .get(&relationship_id)
+                    .expect("relationship layer references an unknown relationship");
+                let parents = relationship.parents.map(|parent| {
+                    parent.and_then(|pid| {
+                        layer
+                            .checked_sub(1)
+                            .and_then(|parent_layer| first_at.get(&(parent_layer, pid)).copied())
+                    })
+                });
+                let children = relationship
+                    .children
+                    .iter()
+                    .filter_map(|pid| first_at.get(&(layer, *pid)).copied())
+                    .collect::<Vec<_>>();
+                let complete_children =
+                    (children.len() == relationship.children.len()).then_some(children);
+
+                let parent_people = parents.iter().flatten().copied().collect::<Vec<_>>();
+                if parent_people.len() > 1 {
+                    family_blocks.push(FamilyBlock {
+                        people: parent_people,
+                    });
+                }
+                if let Some(children) = &complete_children
+                    && children.len() > 1
+                {
+                    family_blocks.push(FamilyBlock {
+                        people: children.clone(),
+                    });
+                }
+                for parent in relationship.parents.iter().flatten() {
+                    child_edges
+                        .entry(*parent)
+                        .or_default()
+                        .extend(relationship.children.iter().copied());
+                }
+                subtree_roots.push(SubtreeRoot {
+                    layer: layer.saturating_sub(1),
+                    parents: relationship.parents,
+                    children: relationship.children.clone(),
+                });
+                row.push(RenderedRelationship {
+                    parents,
+                    children: complete_children.unwrap_or_default(),
+                    has_declared_children: !relationship.children.is_empty(),
+                });
+            }
+            rows.push(row);
+        }
+
+        let mut neighbours = vec![Vec::new(); occurrences.len()];
+        for same_person in by_pid.values() {
+            for first in 0..same_person.len() {
+                for second in first + 1..same_person.len() {
+                    add_neighbour(
+                        &mut neighbours,
+                        same_person[first],
+                        same_person[second],
+                        REPEATED_PERSON_WEIGHT,
+                    );
+                }
+            }
+        }
+        for row in &rows {
+            for family in row {
+                let parents = family.parents.iter().flatten().copied().collect::<Vec<_>>();
+                for first in 0..parents.len() {
+                    for second in first + 1..parents.len() {
+                        add_neighbour(
+                            &mut neighbours,
+                            parents[first],
+                            parents[second],
+                            SPOUSE_WEIGHT,
+                        );
+                    }
+                }
+                for parent in &parents {
+                    for child in &family.children {
+                        add_neighbour(&mut neighbours, *parent, *child, PARENT_CHILD_WEIGHT);
+                    }
+                }
+            }
+        }
+        for adjacent in &mut neighbours {
+            adjacent.sort_by_key(|(person, weight)| (*person, *weight));
+        }
+
+        family_blocks.sort_by(|first, second| first.people.cmp(&second.people));
+        family_blocks.dedup_by(|first, second| first.people == second.people);
+        let subtrees = build_subtrees(&subtree_roots, &child_edges);
+        let max_channel_lines = rows.iter().map(Vec::len).max().unwrap_or_default();
+
+        Self {
+            occurrences,
+            layers,
+            rows,
+            neighbours,
+            family_blocks,
+            subtrees,
+            max_channel_lines,
+        }
+    }
+
+    fn centered_layout(&self, row_length: usize) -> Vec<usize> {
+        let mut layout = vec![0; self.occurrences.len()];
+        for people in &self.layers {
+            let start = (row_length - people.len()) / 2;
+            for (offset, person) in people.iter().enumerate() {
+                layout[*person] = start + offset;
+            }
+        }
+        layout
+    }
+
+    fn structural_layout(&self, row_length: usize) -> Vec<usize> {
+        let mut layout = self.centered_layout(row_length);
+        for sweep in 0..BARYCENTRIC_SWEEPS {
+            let layer_order = if sweep % 2 == 0 {
+                (0..self.layers.len()).collect::<Vec<_>>()
+            } else {
+                (0..self.layers.len()).rev().collect::<Vec<_>>()
+            };
+            for layer in layer_order {
+                let mut people = self.layers[layer].clone();
+                people.sort_by(|first, second| {
+                    target_fraction(self, &layout, *first)
+                        .cmp(&target_fraction(self, &layout, *second))
+                        .then_with(|| {
+                            self.occurrences[*first]
+                                .key
+                                .cmp(&self.occurrences[*second].key)
+                        })
+                });
+                let start = (row_length - people.len()) / 2;
+                for (offset, person) in people.into_iter().enumerate() {
+                    layout[person] = start + offset;
+                }
+            }
+        }
+        layout
+    }
+
+    fn to_person_indices(&self, layout: &[usize]) -> Vec<Vec<PersonIndex>> {
+        self.layers
+            .iter()
+            .map(|people| {
+                people
+                    .iter()
+                    .map(|person| PersonIndex {
+                        pid: self.occurrences[*person].key.pid,
+                        index: layout[*person],
+                    })
+                    .collect()
+            })
+            .collect()
+    }
+}
+
+fn build_subtrees(
+    roots: &[SubtreeRoot],
+    child_edges: &BTreeMap<Pid, BTreeSet<Pid>>,
+) -> Vec<Subtree> {
+    let mut subtrees = Vec::new();
+    for root in roots {
+        let mut pids = root
+            .parents
+            .iter()
+            .flatten()
+            .chain(&root.children)
+            .copied()
+            .collect::<BTreeSet<_>>();
+        let mut queue = pids.iter().copied().collect::<Vec<_>>();
+        while let Some(pid) = queue.pop() {
+            if let Some(children) = child_edges.get(&pid) {
+                for child in children {
+                    if pids.insert(*child) {
+                        queue.push(*child);
+                    }
+                }
+            }
+        }
+        if pids.len() > 1 {
+            subtrees.push(Subtree {
+                root_layer: root.layer,
+                pids,
+            });
+        }
+    }
+    subtrees.sort_by(|first, second| {
+        (first.root_layer, &first.pids).cmp(&(second.root_layer, &second.pids))
+    });
+    subtrees.dedup_by(|first, second| {
+        first.root_layer == second.root_layer && first.pids == second.pids
+    });
+    subtrees
+}
+
+fn add_neighbour(neighbours: &mut [Vec<(usize, u128)>], first: usize, second: usize, weight: u128) {
+    if first == second {
+        return;
+    }
+    neighbours[first].push((second, weight));
+    neighbours[second].push((first, weight));
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct TargetFraction {
+    numerator: u128,
+    denominator: u128,
+}
+
+impl Ord for TargetFraction {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.numerator
+            .checked_mul(other.denominator)
+            .expect("target fraction fits in u128")
+            .cmp(
+                &other
+                    .numerator
+                    .checked_mul(self.denominator)
+                    .expect("target fraction fits in u128"),
+            )
+    }
+}
+
+impl PartialOrd for TargetFraction {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+fn target_fraction(model: &Model, layout: &[usize], person: usize) -> TargetFraction {
+    let (numerator, denominator) = model.neighbours[person].iter().fold(
+        (0_u128, 0_u128),
+        |(numerator, denominator), (other, weight)| {
+            (
+                numerator
+                    .checked_add(
+                        (*weight)
+                            .checked_mul(layout[*other] as u128)
+                            .expect("weighted target fits in u128"),
+                    )
+                    .expect("weighted target sum fits in u128"),
+                denominator
+                    .checked_add(*weight)
+                    .expect("target weight sum fits in u128"),
+            )
+        },
+    );
+    if denominator == 0 {
+        TargetFraction {
+            numerator: layout[person] as u128,
+            denominator: 1,
+        }
+    } else {
+        TargetFraction {
+            numerator,
+            denominator,
+        }
+    }
+}
+
+fn optimize(model: &Model, row_length: usize) -> ScoredLayout {
+    let centered = model.centered_layout(row_length);
+    let structural = model.structural_layout(row_length);
+    let seeds = [
+        centered.clone(),
+        reflect(&centered, row_length),
+        structural.clone(),
+        reflect(&structural, row_length),
+    ];
+    let mut score_cache = BTreeMap::<Vec<usize>, Score>::new();
+    let mut visited = BTreeSet::<Vec<usize>>::new();
+    let mut frontier = Vec::new();
+    let mut best: Option<ScoredLayout> = None;
+
+    for seed in seeds {
+        if !visited.insert(seed.clone()) {
+            continue;
+        }
+        let scored = scored_layout(model, seed, row_length, &mut score_cache);
+        update_best(&mut best, &scored);
+        frontier.push(scored);
+    }
+    frontier.sort_by(scored_order);
+    frontier.truncate(BEAM_WIDTH);
+
+    for _ in 0..SEARCH_ROUNDS {
+        let mut next = Vec::new();
+        for state in &frontier {
+            for proposal in proposals(model, &state.layout, row_length) {
+                if !visited.insert(proposal.clone()) {
+                    continue;
+                }
+                let scored = scored_layout(model, proposal, row_length, &mut score_cache);
+                update_best(&mut best, &scored);
+                next.push(scored);
+            }
+        }
+        if next.is_empty() {
+            break;
+        }
+        next.sort_by(scored_order);
+        next.truncate(BEAM_WIDTH);
+        frontier = next;
+    }
+
+    best.expect("at least one deterministic seed")
+}
+
+fn scored_layout(
+    model: &Model,
+    layout: Vec<usize>,
+    row_length: usize,
+    cache: &mut BTreeMap<Vec<usize>, Score>,
+) -> ScoredLayout {
+    let score = cache
+        .entry(layout.clone())
+        .or_insert_with(|| score(model, &layout))
+        .clone();
+    ScoredLayout {
+        coordinates: layout.clone(),
+        layout,
+        score,
         row_length,
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-struct Score {
-    congestion: u64,
-    length: u64,
-    family_alignment: u64,
+fn scored_order(first: &ScoredLayout, second: &ScoredLayout) -> Ordering {
+    (&first.score, &first.coordinates).cmp(&(&second.score, &second.coordinates))
 }
 
-fn optimize(
-    input: &PersonIndexInput<'_>,
-    person_indices: &mut [Vec<PersonIndex>],
-    row_length: usize,
-) {
-    let mut current_score = score(input, person_indices, row_length);
-
-    for pass in 0..MAX_PASSES {
-        let mut changed = false;
-        let layer_order = if pass % 2 == 0 {
-            (0..person_indices.len()).collect::<Vec<_>>()
-        } else {
-            (0..person_indices.len()).rev().collect::<Vec<_>>()
-        };
-        for layer in layer_order {
-            if let Some(reordered) = reordered_layer(input, person_indices, layer, row_length) {
-                let previous = std::mem::replace(&mut person_indices[layer], reordered);
-                let reordered_score = score(input, person_indices, row_length);
-                if reordered_score < current_score {
-                    current_score = reordered_score;
-                    changed = true;
-                } else {
-                    person_indices[layer] = previous;
-                }
-            }
-            let targets = (0..person_indices[layer].len())
-                .map(|person| relationship_target(input, person_indices, layer, person))
-                .collect::<Vec<_>>();
-            let occupied = person_indices[layer]
-                .iter()
-                .enumerate()
-                .map(|(person, value)| (value.index, person))
-                .collect::<std::collections::BTreeMap<_, _>>();
-            let mut neighbourhood = Neighbourhood {
-                input,
-                row_length,
-                current_score,
-                best_move: None,
-            };
-
-            for first in 0..person_indices[layer].len().saturating_sub(1) {
-                neighbourhood.consider_swap(person_indices, layer, first, first + 1);
-            }
-            for (person, target) in targets.into_iter().enumerate() {
-                let Some(target) = target else { continue };
-                let target_columns = [target.floor(), target.ceil()]
-                    .map(|column| column.clamp(0.0, row_length.saturating_sub(1) as f64) as usize);
-                for target_column in target_columns {
-                    if let Some(other) = occupied.get(&target_column).copied() {
-                        if other != person {
-                            neighbourhood.consider_swap(person_indices, layer, person, other);
-                        }
-                    } else {
-                        neighbourhood.consider_move(person_indices, layer, person, target_column);
-                    }
-                }
-                if let Some(nearest_gap) = (0..row_length)
-                    .filter(|column| !occupied.contains_key(column))
-                    .min_by(|first, second| {
-                        (*first as f64 - target)
-                            .abs()
-                            .total_cmp(&(*second as f64 - target).abs())
-                            .then_with(|| first.cmp(second))
-                    })
-                {
-                    neighbourhood.consider_move(person_indices, layer, person, nearest_gap);
-                }
-            }
-
-            if let Some(best_move) = neighbourhood.best_move {
-                apply_move(person_indices, best_move.kind);
-                current_score = best_move.score;
-                changed = true;
-            }
-        }
-        if !changed {
-            break;
-        }
+fn update_best(best: &mut Option<ScoredLayout>, candidate: &ScoredLayout) {
+    if best.as_ref().is_none_or(|current| {
+        (&candidate.score, &candidate.coordinates) < (&current.score, &current.coordinates)
+    }) {
+        *best = Some(candidate.clone());
     }
 }
 
-#[derive(Clone, Copy)]
-enum Move {
-    Swap {
-        layer: usize,
-        first: usize,
-        second: usize,
-    },
-    Move {
-        layer: usize,
-        person: usize,
-        column: usize,
-    },
-}
-
-struct ScoredMove {
-    kind: Move,
-    score: Score,
-    coordinates: Vec<usize>,
-}
-
-struct Neighbourhood<'a, 'input> {
-    input: &'a PersonIndexInput<'input>,
-    row_length: usize,
-    current_score: Score,
-    best_move: Option<ScoredMove>,
-}
-
-impl Neighbourhood<'_, '_> {
-    fn consider_swap(
-        &mut self,
-        person_indices: &mut [Vec<PersonIndex>],
-        layer: usize,
-        first: usize,
-        second: usize,
-    ) {
-        let kind = Move::Swap {
-            layer,
-            first,
-            second,
-        };
-        apply_move(person_indices, kind);
-        self.consider_current(person_indices, kind);
-        apply_move(person_indices, kind);
-    }
-
-    fn consider_move(
-        &mut self,
-        person_indices: &mut [Vec<PersonIndex>],
-        layer: usize,
-        person: usize,
-        column: usize,
-    ) {
-        let previous = person_indices[layer][person].index;
-        let kind = Move::Move {
-            layer,
-            person,
-            column,
-        };
-        apply_move(person_indices, kind);
-        self.consider_current(person_indices, kind);
-        person_indices[layer][person].index = previous;
-    }
-
-    fn consider_current(&mut self, person_indices: &[Vec<PersonIndex>], kind: Move) {
-        let candidate_score = score(self.input, person_indices, self.row_length);
-        if candidate_score >= self.current_score {
-            return;
-        }
-        let candidate = ScoredMove {
-            kind,
-            score: candidate_score,
-            coordinates: coordinate_key(person_indices),
-        };
-        if self.best_move.as_ref().is_none_or(|best| {
-            (candidate.score, &candidate.coordinates) < (best.score, &best.coordinates)
-        }) {
-            self.best_move = Some(candidate);
-        }
-    }
-}
-
-fn compact_force_seed(input: &PersonIndexInput<'_>, row_length: usize) -> Vec<Vec<PersonIndex>> {
-    let force = super::force_directed::get_person_indices(*input);
-    force
-        .person_indices
+fn reflect(layout: &[usize], row_length: usize) -> Vec<usize> {
+    layout
         .iter()
-        .map(|layer| {
-            let mut ordered = layer.iter().enumerate().collect::<Vec<_>>();
-            ordered.sort_by_key(|(_, person)| person.index);
-            let scale = |index: usize| {
-                if force.row_length <= 1 || row_length <= 1 {
-                    0.0
-                } else {
-                    index as f64 * (row_length - 1) as f64 / (force.row_length - 1) as f64
-                }
-            };
-            let targets = ordered
-                .iter()
-                .map(|(_, person)| scale(person.index))
-                .collect::<Vec<_>>();
-            let slots = project_to_slots(&targets, row_length);
-            let mut result = vec![None; layer.len()];
-            for ((original, person), slot) in ordered.into_iter().zip(slots) {
-                result[original] = Some(PersonIndex {
-                    pid: person.pid,
-                    index: slot,
-                });
-            }
-            result
-                .into_iter()
-                .map(|person| person.expect("every force occurrence is projected"))
-                .collect()
-        })
+        .map(|column| row_length - 1 - column)
         .collect()
 }
 
-fn relationship_target(
-    input: &PersonIndexInput<'_>,
-    person_indices: &[Vec<PersonIndex>],
-    layer: usize,
-    person: usize,
-) -> Option<f64> {
-    let pid = person_indices[layer][person].pid;
-    let mut weighted_sum = 0.0;
-    let mut total_weight = 0.0;
-    let mut add = |column: f64, weight: f64| {
-        weighted_sum += column * weight;
-        total_weight += weight;
-    };
+fn proposals(model: &Model, layout: &[usize], row_length: usize) -> Vec<Vec<usize>> {
+    let mut proposals = Vec::new();
+    let mut unique = BTreeSet::new();
 
-    for (other_layer, occurrences) in person_indices.iter().enumerate() {
-        if other_layer != layer {
-            for occurrence in occurrences
-                .iter()
-                .filter(|occurrence| occurrence.pid == pid)
-            {
-                add(occurrence.index as f64, REPEATED_PERSON_TARGET_WEIGHT);
+    for people in &model.layers {
+        let mut layer_proposals = Vec::new();
+        let mut ordered = people.clone();
+        ordered.sort_by_key(|person| (layout[*person], model.occurrences[*person].key));
+
+        for adjacent in ordered.windows(2) {
+            let mut candidate = layout.to_vec();
+            candidate.swap(adjacent[0], adjacent[1]);
+            push_unique(&mut layer_proposals, &mut unique, candidate);
+        }
+
+        let occupied = ordered
+            .iter()
+            .map(|person| (layout[*person], *person))
+            .collect::<BTreeMap<_, _>>();
+        for person in &ordered {
+            let target = target_column(model, layout, *person, row_length);
+            if let Some(other) = occupied.get(&target) {
+                if other != person {
+                    let mut candidate = layout.to_vec();
+                    candidate.swap(*person, *other);
+                    push_unique(&mut layer_proposals, &mut unique, candidate);
+                }
+            } else {
+                let mut candidate = layout.to_vec();
+                candidate[*person] = target;
+                push_unique(&mut layer_proposals, &mut unique, candidate);
             }
         }
+
+        if ordered.len() > 2 {
+            let mut candidate = layout.to_vec();
+            let mut columns = ordered
+                .iter()
+                .map(|person| layout[*person])
+                .collect::<Vec<_>>();
+            columns.sort_unstable();
+            for (person, column) in ordered.iter().zip(columns.into_iter().rev()) {
+                candidate[*person] = column;
+            }
+            push_unique(&mut layer_proposals, &mut unique, candidate);
+        }
+
+        layer_proposals.sort();
+        layer_proposals.truncate(MAX_LAYER_PROPOSALS);
+        proposals.extend(layer_proposals);
     }
 
-    for (relationship_layer, ids) in input.relationship_layers.iter().enumerate() {
-        if relationship_layer != layer && relationship_layer != layer + 1 {
+    let mut block_proposals = Vec::new();
+    for block in &model.family_blocks {
+        if block.people.len() < 2 {
             continue;
         }
-        for id in ids {
-            let relationship = input
-                .relationships
-                .iter()
-                .find(|relationship| relationship.id == *id)
-                .expect("relationship layer references an unknown relationship");
-            if relationship_layer == layer && relationship.children.contains(&pid) && layer > 0 {
-                let parents = relationship
-                    .parents
-                    .iter()
-                    .flatten()
-                    .filter_map(|parent| {
-                        person_indices[layer - 1]
-                            .iter()
-                            .find(|person| person.pid == *parent)
-                            .map(|person| person.index)
-                    })
-                    .collect::<Vec<_>>();
-                if let (Some(minimum), Some(maximum)) = (parents.iter().min(), parents.iter().max())
-                {
-                    add((minimum + maximum) as f64 / 2.0, PARENT_CHILD_TARGET_WEIGHT);
+        let layer = model.occurrences[block.people[0]].key.layer;
+        let layer_people = &model.layers[layer];
+        let block_set = block.people.iter().copied().collect::<BTreeSet<_>>();
+        for insertion in [0, layer_people.len() / 2, layer_people.len()] {
+            if let Some(candidate) =
+                relocate_block(model, layout, layer_people, &block_set, insertion, false)
+            {
+                push_unique(&mut block_proposals, &mut unique, candidate);
+            }
+        }
+        if let Some(candidate) = relocate_block(
+            model,
+            layout,
+            layer_people,
+            &block_set,
+            layer_people.len() / 2,
+            true,
+        ) {
+            push_unique(&mut block_proposals, &mut unique, candidate);
+        }
+    }
+    block_proposals.sort();
+    block_proposals.truncate(MAX_BLOCK_PROPOSALS);
+    proposals.extend(block_proposals);
+
+    let mut subtree_proposals = Vec::new();
+    'pairs: for first in 0..model.subtrees.len() {
+        for second in first + 1..model.subtrees.len() {
+            let left = &model.subtrees[first];
+            let right = &model.subtrees[second];
+            if left.root_layer != right.root_layer || !left.pids.is_disjoint(&right.pids) {
+                continue;
+            }
+            for reverse in [false, true] {
+                if let Some(candidate) = reorder_subtrees(model, layout, left, right, reverse) {
+                    push_unique(&mut subtree_proposals, &mut unique, candidate);
                 }
             }
-            if relationship_layer == layer + 1
-                && relationship
-                    .parents
-                    .iter()
-                    .flatten()
-                    .any(|parent| *parent == pid)
-            {
-                if let Some(children) = person_indices.get(layer + 1) {
-                    let child_columns = relationship
-                        .children
-                        .iter()
-                        .filter_map(|child| {
-                            children
-                                .iter()
-                                .find(|person| person.pid == *child)
-                                .map(|person| person.index)
-                        })
-                        .collect::<Vec<_>>();
-                    if let (Some(minimum), Some(maximum)) =
-                        (child_columns.iter().min(), child_columns.iter().max())
-                    {
-                        add((minimum + maximum) as f64 / 2.0, PARENT_CHILD_TARGET_WEIGHT);
-                    }
-                }
-                for partner in relationship
-                    .parents
-                    .iter()
-                    .flatten()
-                    .copied()
-                    .filter(|partner| *partner != pid)
-                {
-                    if let Some(partner) = person_indices[layer]
-                        .iter()
-                        .find(|person| person.pid == partner)
-                    {
-                        add(partner.index as f64, SPOUSE_TARGET_WEIGHT);
-                    }
-                }
+            if subtree_proposals.len() >= MAX_SUBTREE_PAIR_PROPOSALS {
+                break 'pairs;
             }
         }
     }
-
-    (total_weight > 0.0).then_some(weighted_sum / total_weight)
+    subtree_proposals.sort();
+    subtree_proposals.truncate(MAX_SUBTREE_PAIR_PROPOSALS);
+    proposals.extend(subtree_proposals);
+    push_unique(&mut proposals, &mut unique, reflect(layout, row_length));
+    proposals
 }
 
-fn reordered_layer(
-    input: &PersonIndexInput<'_>,
-    person_indices: &[Vec<PersonIndex>],
-    layer: usize,
-    row_length: usize,
-) -> Option<Vec<PersonIndex>> {
-    if person_indices[layer].len() < 2 {
+fn push_unique(
+    proposals: &mut Vec<Vec<usize>>,
+    unique: &mut BTreeSet<Vec<usize>>,
+    candidate: Vec<usize>,
+) {
+    if unique.insert(candidate.clone()) {
+        proposals.push(candidate);
+    }
+}
+
+fn target_column(model: &Model, layout: &[usize], person: usize, row_length: usize) -> usize {
+    let target = target_fraction(model, layout, person);
+    let rounded = target
+        .numerator
+        .checked_add(target.denominator / 2)
+        .expect("rounded target fits in u128")
+        / target.denominator;
+    usize::try_from(rounded)
+        .expect("target column fits in usize")
+        .min(row_length - 1)
+}
+
+fn relocate_block(
+    model: &Model,
+    layout: &[usize],
+    layer_people: &[usize],
+    block: &BTreeSet<usize>,
+    insertion: usize,
+    reverse: bool,
+) -> Option<Vec<usize>> {
+    let mut ordered = layer_people.to_vec();
+    ordered.sort_by_key(|person| (layout[*person], model.occurrences[*person].key));
+    let mut selected = ordered
+        .iter()
+        .filter(|person| block.contains(person))
+        .copied()
+        .collect::<Vec<_>>();
+    if selected.len() < 2 {
         return None;
     }
-    let mut people = person_indices[layer]
+    if reverse {
+        selected.reverse();
+    }
+    let mut remaining = ordered
         .iter()
-        .enumerate()
-        .map(|(order, person)| {
-            (
-                person.clone(),
-                relationship_target(input, person_indices, layer, order)
-                    .unwrap_or(person.index as f64),
-                order,
-            )
-        })
+        .filter(|person| !block.contains(person))
+        .copied()
         .collect::<Vec<_>>();
-    people.sort_by(|first, second| {
-        first
-            .1
-            .total_cmp(&second.1)
-            .then_with(|| first.2.cmp(&second.2))
-            .then_with(|| first.0.pid.cmp(&second.0.pid))
-    });
-    let targets = people.iter().map(|person| person.1).collect::<Vec<_>>();
-    let slots = project_to_slots(&targets, row_length);
-    Some(
-        people
-            .into_iter()
-            .zip(slots)
-            .map(|((mut person, _, _), index)| {
-                person.index = index;
-                person
-            })
-            .collect(),
-    )
-}
-
-fn apply_move(person_indices: &mut [Vec<PersonIndex>], kind: Move) {
-    match kind {
-        Move::Swap {
-            layer,
-            first,
-            second,
-        } => {
-            let first_column = person_indices[layer][first].index;
-            person_indices[layer][first].index = person_indices[layer][second].index;
-            person_indices[layer][second].index = first_column;
-        }
-        Move::Move {
-            layer,
-            person,
-            column,
-        } => person_indices[layer][person].index = column,
-    }
-}
-
-fn centered_indices(
-    person_layers: &[Vec<baumstamm_lib::PersonId>],
-    row_length: usize,
-) -> Vec<Vec<PersonIndex>> {
-    person_layers
+    let insertion = insertion.min(remaining.len());
+    remaining.splice(insertion..insertion, selected);
+    let mut columns = ordered
         .iter()
-        .map(|layer| {
-            let start = (row_length - layer.len()) / 2;
-            layer
+        .map(|person| layout[*person])
+        .collect::<Vec<_>>();
+    columns.sort_unstable();
+    let mut candidate = layout.to_vec();
+    for (person, column) in remaining.into_iter().zip(columns) {
+        candidate[person] = column;
+    }
+    (candidate != layout).then_some(candidate)
+}
+
+fn reorder_subtrees(
+    model: &Model,
+    layout: &[usize],
+    first: &Subtree,
+    second: &Subtree,
+    reverse: bool,
+) -> Option<Vec<usize>> {
+    let mut candidate = layout.to_vec();
+    let mut changed = false;
+    for (layer, layer_people) in model.layers.iter().enumerate() {
+        if layer < first.root_layer {
+            continue;
+        }
+        let mut first_people = layer_people
+            .iter()
+            .filter(|person| first.pids.contains(&model.occurrences[**person].key.pid))
+            .copied()
+            .collect::<Vec<_>>();
+        let mut second_people = layer_people
+            .iter()
+            .filter(|person| second.pids.contains(&model.occurrences[**person].key.pid))
+            .copied()
+            .collect::<Vec<_>>();
+        if first_people.is_empty() || second_people.is_empty() {
+            continue;
+        }
+        first_people.sort_by_key(|person| (layout[*person], model.occurrences[*person].key));
+        second_people.sort_by_key(|person| (layout[*person], model.occurrences[*person].key));
+        if reverse {
+            first_people.reverse();
+            second_people.reverse();
+        }
+        let mut slots = first_people
+            .iter()
+            .chain(&second_people)
+            .map(|person| layout[*person])
+            .collect::<Vec<_>>();
+        slots.sort_unstable();
+        let people = second_people.into_iter().chain(first_people);
+        for (person, slot) in people.zip(slots) {
+            changed |= candidate[person] != slot;
+            candidate[person] = slot;
+        }
+    }
+    changed.then_some(candidate)
+}
+
+fn score(model: &Model, layout: &[usize]) -> Score {
+    let mut histogram = vec![0_u128; model.max_channel_lines.saturating_sub(1)];
+    let mut max_occupation = 0_u128;
+    let mut pair_overlap_area = 0_u128;
+    let mut length = 0_u128;
+    let mut family_alignment = 0_u128;
+
+    for row in &model.rows {
+        let mut parent_lines = Vec::new();
+        let mut child_lines = Vec::new();
+        for relationship in row {
+            let parents = relationship
+                .parents
                 .iter()
-                .enumerate()
-                .map(|(offset, pid)| PersonIndex {
-                    index: start + offset,
-                    pid: *pid,
-                })
-                .collect()
-        })
-        .collect()
-}
+                .flatten()
+                .map(|person| layout[*person])
+                .collect::<Vec<_>>();
+            let crossing = if relationship.has_declared_children {
+                crossing_point(&parents)
+            } else {
+                None
+            };
+            let children = relationship
+                .children
+                .iter()
+                .map(|person| layout[*person])
+                .collect::<Vec<_>>();
 
-fn coordinate_key(person_indices: &[Vec<PersonIndex>]) -> Vec<usize> {
-    person_indices
-        .iter()
-        .flatten()
-        .map(|person| person.index)
-        .collect()
-}
-
-fn score(
-    input: &PersonIndexInput<'_>,
-    person_indices: &[Vec<PersonIndex>],
-    row_length: usize,
-) -> Score {
-    let rel_indices = indices::get_rel_indices(
-        input.relationship_layers,
-        input.relationships,
-        person_indices,
-    );
-    let mut congestion = 0_u64;
-    let mut length = 0_u64;
-    let mut family_alignment = 0_u64;
-
-    for row in &rel_indices {
-        for relation in row {
-            let parents = relation.get_parents();
-            if !parents.is_empty() && !relation.children.is_empty() {
-                family_alignment = family_alignment.saturating_add(
-                    center_twice(&parents).abs_diff(center_twice(&relation.children)) as u64,
-                );
+            if !parents.is_empty() && !children.is_empty() {
+                family_alignment = family_alignment
+                    .checked_add(center_twice(&parents).abs_diff(center_twice(&children)))
+                    .expect("family alignment score fits in u128");
+            }
+            if let Some(line) = parent_interval(&parents, crossing) {
+                length = length
+                    .checked_add(line.1.abs_diff(line.0) as u128)
+                    .expect("horizontal length fits in u128");
+                parent_lines.push(line);
+            }
+            if let Some(line) = child_interval(&children, crossing) {
+                length = length
+                    .checked_add(line.1.abs_diff(line.0) as u128)
+                    .expect("horizontal length fits in u128");
+                child_lines.push(line);
             }
         }
-        for channel in lines::create_horizontal(row) {
-            let mut occupation = vec![0_u64; row_length];
-            for line in channel {
-                length = length.saturating_add(line.end.abs_diff(line.start) as u64);
-                for count in &mut occupation[line.start..=line.end] {
-                    congestion = congestion.saturating_add(*count);
-                    *count += 1;
-                }
-            }
+        for channel in [&parent_lines, &child_lines] {
+            score_channel(
+                channel,
+                &mut histogram,
+                &mut max_occupation,
+                &mut pair_overlap_area,
+            );
         }
     }
 
+    histogram.reverse();
     Score {
-        congestion,
+        max_occupation,
+        occupation_histogram: histogram,
+        pair_overlap_area,
         length,
         family_alignment,
     }
 }
 
-fn center_twice(columns: &[usize]) -> usize {
-    let minimum = columns.iter().min().copied().unwrap_or_default();
-    let maximum = columns.iter().max().copied().unwrap_or_default();
-    minimum + maximum
+fn crossing_point(parents: &[usize]) -> Option<usize> {
+    match parents {
+        [] => None,
+        [parent] => Some(*parent),
+        [first, second, ..] => {
+            let minimum = (*first).min(*second);
+            Some(minimum + first.abs_diff(*second) / 2)
+        }
+    }
+}
+
+fn parent_interval(parents: &[usize], crossing: Option<usize>) -> Option<(usize, usize)> {
+    match (parents, crossing) {
+        ([first, second, ..], _) => Some(((*first).min(*second), (*first).max(*second))),
+        ([parent], Some(crossing)) if *parent != crossing => {
+            Some(((*parent).min(crossing), (*parent).max(crossing)))
+        }
+        _ => None,
+    }
+}
+
+fn child_interval(children: &[usize], crossing: Option<usize>) -> Option<(usize, usize)> {
+    let first = children.iter().min().copied()?;
+    let last = children.iter().max().copied()?;
+    let (start, end) = crossing.map_or((first, last), |crossing| {
+        (first.min(crossing), last.max(crossing))
+    });
+    (start != end).then_some((start, end))
+}
+
+fn score_channel(
+    lines: &[(usize, usize)],
+    histogram: &mut [u128],
+    max_occupation: &mut u128,
+    pair_overlap_area: &mut u128,
+) {
+    let mut events = BTreeMap::<usize, i128>::new();
+    for (start, end) in lines {
+        *events.entry(*start).or_default() += 1;
+        *events
+            .entry(end.checked_add(1).expect("line endpoint fits in usize"))
+            .or_default() -= 1;
+    }
+    let mut occupation = 0_i128;
+    let mut previous = None;
+    for (column, delta) in events {
+        if let Some(previous) = previous {
+            let point_count = (column - previous) as u128;
+            if occupation > 0 && point_count > 0 {
+                *max_occupation = (*max_occupation).max(occupation as u128);
+            }
+            if occupation >= 2 && point_count > 0 {
+                let occupation = occupation as u128;
+                let histogram_index =
+                    usize::try_from(occupation - 2).expect("occupation count fits in usize");
+                histogram[histogram_index] = histogram[histogram_index]
+                    .checked_add(point_count)
+                    .expect("occupation histogram fits in u128");
+                let pairs = occupation
+                    .checked_mul(occupation - 1)
+                    .and_then(|value| value.checked_div(2))
+                    .expect("pair occupation fits in u128");
+                *pair_overlap_area = pair_overlap_area
+                    .checked_add(
+                        pairs
+                            .checked_mul(point_count)
+                            .expect("pair overlap span fits in u128"),
+                    )
+                    .expect("pair overlap area fits in u128");
+            }
+        }
+        occupation += delta;
+        debug_assert!(occupation >= 0);
+        previous = Some(column);
+    }
+    debug_assert_eq!(occupation, 0);
+}
+
+fn center_twice(columns: &[usize]) -> u128 {
+    let minimum = columns.iter().min().copied().unwrap_or_default() as u128;
+    let maximum = columns.iter().max().copied().unwrap_or_default() as u128;
+    minimum
+        .checked_add(maximum)
+        .expect("twice-center fits in u128")
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::algos::LayoutAlgorithm;
-    use baumstamm_lib::{PersonId, Relationship, RelationshipId};
-    use std::collections::BTreeSet;
+    use crate::{indices, lines};
+    use baumstamm_lib::{Relationship, RelationshipId};
 
     fn pid(value: u128) -> PersonId {
         value.into()
     }
 
-    fn relationship(id: u128, parents: [u128; 2], children: [u128; 2]) -> Relationship {
+    fn relationship(id: u128, parents: [u128; 2], children: &[u128]) -> Relationship {
         Relationship {
             id: RelationshipId(id),
             parents: parents.map(pid).map(Some),
-            children: children.map(pid).to_vec(),
+            children: children.iter().copied().map(pid).collect(),
         }
     }
 
@@ -520,118 +925,275 @@ mod tests {
         }
     }
 
+    fn canonical_coordinates(output: &PersonIndexOutput) -> Vec<(usize, PersonId, usize, usize)> {
+        output
+            .person_indices
+            .iter()
+            .enumerate()
+            .flat_map(|(layer, people)| {
+                let mut ordinals = BTreeMap::<PersonId, usize>::new();
+                people.iter().map(move |person| {
+                    let ordinal = ordinals.entry(person.pid).or_default();
+                    let key = (layer, person.pid, *ordinal, person.index);
+                    *ordinal += 1;
+                    key
+                })
+            })
+            .collect()
+    }
+
+    fn renderer_reference_score(
+        request: &PersonIndexInput<'_>,
+        model: &Model,
+        layout: &[usize],
+        row_length: usize,
+    ) -> Score {
+        let person_indices = model.to_person_indices(layout);
+        let relationship_indices = indices::get_rel_indices(
+            request.relationship_layers,
+            request.relationships,
+            &person_indices,
+        );
+        let mut occupation_histogram = vec![0_u128; model.max_channel_lines.saturating_sub(1)];
+        let mut max_occupation = 0_u128;
+        let mut pair_overlap_area = 0_u128;
+        let mut length = 0_u128;
+        let mut family_alignment = 0_u128;
+        for row in relationship_indices {
+            for relationship in &row {
+                let parents = relationship.get_parents();
+                if !parents.is_empty() && !relationship.children.is_empty() {
+                    family_alignment +=
+                        center_twice(&parents).abs_diff(center_twice(&relationship.children));
+                }
+            }
+            for channel in lines::create_horizontal(&row) {
+                let mut occupation = vec![0_u128; row_length];
+                for line in channel {
+                    length += line.end.abs_diff(line.start) as u128;
+                    for point in &mut occupation[line.start..=line.end] {
+                        *point += 1;
+                    }
+                }
+                for point in occupation {
+                    max_occupation = max_occupation.max(point);
+                    if point >= 2 {
+                        occupation_histogram[(point - 2) as usize] += 1;
+                        pair_overlap_area += point * (point - 1) / 2;
+                    }
+                }
+            }
+        }
+        occupation_histogram.reverse();
+        Score {
+            max_occupation,
+            occupation_histogram,
+            pair_overlap_area,
+            length,
+            family_alignment,
+        }
+    }
+
     #[test]
-    fn separates_interleaved_connection_segments() {
+    fn shuffled_source_order_has_canonical_output() {
+        let people = vec![
+            vec![pid(1), pid(3), pid(2), pid(4)],
+            vec![pid(5), pid(7), pid(6), pid(8)],
+        ];
+        let shuffled = vec![
+            vec![pid(4), pid(2), pid(3), pid(1)],
+            vec![pid(8), pid(6), pid(7), pid(5)],
+        ];
+        let relationships = vec![
+            relationship(10, [1, 2], &[5, 6]),
+            relationship(11, [3, 4], &[7, 8]),
+        ];
+        let shuffled_relationships = vec![relationships[1].clone(), relationships[0].clone()];
+        let relationship_layers = vec![vec![], vec![RelationshipId(11), RelationshipId(10)]];
+        let shuffled_relationship_layers =
+            vec![vec![], vec![RelationshipId(10), RelationshipId(11)]];
+
+        let first = get_person_indices(input(&people, &relationship_layers, &relationships));
+        let second = get_person_indices(input(
+            &shuffled,
+            &shuffled_relationship_layers,
+            &shuffled_relationships,
+        ));
+
+        assert_eq!(first.row_length, second.row_length);
+        assert_eq!(
+            canonical_coordinates(&first),
+            canonical_coordinates(&second)
+        );
+    }
+
+    #[test]
+    fn preindexed_score_matches_renderer_channels_and_endpoints() {
         let people = vec![
             vec![pid(1), pid(3), pid(2), pid(4)],
             vec![pid(5), pid(7), pid(6), pid(8)],
         ];
         let relationships = vec![
-            relationship(10, [1, 2], [5, 6]),
-            relationship(11, [3, 4], [7, 8]),
+            relationship(10, [1, 2], &[5, 6]),
+            relationship(11, [3, 4], &[7, 8]),
         ];
         let relationship_layers = vec![vec![], vec![RelationshipId(10), RelationshipId(11)]];
         let request = input(&people, &relationship_layers, &relationships);
-        let deliberate_worse = centered_indices(&people, 4);
-        let worse_score = score(&request, &deliberate_worse, 4);
+        let model = Model::new(&request);
+        let layouts = [model.centered_layout(5), model.structural_layout(5)];
 
-        let output = get_person_indices(request);
-        let optimized_score = score(&request, &output.person_indices, output.row_length);
-
-        assert!(optimized_score < worse_score);
-        assert_eq!(optimized_score.congestion, 0);
-    }
-
-    #[test]
-    fn is_deterministic_collision_free_and_keeps_repeated_occurrences() {
-        let people = vec![
-            vec![pid(1), pid(3), pid(2), pid(4)],
-            vec![pid(5), pid(3), pid(6)],
-        ];
-        let relationships = vec![relationship(10, [1, 2], [5, 6])];
-        let relationship_layers = vec![vec![], vec![RelationshipId(10)]];
-        let first = get_person_indices(input(&people, &relationship_layers, &relationships));
-        let second = get_person_indices(input(&people, &relationship_layers, &relationships));
-
-        assert_eq!(first.row_length, second.row_length);
-        assert_eq!(
-            coordinate_key(&first.person_indices),
-            coordinate_key(&second.person_indices)
-        );
-        assert_eq!(
-            first
-                .person_indices
-                .iter()
-                .map(Vec::len)
-                .collect::<Vec<_>>(),
-            vec![4, 3]
-        );
-        assert_eq!(
-            first
-                .person_indices
-                .iter()
-                .flatten()
-                .filter(|person| person.pid == pid(3))
-                .count(),
-            2
-        );
-        for layer in &first.person_indices {
-            let columns = layer
-                .iter()
-                .map(|person| person.index)
-                .collect::<BTreeSet<_>>();
-            assert_eq!(columns.len(), layer.len());
-            assert!(columns.iter().all(|column| *column < first.row_length));
+        for layout in layouts {
+            assert_eq!(
+                score(&model, &layout),
+                renderer_reference_score(&request, &model, &layout, 5)
+            );
         }
     }
 
     #[test]
-    fn equal_length_family_layouts_prefer_matching_centers() {
-        let people = vec![vec![pid(1), pid(2)], vec![pid(3), pid(4)]];
-        let relationships = vec![relationship(10, [1, 2], [3, 4])];
-        let relationship_layers = vec![vec![], vec![RelationshipId(10)]];
-        let request = input(&people, &relationship_layers, &relationships);
-        let aligned = vec![
-            vec![
-                PersonIndex {
-                    pid: pid(1),
-                    index: 1,
-                },
-                PersonIndex {
-                    pid: pid(2),
-                    index: 2,
-                },
-            ],
-            vec![
-                PersonIndex {
-                    pid: pid(3),
-                    index: 1,
-                },
-                PersonIndex {
-                    pid: pid(4),
-                    index: 2,
-                },
-            ],
+    fn structured_search_reorders_descendant_subtrees_coherently() {
+        let people = vec![
+            vec![pid(1), pid(2), pid(3), pid(4)],
+            vec![pid(7), pid(8), pid(5), pid(6)],
+            vec![pid(11), pid(12), pid(9), pid(10)],
         ];
-        let shifted = vec![
-            aligned[0].clone(),
-            vec![
-                PersonIndex {
-                    pid: pid(3),
-                    index: 0,
-                },
-                PersonIndex {
-                    pid: pid(4),
-                    index: 1,
-                },
-            ],
+        let relationships = vec![
+            relationship(10, [1, 2], &[5, 6]),
+            relationship(11, [3, 4], &[7, 8]),
+            relationship(12, [5, 6], &[9, 10]),
+            relationship(13, [7, 8], &[11, 12]),
+        ];
+        let relationship_layers = vec![
+            vec![],
+            vec![RelationshipId(10), RelationshipId(11)],
+            vec![RelationshipId(12), RelationshipId(13)],
         ];
 
-        let aligned_score = score(&request, &aligned, 4);
-        let shifted_score = score(&request, &shifted, 4);
-        assert_eq!(aligned_score.congestion, shifted_score.congestion);
-        assert_eq!(aligned_score.length, shifted_score.length);
-        assert!(aligned_score.family_alignment < shifted_score.family_alignment);
-        assert!(aligned_score < shifted_score);
+        let output = get_person_indices(input(&people, &relationship_layers, &relationships));
+        let center = |layer: usize, pids: &[PersonId]| {
+            let columns = output.person_indices[layer]
+                .iter()
+                .filter(|person| pids.contains(&person.pid))
+                .map(|person| person.index)
+                .collect::<Vec<_>>();
+            center_twice(&columns)
+        };
+        let root_order = center(0, &[pid(1), pid(2)]).cmp(&center(0, &[pid(3), pid(4)]));
+
+        assert_ne!(root_order, Ordering::Equal);
+        assert_eq!(
+            center(1, &[pid(5), pid(6)]).cmp(&center(1, &[pid(7), pid(8)])),
+            root_order
+        );
+        assert_eq!(
+            center(2, &[pid(9), pid(10)]).cmp(&center(2, &[pid(11), pid(12)])),
+            root_order
+        );
+    }
+
+    #[test]
+    fn width_is_selected_from_the_compact_band() {
+        let people = vec![vec![pid(1), pid(2), pid(3), pid(4), pid(5)], vec![pid(6)]];
+        let relationship_layers = vec![vec![], vec![]];
+        let output = get_person_indices(input(&people, &relationship_layers, &[]));
+
+        assert!((5..=6).contains(&output.row_length));
+        assert_eq!(
+            output.row_length, 5,
+            "equal objectives prefer narrower width"
+        );
+    }
+
+    #[test]
+    fn preserves_exact_layer_multisets_and_collisions_are_impossible() {
+        let people = vec![
+            vec![pid(3), pid(1), pid(3), pid(2)],
+            vec![pid(5), pid(4), pid(1)],
+        ];
+        let relationship_layers = vec![vec![], vec![]];
+        let output = get_person_indices(input(&people, &relationship_layers, &[]));
+
+        for (source, result) in people.iter().zip(&output.person_indices) {
+            let mut source = source.clone();
+            source.sort();
+            let mut actual = result.iter().map(|person| person.pid).collect::<Vec<_>>();
+            actual.sort();
+            let occupied = result
+                .iter()
+                .map(|person| person.index)
+                .collect::<BTreeSet<_>>();
+            assert_eq!(source, actual);
+            assert_eq!(occupied.len(), result.len());
+            assert!(occupied.iter().all(|column| *column < output.row_length));
+        }
+    }
+
+    #[test]
+    fn pointwise_peak_precedes_pair_overlap_and_length() {
+        let people = vec![
+            vec![pid(1), pid(2), pid(3), pid(4), pid(5), pid(6)],
+            vec![pid(7), pid(8), pid(9), pid(10), pid(11), pid(12)],
+        ];
+        let relationships = vec![
+            relationship(20, [1, 2], &[7, 8]),
+            relationship(21, [3, 4], &[9, 10]),
+            relationship(22, [5, 6], &[11, 12]),
+        ];
+        let relationship_layers = vec![
+            vec![],
+            vec![RelationshipId(20), RelationshipId(21), RelationshipId(22)],
+        ];
+        let model = Model::new(&input(&people, &relationship_layers, &relationships));
+        let output = get_person_indices(input(&people, &relationship_layers, &relationships));
+        let optimized = output
+            .person_indices
+            .iter()
+            .flatten()
+            .map(|person| person.index)
+            .collect::<Vec<_>>();
+        let optimized_score = score(&model, &optimized);
+
+        assert!(optimized_score.max_occupation <= 2);
+    }
+
+    #[test]
+    fn exhaustive_small_layout_confirms_returned_objective() {
+        let people = vec![vec![pid(1), pid(2), pid(3)], vec![pid(4), pid(5), pid(6)]];
+        let relationships = vec![
+            relationship(10, [1, 2], &[4, 5]),
+            relationship(11, [2, 3], &[5, 6]),
+        ];
+        let relationship_layers = vec![vec![], vec![RelationshipId(10), RelationshipId(11)]];
+        let request = input(&people, &relationship_layers, &relationships);
+        let model = Model::new(&request);
+        let output = get_person_indices(request);
+        assert_eq!(output.row_length, 3);
+        let actual = output
+            .person_indices
+            .iter()
+            .flatten()
+            .map(|person| person.index)
+            .collect::<Vec<_>>();
+        let actual_score = score(&model, &actual);
+        let permutations = [
+            [0, 1, 2],
+            [0, 2, 1],
+            [1, 0, 2],
+            [1, 2, 0],
+            [2, 0, 1],
+            [2, 1, 0],
+        ];
+        let oracle = permutations
+            .iter()
+            .flat_map(|first| {
+                permutations.iter().map(|second| {
+                    let layout = first.iter().chain(second).copied().collect::<Vec<_>>();
+                    (score(&model, &layout), layout)
+                })
+            })
+            .min()
+            .expect("finite oracle");
+
+        assert_eq!((actual_score, actual), oracle);
     }
 }

@@ -26,7 +26,7 @@ pub struct PersonIndex {
 }
 
 pub fn get_rel_indices(
-    layers: &Grid<Rid>,
+    layers: &[Vec<Rid>],
     rels: &[Relationship],
     person_indices: &[Vec<PersonIndex>],
 ) -> Grid<RelIndices> {

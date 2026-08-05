@@ -54,7 +54,7 @@ mod tests {
         let layers = vec![vec![pid(1), pid(2)], vec![pid(3)]];
         let output = get_person_indices(PersonIndexInput {
             person_layers: &layers,
-            relationship_layers: &vec![],
+            relationship_layers: &[],
             relationships: &[],
             layout_algorithm: LayoutAlgorithm::Centered,
         });

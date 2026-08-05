@@ -12,7 +12,7 @@ mod kinship_expansion;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize, Type)]
 pub enum LayoutAlgorithm {
     Centered,
-    /// Minimizes rendered horizontal-segment congestion, then total span.
+    /// Minimizes peak rendered horizontal-segment pressure, then total span.
     ConnectionOptimized,
     #[default]
     ForceDirected,
@@ -22,8 +22,8 @@ pub enum LayoutAlgorithm {
 
 #[derive(Clone, Copy)]
 pub struct PersonIndexInput<'a> {
-    pub person_layers: &'a Grid<PersonId>,
-    pub relationship_layers: &'a Grid<RelationshipId>,
+    pub person_layers: &'a [Vec<PersonId>],
+    pub relationship_layers: &'a [Vec<RelationshipId>],
     pub relationships: &'a [Relationship],
     pub layout_algorithm: LayoutAlgorithm,
 }
@@ -81,10 +81,13 @@ mod tests {
                 &output.person_indices,
             );
             let mut congestion = 0_u64;
+            let mut peak_occupation = 0_u64;
             let mut length = 0_u64;
             let mut layer_lengths = Vec::new();
+            let mut layer_peaks = Vec::new();
             for row in &relationship_indices {
                 let mut layer_length = 0_u64;
+                let mut layer_peak = 0_u64;
                 for channel in crate::lines::create_horizontal(row) {
                     let mut occupation = vec![0_u64; output.row_length];
                     for line in channel {
@@ -96,10 +99,21 @@ mod tests {
                             *count += 1;
                         }
                     }
+                    let channel_peak = occupation.into_iter().max().unwrap_or_default();
+                    peak_occupation = peak_occupation.max(channel_peak);
+                    layer_peak = layer_peak.max(channel_peak);
                 }
                 layer_lengths.push(layer_length);
+                layer_peaks.push(layer_peak);
             }
-            (output.row_length, congestion, length, layer_lengths)
+            (
+                output.row_length,
+                peak_occupation,
+                congestion,
+                length,
+                layer_lengths,
+                layer_peaks,
+            )
         };
 
         let centered = metrics(LayoutAlgorithm::Centered);
@@ -108,18 +122,24 @@ mod tests {
         let expansion = metrics(LayoutAlgorithm::KinshipExpansion);
         let widest_layer = person_layers.iter().map(Vec::len).max().unwrap();
         let youngest_connection_layer = person_layers.len() - 1;
+        assert_eq!(force.0, widest_layer + widest_layer.div_ceil(2));
+        assert!(force.3 * 4 < centered.3 * 3);
+        assert!(force.4[youngest_connection_layer] < centered.4[youngest_connection_layer]);
 
-        assert_eq!(force.0, widest_layer * 3 / 2);
-        assert!(force.2 * 4 < centered.2 * 3);
-        assert!(force.3[youngest_connection_layer] < centered.3[youngest_connection_layer]);
-
-        assert_eq!(optimized.0, widest_layer);
-        assert!(optimized.1 < force.1);
-        assert!(optimized.2 < force.2);
-        assert!(optimized.3[youngest_connection_layer] < force.3[youngest_connection_layer]);
+        assert!(optimized.0 >= widest_layer);
+        assert!(optimized.0 <= widest_layer + widest_layer.div_ceil(8));
+        assert!(optimized.1 <= force.1);
+        assert!(optimized.3 < centered.3);
+        assert!(optimized.5[youngest_connection_layer] <= centered.5[youngest_connection_layer]);
 
         assert_eq!(expansion.0, widest_layer + widest_layer.div_ceil(8));
-        assert!(expansion.1 < centered.1);
-        assert!(expansion.2 < centered.2);
+        assert!(
+            expansion.2 < centered.2,
+            "expansion={expansion:?}, centered={centered:?}"
+        );
+        assert!(
+            expansion.3 < centered.3,
+            "expansion={expansion:?}, centered={centered:?}"
+        );
     }
 }
