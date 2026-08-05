@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use specta::Type;
 
 mod centered;
+mod common;
 mod connection_optimized;
 mod force_directed;
 mod kinship_expansion;
@@ -44,6 +45,7 @@ pub fn get_person_indices(input: PersonIndexInput<'_>) -> PersonIndexOutput {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use baumstamm_lib::{FamilyTree, graph::Graph};
     use serde::Deserialize;
 
     #[test]
@@ -55,5 +57,69 @@ mod tests {
             LayoutAlgorithm::deserialize(deserializer).expect("legacy layout name"),
             LayoutAlgorithm::KinshipExpansion
         );
+    }
+
+    #[test]
+    fn got_layouts_are_compact_and_relationship_aware() {
+        let tree = FamilyTree::try_from(include_str!("../../examples/got/got.json"))
+            .expect("valid example tree");
+        let relationships = tree.get_relationships();
+        let graph = Graph::new(relationships).cut();
+        let relationship_layers = graph.layers();
+        let person_layers = graph.person_layers(relationships);
+
+        let metrics = |algorithm| {
+            let output = get_person_indices(PersonIndexInput {
+                person_layers: &person_layers,
+                relationship_layers: &relationship_layers,
+                relationships,
+                layout_algorithm: algorithm,
+            });
+            let relationship_indices = crate::indices::get_rel_indices(
+                &relationship_layers,
+                relationships,
+                &output.person_indices,
+            );
+            let mut congestion = 0_u64;
+            let mut length = 0_u64;
+            let mut layer_lengths = Vec::new();
+            for row in &relationship_indices {
+                let mut layer_length = 0_u64;
+                for channel in crate::lines::create_horizontal(row) {
+                    let mut occupation = vec![0_u64; output.row_length];
+                    for line in channel {
+                        let line_length = line.end.abs_diff(line.start) as u64;
+                        length += line_length;
+                        layer_length += line_length;
+                        for count in &mut occupation[line.start..=line.end] {
+                            congestion += *count;
+                            *count += 1;
+                        }
+                    }
+                }
+                layer_lengths.push(layer_length);
+            }
+            (output.row_length, congestion, length, layer_lengths)
+        };
+
+        let centered = metrics(LayoutAlgorithm::Centered);
+        let force = metrics(LayoutAlgorithm::ForceDirected);
+        let optimized = metrics(LayoutAlgorithm::ConnectionOptimized);
+        let expansion = metrics(LayoutAlgorithm::KinshipExpansion);
+        let widest_layer = person_layers.iter().map(Vec::len).max().unwrap();
+        let youngest_connection_layer = person_layers.len() - 1;
+
+        assert_eq!(force.0, widest_layer * 3 / 2);
+        assert!(force.2 * 4 < centered.2 * 3);
+        assert!(force.3[youngest_connection_layer] < centered.3[youngest_connection_layer]);
+
+        assert_eq!(optimized.0, widest_layer);
+        assert!(optimized.1 < force.1);
+        assert!(optimized.2 < force.2);
+        assert!(optimized.3[youngest_connection_layer] < force.3[youngest_connection_layer]);
+
+        assert_eq!(expansion.0, widest_layer + widest_layer.div_ceil(8));
+        assert!(expansion.1 < centered.1);
+        assert!(expansion.2 < centered.2);
     }
 }

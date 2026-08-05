@@ -244,14 +244,16 @@ mod tests {
     }
 
     #[test]
-    fn kinship_expansion_computes_enough_width_for_the_whole_tree() {
+    fn kinship_expansion_keeps_width_close_to_the_widest_generation() {
         let tree = FamilyTree::try_from(include_str!("../../examples/lotr/lotr.json"))
             .expect("valid example tree");
+        let centered = generate_with_layout(&tree, LayoutAlgorithm::Centered);
         let grid = generate_with_layout(&tree, LayoutAlgorithm::KinshipExpansion);
 
         assert!(!grid.is_empty());
         assert!(grid.iter().all(|row| row.len() == grid[0].len()));
-        assert!(grid[0].len() >= tree.get_persons().len());
+        assert!(grid[0].len() >= centered[0].len());
+        assert!(grid[0].len() <= centered[0].len() + centered[0].len().div_ceil(8));
     }
 
     #[test]

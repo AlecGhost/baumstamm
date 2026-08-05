@@ -1,63 +1,60 @@
-use super::{PersonIndexInput, PersonIndexOutput};
+use super::{PersonIndexInput, PersonIndexOutput, common::project_to_slots};
 use crate::indices::PersonIndex;
-use baumstamm_lib::{PersonId, Relationship};
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
+use baumstamm_lib::PersonId;
+use std::collections::HashSet;
 
 type Pid = PersonId;
 
+const EXTRA_WIDTH_DIVISOR: usize = 8;
+const REFINEMENT_PASSES: usize = 4;
+const CENTER_GRAVITY_WEIGHT: usize = 1;
+const UNRELATED_TARGET_WEIGHT: usize = 1;
+const REPEATED_PERSON_WEIGHT: usize = 10;
+const PARENT_GROUP_WEIGHT: usize = 20;
+const CHILD_GROUP_WEIGHT: usize = 8;
+const SPOUSE_WEIGHT: usize = 12;
+const SIBLING_SLOT_SPACING: f64 = 1.0;
+
 pub(super) fn get_person_indices(input: PersonIndexInput<'_>) -> PersonIndexOutput {
-    let occurrence_order = input
+    let widest_layer = input
         .person_layers
         .iter()
-        .flatten()
-        .copied()
-        .collect::<Vec<_>>();
-    let first_occurrence = occurrence_order.iter().copied().enumerate().fold(
-        HashMap::new(),
-        |mut positions, (position, pid)| {
-            positions.entry(pid).or_insert(position);
-            positions
-        },
-    );
-
-    let Some(&root) = occurrence_order.first() else {
+        .map(Vec::len)
+        .max()
+        .unwrap_or_default();
+    if widest_layer == 0 {
         return PersonIndexOutput {
-            person_indices: Vec::new(),
+            person_indices: input.person_layers.iter().map(|_| Vec::new()).collect(),
             row_length: 0,
         };
-    };
+    }
 
-    let neighbours = immediate_family(input.relationships, &first_occurrence);
-    let expansion = breadth_first_people(root, &occurrence_order, &neighbours, &first_occurrence);
-    let coordinates = expansion_coordinates(&expansion);
-    let minimum = coordinates.values().copied().min().unwrap_or_default();
-    let maximum = coordinates.values().copied().max().unwrap_or_default();
-    let row_length = usize::try_from(maximum - minimum + 1).expect("layout width must fit usize");
+    // A small, bounded amount of breathing room lets sibling groups and
+    // spouses shift as a unit without making width proportional to the total
+    // number of people in the tree.
+    let row_length = widest_layer.saturating_add(widest_layer.div_ceil(EXTRA_WIDTH_DIVISOR));
+    let mut person_indices = centered_indices(input.person_layers, row_length);
+    center_oldest_root(&mut person_indices, row_length);
 
-    let person_indices = input
-        .person_layers
-        .iter()
-        .map(|layer| {
-            let indices = layer
-                .iter()
-                .map(|pid| PersonIndex {
-                    pid: *pid,
-                    index: usize::try_from(coordinates[pid] - minimum)
-                        .expect("normalized coordinate must be non-negative"),
-                })
-                .collect::<Vec<_>>();
-            debug_assert_eq!(
-                indices
-                    .iter()
-                    .map(|person| person.index)
-                    .collect::<HashSet<_>>()
-                    .len(),
-                indices.len(),
-                "people in one layer must occupy distinct columns"
-            );
-            indices
-        })
-        .collect();
+    // Grow outwards from the oldest layer. Each new layer is ordered and
+    // projected around its already placed parents (or the nearest repeated
+    // occurrence), so descendant subtrees continue to use the space below the
+    // root instead of receiving globally unique columns.
+    for layer in 1..person_indices.len() {
+        relayout_layer(&input, &mut person_indices, layer, row_length);
+    }
+
+    // A few alternating sweeps pull parents toward child groups and then
+    // propagate those compact positions back down. The oldest layer stays
+    // pinned, keeping the selected root centered.
+    for _ in 0..REFINEMENT_PASSES {
+        for layer in (1..person_indices.len()).rev() {
+            relayout_layer(&input, &mut person_indices, layer, row_length);
+        }
+        for layer in 1..person_indices.len() {
+            relayout_layer(&input, &mut person_indices, layer, row_length);
+        }
+    }
 
     PersonIndexOutput {
         person_indices,
@@ -65,110 +62,266 @@ pub(super) fn get_person_indices(input: PersonIndexInput<'_>) -> PersonIndexOutp
     }
 }
 
-// Treat everyone named by one relationship as immediate family. This makes
-// spouses, parents, children, and siblings one expansion step apart while
-// keeping the traversal independent of the cut graph's repeated occurrences.
-fn immediate_family(
-    relationships: &[Relationship],
-    visible_people: &HashMap<Pid, usize>,
-) -> BTreeMap<Pid, BTreeSet<Pid>> {
-    let mut neighbours = BTreeMap::<Pid, BTreeSet<Pid>>::new();
-    for relationship in relationships {
-        let members = relationship
-            .parents
+fn centered_indices(person_layers: &[Vec<Pid>], row_length: usize) -> Vec<Vec<PersonIndex>> {
+    person_layers
+        .iter()
+        .map(|layer| {
+            let start = (row_length - layer.len()) / 2;
+            layer
+                .iter()
+                .enumerate()
+                .map(|(offset, pid)| PersonIndex {
+                    pid: *pid,
+                    index: start + offset,
+                })
+                .collect()
+        })
+        .collect()
+}
+
+fn center_oldest_root(person_indices: &mut [Vec<PersonIndex>], row_length: usize) {
+    let Some(layer) = person_indices.iter_mut().find(|layer| !layer.is_empty()) else {
+        return;
+    };
+    let center = (row_length - 1) / 2;
+    let mut slots = (0..row_length).collect::<Vec<_>>();
+    slots.sort_by_key(|column| {
+        (
+            column.abs_diff(center),
+            usize::from(*column < center),
+            *column,
+        )
+    });
+    for (person, column) in layer.iter_mut().zip(slots) {
+        person.index = column;
+    }
+}
+
+fn relayout_layer(
+    input: &PersonIndexInput<'_>,
+    person_indices: &mut [Vec<PersonIndex>],
+    layer: usize,
+    row_length: usize,
+) {
+    let center = (row_length - 1) as f64 / 2.0;
+    let mut desired = person_indices[layer]
+        .iter()
+        .enumerate()
+        .map(|(order, person)| {
+            (
+                person.pid,
+                relative_target(input, person_indices, layer, person.pid)
+                    .unwrap_or((center, UNRELATED_TARGET_WEIGHT)),
+                order,
+            )
+        })
+        .collect::<Vec<_>>();
+    desired.sort_by(|first, second| {
+        first
+            .1
+            .0
+            .total_cmp(&second.1.0)
+            .then_with(|| first.2.cmp(&second.2))
+            .then_with(|| first.0.cmp(&second.0))
+    });
+    let targets = desired
+        .iter()
+        .map(|(_, (target, weight), _)| {
+            // Weak gravity keeps disconnected source components in the middle
+            // while close relatives dominate the placement.
+            (target * *weight as f64 + center * CENTER_GRAVITY_WEIGHT as f64)
+                / (*weight + CENTER_GRAVITY_WEIGHT) as f64
+        })
+        .collect::<Vec<_>>();
+    let slots = project_to_slots(&targets, row_length);
+    person_indices[layer] = desired
+        .into_iter()
+        .zip(slots)
+        .map(|((pid, _, _), index)| PersonIndex { pid, index })
+        .collect();
+
+    debug_assert_eq!(
+        person_indices[layer]
             .iter()
-            .flatten()
-            .chain(&relationship.children)
-            .copied()
-            .filter(|pid| visible_people.contains_key(pid))
-            .collect::<Vec<_>>();
-        for (index, person) in members.iter().enumerate() {
-            for relative in members.iter().skip(index + 1) {
-                if person != relative {
-                    neighbours.entry(*person).or_default().insert(*relative);
-                    neighbours.entry(*relative).or_default().insert(*person);
-                }
+            .map(|person| person.index)
+            .collect::<HashSet<_>>()
+            .len(),
+        person_indices[layer].len(),
+        "people in one layer must occupy distinct columns"
+    );
+}
+
+fn relative_target(
+    input: &PersonIndexInput<'_>,
+    person_indices: &[Vec<PersonIndex>],
+    layer: usize,
+    pid: Pid,
+) -> Option<(f64, usize)> {
+    let mut weighted_sum = 0.0;
+    let mut total_weight = 0;
+    let mut add = |column: f64, weight: usize| {
+        weighted_sum += column * weight as f64;
+        total_weight += weight;
+    };
+
+    for (other_layer, occurrences) in person_indices.iter().enumerate() {
+        if other_layer != layer {
+            for occurrence in occurrences.iter().filter(|person| person.pid == pid) {
+                add(occurrence.index as f64, REPEATED_PERSON_WEIGHT);
             }
         }
     }
-    neighbours
-}
 
-fn breadth_first_people(
-    root: Pid,
-    occurrence_order: &[Pid],
-    neighbours: &BTreeMap<Pid, BTreeSet<Pid>>,
-    first_occurrence: &HashMap<Pid, usize>,
-) -> Vec<(Pid, usize)> {
-    let mut expansion = Vec::new();
-    let mut visited = BTreeSet::new();
-    let mut maximum_distance = 0;
-
-    for component_root in std::iter::once(root).chain(occurrence_order.iter().copied()) {
-        if !visited.insert(component_root) {
+    for (relationship_layer, ids) in input.relationship_layers.iter().enumerate() {
+        if relationship_layer != layer && relationship_layer != layer + 1 {
             continue;
         }
-        let component_distance = if expansion.is_empty() {
-            0
-        } else {
-            maximum_distance + 1
-        };
-        let mut queue = VecDeque::from([(component_root, component_distance)]);
-        while let Some((person, distance)) = queue.pop_front() {
-            maximum_distance = maximum_distance.max(distance);
-            expansion.push((person, distance));
-            let mut relatives = neighbours
-                .get(&person)
-                .into_iter()
-                .flatten()
-                .copied()
-                .collect::<Vec<_>>();
-            relatives.sort_by_key(|relative| (first_occurrence[relative], *relative));
-            for relative in relatives {
-                if visited.insert(relative) {
-                    queue.push_back((relative, distance + 1));
+        for id in ids {
+            let relationship = input
+                .relationships
+                .iter()
+                .find(|relationship| relationship.id == *id)
+                .expect("relationship layer references an unknown relationship");
+            if relationship_layer == layer && relationship.children.contains(&pid) && layer > 0 {
+                let columns = relationship
+                    .parents
+                    .iter()
+                    .flatten()
+                    .filter_map(|parent| {
+                        person_indices[layer - 1]
+                            .iter()
+                            .find(|person| person.pid == *parent)
+                            .map(|person| person.index)
+                    })
+                    .collect::<Vec<_>>();
+                if let (Some(minimum), Some(maximum)) = (columns.iter().min(), columns.iter().max())
+                {
+                    let parent_center = (minimum + maximum) as f64 / 2.0;
+                    let ordered_siblings =
+                        ordered_siblings(input, person_indices, layer, &relationship.children);
+                    let sibling_offset = ordered_siblings
+                        .iter()
+                        .position(|sibling| *sibling == pid)
+                        .map(|position| position as f64 - (ordered_siblings.len() - 1) as f64 / 2.0)
+                        .unwrap_or_default();
+                    add(
+                        parent_center + sibling_offset * SIBLING_SLOT_SPACING,
+                        PARENT_GROUP_WEIGHT,
+                    );
+                }
+            }
+            if relationship_layer == layer + 1
+                && relationship
+                    .parents
+                    .iter()
+                    .flatten()
+                    .any(|parent| *parent == pid)
+            {
+                if let Some(children) = person_indices.get(layer + 1) {
+                    let columns = relationship
+                        .children
+                        .iter()
+                        .filter_map(|child| {
+                            children
+                                .iter()
+                                .find(|person| person.pid == *child)
+                                .map(|person| person.index)
+                        })
+                        .collect::<Vec<_>>();
+                    if let (Some(minimum), Some(maximum)) =
+                        (columns.iter().min(), columns.iter().max())
+                    {
+                        add((minimum + maximum) as f64 / 2.0, CHILD_GROUP_WEIGHT);
+                    }
+                }
+                for partner in relationship
+                    .parents
+                    .iter()
+                    .flatten()
+                    .filter(|partner| **partner != pid)
+                {
+                    if let Some(partner) = person_indices[layer]
+                        .iter()
+                        .find(|person| person.pid == *partner)
+                    {
+                        add(partner.index as f64, SPOUSE_WEIGHT);
+                    }
                 }
             }
         }
     }
-    expansion
+
+    (total_weight > 0).then_some((weighted_sum / total_weight as f64, total_weight))
 }
 
-fn expansion_coordinates(expansion: &[(Pid, usize)]) -> BTreeMap<Pid, isize> {
-    let mut coordinates = BTreeMap::new();
-    let mut start = 0;
-    let mut next_radius = 0_isize;
-    let mut start_on_left = true;
-    while start < expansion.len() {
-        let distance = expansion[start].1;
-        let end = expansion[start..]
-            .iter()
-            .position(|(_, candidate_distance)| *candidate_distance != distance)
-            .map_or(expansion.len(), |offset| start + offset);
-        if distance == 0 {
-            coordinates.insert(expansion[start].0, 0);
-        } else {
-            next_radius += 1;
-            for (offset, (pid, _)) in expansion[start..end].iter().enumerate() {
-                let radius =
-                    next_radius + isize::try_from(offset / 2).expect("layout width must fit isize");
-                let left = (offset % 2 == 0) == start_on_left;
-                coordinates.insert(*pid, if left { -radius } else { radius });
-            }
-            next_radius +=
-                isize::try_from((end - start - 1) / 2).expect("layout width must fit isize");
-            start_on_left = !start_on_left;
-        }
-        start = end;
+fn ordered_siblings(
+    input: &PersonIndexInput<'_>,
+    person_indices: &[Vec<PersonIndex>],
+    layer: usize,
+    children: &[Pid],
+) -> Vec<Pid> {
+    let visible = children
+        .iter()
+        .copied()
+        .filter(|child| {
+            person_indices[layer]
+                .iter()
+                .any(|person| person.pid == *child)
+        })
+        .collect::<Vec<_>>();
+    if visible.len() <= 2 {
+        return visible;
     }
-    coordinates
+
+    let (partnered, unpartnered): (Vec<_>, Vec<_>) = visible
+        .into_iter()
+        .partition(|child| has_displayed_spouse(input, person_indices, layer, *child));
+    let left_partner_count = partnered.len().div_ceil(2);
+    partnered[..left_partner_count]
+        .iter()
+        .chain(&unpartnered)
+        .chain(&partnered[left_partner_count..])
+        .copied()
+        .collect()
+}
+
+fn has_displayed_spouse(
+    input: &PersonIndexInput<'_>,
+    person_indices: &[Vec<PersonIndex>],
+    layer: usize,
+    pid: Pid,
+) -> bool {
+    input
+        .relationship_layers
+        .get(layer + 1)
+        .into_iter()
+        .flatten()
+        .filter_map(|id| {
+            input
+                .relationships
+                .iter()
+                .find(|relationship| relationship.id == *id)
+        })
+        .any(|relationship| {
+            relationship
+                .parents
+                .iter()
+                .flatten()
+                .any(|parent| *parent == pid)
+                && relationship.parents.iter().flatten().any(|partner| {
+                    *partner != pid
+                        && person_indices[layer]
+                            .iter()
+                            .any(|person| person.pid == *partner)
+                })
+        })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::algos::LayoutAlgorithm;
-    use baumstamm_lib::RelationshipId;
+    use baumstamm_lib::{Relationship, RelationshipId};
 
     fn pid(value: u128) -> Pid {
         value.into()
@@ -183,7 +336,24 @@ mod tests {
     }
 
     fn run(layers: &Vec<Vec<Pid>>, relationships: &[Relationship]) -> PersonIndexOutput {
-        let relationship_layers = Vec::new();
+        let mut relationship_layers = vec![Vec::new(); layers.len()];
+        for relationship in relationships {
+            for layer in 1..layers.len() {
+                let parents_present = relationship
+                    .parents
+                    .iter()
+                    .flatten()
+                    .all(|parent| layers[layer - 1].contains(parent));
+                let children_present = relationship
+                    .children
+                    .iter()
+                    .all(|child| layers[layer].contains(child));
+                if parents_present && children_present {
+                    relationship_layers[layer].push(relationship.id);
+                    break;
+                }
+            }
+        }
         get_person_indices(PersonIndexInput {
             person_layers: layers,
             relationship_layers: &relationship_layers,
@@ -203,16 +373,16 @@ mod tests {
     }
 
     #[test]
-    fn expands_by_kinship_distance_from_the_oldest_layer_root() {
+    fn expands_compactly_below_the_oldest_layer_root() {
         let layers = vec![vec![pid(1), pid(9)], vec![pid(2)], vec![pid(3), pid(4)]];
         let relationships = vec![relationship(10, &[1, 2]), relationship(11, &[2, 3])];
         let output = run(&layers, &relationships);
         let root_column = column(&output, pid(1));
 
-        assert_eq!(output.row_length, 8);
-        assert_eq!(column(&output, pid(2)).abs_diff(root_column), 1);
-        assert!(column(&output, pid(3)).abs_diff(root_column) > 1);
-        assert!(column(&output, pid(9)).abs_diff(root_column) > 1);
+        assert_eq!(output.row_length, 3);
+        assert_eq!(root_column, 1);
+        assert!(column(&output, pid(2)).abs_diff(root_column) <= 1);
+        assert!(column(&output, pid(3)).abs_diff(root_column) <= 1);
     }
 
     #[test]
@@ -222,7 +392,15 @@ mod tests {
         let first = run(&layers, &relationships);
         let second = run(&layers, &relationships);
 
-        assert_eq!(column(&first, pid(2)), first.person_indices[1][0].index);
+        let repeated_columns = first
+            .person_indices
+            .iter()
+            .flatten()
+            .filter(|person| person.pid == pid(2))
+            .map(|person| person.index)
+            .collect::<Vec<_>>();
+        assert_eq!(repeated_columns.len(), 2);
+        assert!(repeated_columns[0].abs_diff(repeated_columns[1]) <= 1);
         assert_eq!(
             first
                 .person_indices
@@ -255,5 +433,76 @@ mod tests {
                 .map(|person| (person.pid, person.index))
                 .collect::<Vec<_>>()
         );
+    }
+
+    #[test]
+    fn centers_two_children_below_two_parents() {
+        let layers = vec![vec![pid(1), pid(2)], vec![pid(3), pid(4)]];
+        let relationships = vec![Relationship {
+            id: RelationshipId(10),
+            parents: [Some(pid(1)), Some(pid(2))],
+            children: vec![pid(3), pid(4)],
+        }];
+        let output = run(&layers, &relationships);
+        let center_twice = |layer: usize, people: [Pid; 2]| {
+            people
+                .map(|pid| {
+                    output.person_indices[layer]
+                        .iter()
+                        .find(|person| person.pid == pid)
+                        .expect("person occurrence")
+                        .index
+                })
+                .into_iter()
+                .sum::<usize>()
+        };
+
+        assert_eq!(
+            center_twice(0, [pid(1), pid(2)]),
+            center_twice(1, [pid(3), pid(4)])
+        );
+    }
+
+    #[test]
+    fn puts_partnered_siblings_outside_unpartnered_siblings() {
+        let layers = vec![
+            vec![pid(1), pid(2)],
+            vec![pid(3), pid(4), pid(5), pid(6), pid(7), pid(8)],
+            vec![pid(9), pid(10)],
+        ];
+        let relationships = vec![
+            Relationship {
+                id: RelationshipId(10),
+                parents: [Some(pid(1)), Some(pid(2))],
+                children: vec![pid(3), pid(4), pid(5), pid(6)],
+            },
+            Relationship {
+                id: RelationshipId(11),
+                parents: [Some(pid(3)), Some(pid(7))],
+                children: vec![pid(9)],
+            },
+            Relationship {
+                id: RelationshipId(12),
+                parents: [Some(pid(6)), Some(pid(8))],
+                children: vec![pid(10)],
+            },
+        ];
+        let output = run(&layers, &relationships);
+        let sibling_column = |pid| {
+            output.person_indices[1]
+                .iter()
+                .find(|person| person.pid == pid)
+                .expect("sibling occurrence")
+                .index
+        };
+        let partnered = [sibling_column(pid(3)), sibling_column(pid(6))];
+        let outside = [
+            *partnered.iter().min().unwrap(),
+            *partnered.iter().max().unwrap(),
+        ];
+
+        for unpartnered in [pid(4), pid(5)].map(sibling_column) {
+            assert!(outside[0] < unpartnered && unpartnered < outside[1]);
+        }
     }
 }
